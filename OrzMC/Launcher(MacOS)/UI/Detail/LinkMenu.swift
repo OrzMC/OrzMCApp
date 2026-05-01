@@ -50,7 +50,7 @@ extension LinkMenu {
         let name: String
     }
     static let allLinkItems: [LinkInfo] = [
-        .init(url: "https://minecraft.jokerhub.cn", icon: "house", type: .home, name: "Home"),
+        .init(url: "https://orzmc.jokerhub.cn", icon: "house", type: .home, name: "Home"),
         .init(url: "https://papermc.io/", icon: "paperplane", type: .papermc, name: "PaperMC"),
         .init(url: "https://hangar.papermc.io/", icon: "powerplug", type: .gameExt, name: "Hangar"),
         .init(url: "https://aternos.org/server/", icon: "testtube.2", type: .testServer, name: "Aternos"),
