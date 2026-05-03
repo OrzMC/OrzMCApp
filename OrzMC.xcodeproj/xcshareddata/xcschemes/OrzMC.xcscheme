@@ -28,28 +28,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2B1C79A728FEAB0700D53658"
-               BuildableName = "OrzMCTests.xctest"
-               BlueprintName = "OrzMCTests"
-               ReferencedContainer = "container:OrzMC.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2B1C79B128FEAB0700D53658"
-               BuildableName = "OrzMCUITests.xctest"
-               BlueprintName = "OrzMCUITests"
-               ReferencedContainer = "container:OrzMC.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

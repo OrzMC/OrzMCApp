@@ -61,18 +61,19 @@ open class MCSLP {
         requestPacket.writeID(0x00)
         requestPacket.encapsulate()
         try client.write(from: requestPacket.data)
-        usleep(400000)
         
         var data = Data()
         _ = try client.read(into: &data)
         
         let reponse = MCSLPPacket(data: data)
         // PacketLength
-        _ = try! reponse.readVarInt()
+        _ = try reponse.readVarInt()
         // packetID
-        let _ = reponse.readID()
+        guard reponse.readID() != nil else {
+            throw MCSLPError.packetMalFormat
+        }
         // JSON String
-        let jsonStr = reponse.readString()
+        let jsonStr = try reponse.readString()
         
         let ping = try self.ping()
         

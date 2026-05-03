@@ -59,7 +59,7 @@ open class MCRCON {
             try client.connect(to: self.host, port: self.port)
         }
         
-        let loginPacket = RCONPacket(id: self.requestID, type: .auth, body: password)
+        let loginPacket = RCONPacket(id: nextRequestID(), type: .auth, body: password)
         try client.write(from: loginPacket.data)
         
         var data = Data()
@@ -85,7 +85,7 @@ open class MCRCON {
             throw MCRCONError.socketCreateFailed
         }
         
-        let commandPacket = RCONPacket(id: self.requestID, type: .command, body: cmd)
+        let commandPacket = RCONPacket(id: nextRequestID(), type: .command, body: cmd)
         try client.write(from: commandPacket.data)
 
         var data = Data()
@@ -103,5 +103,12 @@ open class MCRCON {
     
     deinit {
         client?.close()
+    }
+
+    private func nextRequestID() -> Int32 {
+        defer {
+            requestID &+= 1
+        }
+        return requestID
     }
 }

@@ -12,13 +12,17 @@ import AnyCodable
 
 extension ExarotonServerModel {
     func startConnect(for serverId: String) {
-        if websocket == nil {
+        if websocket == nil || websocketServerID != serverId {
+            websocket?.disconnect()
             websocket = ExarotonWebSocketAPI(token: token, serverId: serverId, delegate: self)
+            websocketServerID = serverId
         }
         websocket?.connect()
     }
     func stopConnect() {
         websocket?.disconnect()
+        websocket = nil
+        websocketServerID = nil
         reset()
     }
     func reset() {
@@ -36,15 +40,27 @@ extension ExarotonServerModel {
     }
 
     func startStream(_ stream: StreamCategory, data: AnyCodable? = nil)  {
-        try? websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.start, data: data))
+        do {
+            try websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.start, data: data))
+        } catch {
+            errorMessage = "Failed to start stream: \(error.localizedDescription)"
+        }
     }
 
     func sendConsoleCmd(_ cmd: AnyCodable) {
-        try? websocket?.send(message: ExarotonMessage(stream: .console, type: StreamType.command, data: cmd))
+        do {
+            try websocket?.send(message: ExarotonMessage(stream: .console, type: StreamType.command, data: cmd))
+        } catch {
+            errorMessage = "Failed to send console command: \(error.localizedDescription)"
+        }
     }
 
     func stopStream(_ stream: StreamCategory) {
-        try? websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.stop, data: nil))
+        do {
+            try websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.stop, data: nil))
+        } catch {
+            errorMessage = "Failed to stop stream: \(error.localizedDescription)"
+        }
     }
 }
 

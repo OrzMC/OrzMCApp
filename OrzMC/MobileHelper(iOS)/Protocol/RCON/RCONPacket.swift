@@ -49,16 +49,19 @@ struct RCONPacket {
         guard let validData = data else {
             return nil
         }
-        let bytes = [Byte](validData)
-        if  let size = [UInt8](bytes[0...3]).readInt32LittenEndian(), size >= 10,
-            let id = [UInt8](bytes[4...7]).readInt32LittenEndian(),
-            let typeRawValue = [UInt8](bytes[8...11]).readInt32LittenEndian(),
+        let bytes = [UInt8](validData)
+        guard bytes.count >= 14,
+              let size = [UInt8](bytes[0...3]).readInt32LittenEndian(),
+              size >= 10,
+              Int(size) + 4 <= bytes.count,
+              let id = [UInt8](bytes[4...7]).readInt32LittenEndian(),
+              let typeRawValue = [UInt8](bytes[8...11]).readInt32LittenEndian(),
             let type = Type(rawValue: typeRawValue),
-            let body = String(bytes: [UInt8](bytes[12..<Int(size + 3)]), encoding: .utf8) {
-            self.init(id: id, type: type, body: body)
-        } else {
+              let body = String(bytes: [UInt8](bytes[12..<Int(size + 2)]), encoding: .utf8)
+        else {
             return nil
         }
+        self.init(id: id, type: type, body: body)
     }
 }
 

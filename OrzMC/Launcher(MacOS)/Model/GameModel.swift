@@ -53,6 +53,8 @@ final class GameModel {
     var progress: Double = 0.0
     
     var isFetchingGameVersions: Bool = false
+
+    var errorMessage: String?
     
     var isClient: Bool { gameType == .client }
     
@@ -71,6 +73,10 @@ final class GameModel {
     var serverPluginDownloadProgressTitle: String = ""
 
     var runningServerPids = Set<String>()
+
+    private let javaRuntimeService = JavaRuntimeService()
+
+    private let serverProcessService = ServerProcessService()
 }
 
 extension GameModel {
@@ -112,22 +118,13 @@ extension GameModel {
         return Int(javaVersion.majorVersion)
     }
     
-    enum JavaRuntimeStatus {
-        case unknown
-        case valid
-        case invalid
-    }
+    typealias JavaRuntimeStatus = JavaRuntimeService.Status
     
     var javaRuntimeStatus: JavaRuntimeStatus {
-        guard let currentJavaMajorVersion, let selectedGameJavaMajorVersionRequired
-        else {
-            return .unknown
-        }
-        if currentJavaMajorVersion >= selectedGameJavaMajorVersionRequired {
-            return .valid
-        } else {
-            return .invalid
-        }
+        javaRuntimeService.status(
+            currentMajorVersion: currentJavaMajorVersion,
+            requiredMajorVersion: selectedGameJavaMajorVersionRequired
+        )
     }
     
     var selectedServerPID: String? {
@@ -175,10 +172,16 @@ extension GameModel {
         }
         
         Task {
-            guard let gameInfo = try? await selectedVersion.gameVersion
-            else { return }
-            await MainActor.run {
-                gameInfoMap[selectedVersion] = gameInfo
+            do {
+                guard let gameInfo = try await selectedVersion.gameVersion
+                else { return }
+                await MainActor.run {
+                    gameInfoMap[selectedVersion] = gameInfo
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Failed to load game info: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -191,15 +194,21 @@ extension GameModel {
         
         Task {
             self.isLaunchingGame = true
-            
-            switch gameType {
-            case .client:
-                try await startClient(selectedVersion)
-            case .server:
-                try await startServer(selectedVersion)
+            defer {
+                self.isLaunchingGame = false
             }
             
-            self.isLaunchingGame = false
+            do {
+                switch gameType {
+                case .client:
+                    try await startClient(selectedVersion)
+                case .server:
+                    try await startServer(selectedVersion)
+                }
+            } catch {
+                self.progress = 0
+                self.errorMessage = "Failed to start \(gameType.rawValue): \(error.localizedDescription)"
+            }
         }
     }
     
@@ -251,14 +260,19 @@ extension GameModel {
         let running = Set(pids)
         runningServerPids = running
         if !GameModel.serverPIDMap.isEmpty {
-            GameModel.serverPIDMap = GameModel.serverPIDMap.filter { running.contains($0.value) }
+            GameModel.serverPIDMap = serverProcessService.filteredPIDMap(GameModel.serverPIDMap, runningPids: running)
         }
         isShowKillAllServerButton = !running.isEmpty
     }
     
     func stopAllRunningServer() {
         Task {
-            try await Shell.stopAll()
+            do {
+                try await Shell.stopAll()
+                checkRunningServer()
+            } catch {
+                errorMessage = "Failed to stop servers: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -271,12 +285,17 @@ extension GameModel {
         else {
             return
         }
-        _ = try? Shell.runCommand(with: ["kill", pid])
-        GameModel.serverPIDMap.removeValue(forKey: serverKey(versionId: versionId, software: software))
+        do {
+            try Shell.runCommand(with: ["kill", pid])
+            GameModel.serverPIDMap.removeValue(forKey: serverKey(versionId: versionId, software: software))
+            checkRunningServer()
+        } catch {
+            errorMessage = "Failed to stop server: \(error.localizedDescription)"
+        }
     }
 
     func serverKey(versionId: String, software: SettingsModel.ServerSoftware) -> String {
-        "\(versionId)#\(software.rawValue)"
+        serverProcessService.key(versionId: versionId, software: software)
     }
 
     func updateProgress(_ progress: Double) {
@@ -294,10 +313,7 @@ extension GameModel {
             }
             let serverPluginUpdateDirPath = GameDir.serverPluginUpdate(version: version, type: Game.GameType.paper.rawValue).dirPath
             try serverPluginUpdateDirPath.makeDirIfNeed()
-            guard let outputDirFileURL = URL(string: serverPluginUpdateDirPath)
-            else {
-                return
-            }
+            let outputDirFileURL = URL(fileURLWithPath: serverPluginUpdateDirPath)
             serverPluginDownloadProgress = Float.leastNonzeroMagnitude
             let plugin = PaperPlugin()
             let allPlugins = try await plugin.allPlugin()
@@ -318,6 +334,7 @@ extension GameModel {
             serverPluginDownloadProgress = 0
         } catch {
             serverPluginDownloadProgress = 0
+            errorMessage = "Failed to download server plugins: \(error.localizedDescription)"
         }
     }
 }

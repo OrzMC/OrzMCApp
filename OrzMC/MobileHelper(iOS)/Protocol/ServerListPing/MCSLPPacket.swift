@@ -64,7 +64,7 @@ class MCSLPPacket {
     }
     
     init(data: Data = Data()) {
-        let bytes = [Byte](data)
+        let bytes = [UInt8](data)
         self.bytes = bytes
         self.current = 0
     }
@@ -94,7 +94,10 @@ extension MCSLPPacket {
         var result: Int32 = 0
         var read: UInt8
         repeat {
-            read = readByte() ?? 0
+            guard let nextByte = readByte() else {
+                throw MCSLPError.packetMalFormat
+            }
+            read = nextByte
             let value = (read & 0b01111111)
             result |= Int32((value << (7 * numRead)))
             
@@ -123,9 +126,17 @@ extension MCSLPPacket {
         }
     }
     
-    func readString() -> String? {
-        let _ = try! readVarInt()
-        let ret = String(bytes: bytes[current..<bytes.count], encoding: .utf8)
+    func readString() throws -> String? {
+        let length = try readVarInt()
+        guard length >= 0 else {
+            throw MCSLPError.packetMalFormat
+        }
+        let end = current + Int(length)
+        guard end <= bytes.count else {
+            throw MCSLPError.packetMalFormat
+        }
+        let ret = String(bytes: bytes[current..<end], encoding: .utf8)
+        current = end
         return ret
     }
     

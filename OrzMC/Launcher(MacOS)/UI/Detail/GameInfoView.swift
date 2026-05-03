@@ -15,6 +15,26 @@ struct GameInfoView: View {
             .navigationDestination(for: DetailViewTool.ToolItem.self, destination: handleTool)
             .navigationDestination(for: LinkMenu.LinkInfo.self, destination: handleLink)
             .detailTool(model: $model)
+            .alert("Remote Server Error", isPresented: Binding(
+                get: { model.errorMessage != nil },
+                set: { if !$0 { model.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    model.errorMessage = nil
+                }
+            } message: {
+                Text(model.errorMessage ?? "")
+            }
+            .alert("Remote Server", isPresented: Binding(
+                get: { model.statusMessage != nil },
+                set: { if !$0 { model.statusMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    model.statusMessage = nil
+                }
+            } message: {
+                Text(model.statusMessage ?? "")
+            }
     }
     @ViewBuilder
     func handleTool(_ tool: DetailViewTool.ToolItem) -> some View {

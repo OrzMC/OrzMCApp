@@ -76,6 +76,12 @@
     "Metrics" : {
 
     },
+    "OK" : {
+
+    },
+    "Operation Failed" : {
+
+    },
     "Playlist" : {
 
     },
@@ -89,6 +95,9 @@
 
     },
     "Remote Server" : {
+
+    },
+    "Remote Server Error" : {
 
     },
     "Required:" : {

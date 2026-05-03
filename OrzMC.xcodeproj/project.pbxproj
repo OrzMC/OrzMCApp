@@ -74,10 +74,28 @@
 		F3B4D0E72A1A7BEB0095B108 /* MCServerInfo+Equatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B4D0E62A1A7BEB0095B108 /* MCServerInfo+Equatable.swift */; platformFilter = ios; };
 		F3FE52112BF7B494006E79AA /* ExarotonServerStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FE52102BF7B494006E79AA /* ExarotonServerStatusView.swift */; };
 		F3FE52132BF7B4FC006E79AA /* ExarotonServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FE52122BF7B4FC006E79AA /* ExarotonServerView.swift */; };
+		C0D000010000000000000001 /* LauncherServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D000020000000000000001 /* LauncherServices.swift */; platformFilters = (macos, ); };
+		C0D000010000000000000002 /* LauncherServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D000020000000000000002 /* LauncherServicesTests.swift */; };
+		C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D000020000000000000003 /* ProtocolPacketTests.swift */; };
+		C0D000010000000000000004 /* MCSLPPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B4D0C02A1A776A0095B108 /* MCSLPPacket.swift */; };
+		C0D000010000000000000005 /* MCSLPError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B4D0C42A1A776A0095B108 /* MCSLPError.swift */; };
+		C0D000010000000000000006 /* RCONPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B4D0BD2A1A776A0095B108 /* RCONPacket.swift */; };
+		C0D000010000000000000007 /* Int32+littleEndianBytes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B4D0BB2A1A776A0095B108 /* Int32+littleEndianBytes.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C0D000090000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B1C798A28FEAB0600D53658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B1C799128FEAB0600D53658;
+			remoteInfo = OrzMC;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		2B1C799228FEAB0600D53658 /* OrzMC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OrzMC.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0D000020000000000000004 /* OrzMCTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrzMCTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B1C799528FEAB0600D53658 /* OrzMCApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrzMCApp.swift; sourceTree = "<group>"; };
 		2B1C799E28FEAB0700D53658 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2B1C79A028FEAB0700D53658 /* OrzMC.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrzMC.entitlements; sourceTree = "<group>"; };
@@ -121,6 +139,9 @@
 		F310C79F2C8B6B5D00590F32 /* documentation.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = documentation.docc; sourceTree = "<group>"; };
 		F339F62129038E60003CB50C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F3B18FAB2BE242A2002C7851 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		C0D000020000000000000001 /* LauncherServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherServices.swift; sourceTree = "<group>"; };
+		C0D000020000000000000002 /* LauncherServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherServicesTests.swift; sourceTree = "<group>"; };
+		C0D000020000000000000003 /* ProtocolPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolPacketTests.swift; sourceTree = "<group>"; };
 		F3B4D0BB2A1A776A0095B108 /* Int32+littleEndianBytes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Int32+littleEndianBytes.swift"; sourceTree = "<group>"; };
 		F3B4D0BC2A1A776A0095B108 /* MCRCON.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCRCON.swift; sourceTree = "<group>"; };
 		F3B4D0BD2A1A776A0095B108 /* RCONPacket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RCONPacket.swift; sourceTree = "<group>"; };
@@ -159,6 +180,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0D000040000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -180,6 +208,7 @@
 			children = (
 				2B8442F82E17D38800CB0EA0 /* README.md */,
 				2B1C799428FEAB0600D53658 /* OrzMC */,
+				C0D000030000000000000001 /* OrzMCTests */,
 				2B1C799328FEAB0600D53658 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -188,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				2B1C799228FEAB0600D53658 /* OrzMC.app */,
+				C0D000020000000000000004 /* OrzMCTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -292,6 +322,7 @@
 			children = (
 				2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */,
 				F30F00EE2BDC966900CAA802 /* GameModel.swift */,
+				C0D000020000000000000001 /* LauncherServices.swift */,
 				2B54E0862BDDFB16001B6877 /* Version+.swift */,
 				F3B18FAB2BE242A2002C7851 /* Constants.swift */,
 			);
@@ -450,6 +481,15 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		C0D000030000000000000001 /* OrzMCTests */ = {
+			isa = PBXGroup;
+			children = (
+				C0D000020000000000000002 /* LauncherServicesTests.swift */,
+				C0D000020000000000000003 /* ProtocolPacketTests.swift */,
+			);
+			path = OrzMCTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -478,6 +518,26 @@
 			productReference = 2B1C799228FEAB0600D53658 /* OrzMC.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C0D000050000000000000001 /* OrzMCTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0D000080000000000000001 /* Build configuration list for PBXNativeTarget "OrzMCTests" */;
+			buildPhases = (
+				C0D000060000000000000001 /* Sources */,
+				C0D000040000000000000001 /* Frameworks */,
+				C0D000070000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0D0000A0000000000000001 /* PBXTargetDependency */,
+			);
+			name = OrzMCTests;
+			packageProductDependencies = (
+			);
+			productName = OrzMCTests;
+			productReference = C0D000020000000000000004 /* OrzMCTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -490,6 +550,10 @@
 				TargetAttributes = {
 					2B1C799128FEAB0600D53658 = {
 						CreatedOnToolsVersion = 14.1;
+					};
+					C0D000050000000000000001 = {
+						CreatedOnToolsVersion = 17.4;
+						TestTargetID = 2B1C799128FEAB0600D53658;
 					};
 				};
 			};
@@ -515,6 +579,7 @@
 			projectRoot = "";
 			targets = (
 				2B1C799128FEAB0600D53658 /* OrzMC */,
+				C0D000050000000000000001 /* OrzMCTests */,
 			);
 		};
 /* End PBXProject section */
@@ -527,6 +592,13 @@
 				2B1C79A328FEAB0700D53658 /* Preview Assets.xcassets in Resources */,
 				2B1C799F28FEAB0700D53658 /* Assets.xcassets in Resources */,
 				2B3B2E5C2E0C4DF7001F91AB /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0D000070000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,6 +652,7 @@
 				2B79DCF629066BBC000C21A1 /* ContentView.swift in Sources */,
 				F30F00F12BDCC6D900CAA802 /* GUIClient.swift in Sources */,
 				F30F00EF2BDC966900CAA802 /* GameModel.swift in Sources */,
+				C0D000010000000000000001 /* LauncherServices.swift in Sources */,
 				F3B4D0DB2A1A776A0095B108 /* MCQuery+Packet.swift in Sources */,
 				F3B4D0CE2A1A776A0095B108 /* MCRCON.swift in Sources */,
 				F30F00ED2BDBDF7000CAA802 /* GameView.swift in Sources */,
@@ -598,7 +671,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0D000060000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0D000010000000000000002 /* LauncherServicesTests.swift in Sources */,
+				C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */,
+				C0D000010000000000000004 /* MCSLPPacket.swift in Sources */,
+				C0D000010000000000000005 /* MCSLPError.swift in Sources */,
+				C0D000010000000000000006 /* RCONPacket.swift in Sources */,
+				C0D000010000000000000007 /* Int32+littleEndianBytes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C0D0000A0000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B1C799128FEAB0600D53658 /* OrzMC */;
+			targetProxy = C0D000090000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2B1C79BA28FEAB0700D53658 /* Debug */ = {
@@ -809,6 +903,53 @@
 			};
 			name = Release;
 		};
+		C0D0000B0000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F3FFCD152C45856100414587 /* Config.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2N62934Y28;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMCTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OrzMC.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OrzMC";
+			};
+			name = Debug;
+		};
+		C0D0000B0000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F3FFCD152C45856100414587 /* Config.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2N62934Y28;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMCTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OrzMC.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OrzMC";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -826,6 +967,15 @@
 			buildConfigurations = (
 				2B1C79BD28FEAB0700D53658 /* Debug */,
 				2B1C79BE28FEAB0700D53658 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0D000080000000000000001 /* Build configuration list for PBXNativeTarget "OrzMCTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0D0000B0000000000000001 /* Debug */,
+				C0D0000B0000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

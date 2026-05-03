@@ -31,6 +31,8 @@ struct GameView: View {
     @State private var jdkFileURL: URL? = nil
     
     @Environment(GameModel.self) private var model
+
+    private let versionFilterService = VersionFilterService()
     
     var body: some View {
         @Bindable var model = model
@@ -112,19 +114,26 @@ struct GameView: View {
                                                 }
                                             }
                                             
-                                            downloadingJDK = true
-                                            let javaVersion = String(javaVersionInt)
-                                            jdkFileURL = try await OracleJava.downloadJDK(javaVersion) { progress in
-                                                await MainActor.run {
-                                                    downloadJDKProgress = progress * 100
+                                            do {
+                                                downloadingJDK = true
+                                                defer {
+                                                    downloadingJDK = false
                                                 }
-                                            }
-                                            downloadingJDK = false
-                                            
-                                            if let jdkFilePath = jdkFileURL?.path() {
-                                                downloadJDKCompleted = FileManager.default.fileExists(atPath: jdkFilePath)
-                                            } else {
+                                                let javaVersion = String(javaVersionInt)
+                                                jdkFileURL = try await OracleJava.downloadJDK(javaVersion) { progress in
+                                                    await MainActor.run {
+                                                        downloadJDKProgress = progress * 100
+                                                    }
+                                                }
+
+                                                if let jdkFilePath = jdkFileURL?.path() {
+                                                    downloadJDKCompleted = FileManager.default.fileExists(atPath: jdkFilePath)
+                                                } else {
+                                                    downloadJDKCompleted = false
+                                                }
+                                            } catch {
                                                 downloadJDKCompleted = false
+                                                model.errorMessage = "Failed to download JDK: \(error.localizedDescription)"
                                             }
                                         }
                                         
@@ -273,23 +282,25 @@ extension GameView {
     func reloadList() {
         Task {
             model.isFetchingGameVersions = true
-            try await model.fetchGameVersions()
-            model.isFetchingGameVersions = false
+            defer {
+                model.isFetchingGameVersions = false
+            }
+            do {
+                try await model.fetchGameVersions()
+            } catch {
+                model.errorMessage = "Failed to fetch game versions: \(error.localizedDescription)"
+            }
             refreshList()
         }
     }
     
     @MainActor
     func refreshList() {
-        if searchContent.isEmpty {
-            filteredVersions = model.versions
-        } else {
-            filteredVersions = model.versions.filter { $0.id.contains(searchContent)}
-        }
-        
-        if showOnlyRelease {
-            filteredVersions = filteredVersions.filter { $0.buildType == .release }
-        }
+        filteredVersions = versionFilterService.filter(
+            versions: model.versions,
+            searchText: searchContent,
+            releaseOnly: showOnlyRelease
+        )
         
         if model.selectedVersion == nil {
             model.selectedVersion = filteredVersions.first

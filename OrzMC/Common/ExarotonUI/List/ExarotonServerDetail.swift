@@ -87,20 +87,32 @@ struct ExarotonServerDetail: View {
 
                     Button("Start Server", systemImage: "restart.circle") {
                         Task {
-                            await model.startServer(serverId: server.id!)
+                            guard let serverID = server.id else {
+                                model.errorMessage = "Server ID is missing."
+                                return
+                            }
+                            await model.startServer(serverId: serverID)
                         }
                     }.disabled(serverStatus != .OFFLINE)
 
                     Button("Stop Server", systemImage: "stop.fill") {
                         Task {
-                            await model.stopServer(serverId: server.id!)
+                            guard let serverID = server.id else {
+                                model.errorMessage = "Server ID is missing."
+                                return
+                            }
+                            await model.stopServer(serverId: serverID)
                         }
                     }
                     .disabled(serverStatus != .ONLINE)
 
                     Button("Restart Server", systemImage: "restart.circle.fill") {
                         Task {
-                            await model.restartServer(serverId: server.id!)
+                            guard let serverID = server.id else {
+                                model.errorMessage = "Server ID is missing."
+                                return
+                            }
+                            await model.restartServer(serverId: serverID)
                         }
                     }
                     .disabled(serverStatus != .ONLINE)
@@ -197,10 +209,14 @@ struct ExarotonServerDetail: View {
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
         .task {
-            model.startConnect(for: server.id!)
+            guard let serverID = server.id else {
+                model.errorMessage = "Server ID is missing."
+                return
+            }
+            model.startConnect(for: serverID)
             wsServerReady = model.readyServerID != nil
             networkOpacity = wsServerReady ? 1 : 0
-            if let ram = await model.getRAM(serverId: server.id!) {
+            if let ram = await model.getRAM(serverId: serverID) {
                 serverRAM = ram
             }
         }

@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct ExarotonServerList: View {
-    @AppStorage(ExarotonServerModel.accountTokenPersistentKey) private var token: String = ""
     @Environment(ExarotonServerModel.self) var model
+    @State private var token: String = ""
     @State private var isLoading = false
     @State private var showTokenInput = false
     var body: some View {
@@ -82,6 +82,7 @@ struct ExarotonServerList: View {
                 .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
         .task {
+            token = model.token
             if model.token.isEmpty {
                 showTokenInput = true
             } else {

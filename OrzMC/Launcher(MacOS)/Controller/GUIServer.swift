@@ -63,13 +63,25 @@ struct GUIServer: Server, Sendable {
                 return nil
             }
             
-            var jarData = Data()
+            let temporaryURL = jarFileURL.appendingPathExtension("download")
+            if FileManager.default.fileExists(atPath: temporaryURL.path()) {
+                try FileManager.default.removeItem(at: temporaryURL)
+            }
+            FileManager.default.createFile(atPath: temporaryURL.path(), contents: nil)
+            let fileHandle = try FileHandle(forWritingTo: temporaryURL)
+            defer {
+                try? fileHandle.close()
+            }
+
+            var downloadedBytes = 0
             var progress: Double = 0
             for try await byteChunkResult in dataStream {
                 switch byteChunkResult {
                 case .success(let byteChunk):
-                    jarData.append(Data(byteChunk))
-                    let curProgress = Double(jarData.count) / Double(total)
+                    let data = Data(byteChunk)
+                    try fileHandle.write(contentsOf: data)
+                    downloadedBytes += data.count
+                    let curProgress = Double(downloadedBytes) / Double(total)
                     let delta = curProgress - progress
                     if delta > 0.01 || curProgress == 1 {
                         progress = curProgress
@@ -85,7 +97,10 @@ struct GUIServer: Server, Sendable {
             if !FileManager.default.fileExists(atPath: dirURL.path()) {
                 try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
             }
-            try jarData.write(to: jarFileURL, options: .atomic)
+            if FileManager.default.fileExists(atPath: jarFileURL.path()) {
+                try FileManager.default.removeItem(at: jarFileURL)
+            }
+            try FileManager.default.moveItem(at: temporaryURL, to: jarFileURL)
         }
         await MainActor.run {
             self.gameModel.updateProgress(1)
@@ -128,15 +143,30 @@ struct GUIServer: Server, Sendable {
             let (dataStream, response) = try await URLSession.shared.bytes(from: serverURL)
             let totalBytes = Int(response.expectedContentLength)
             
-            var jarData = Data()
-            jarData.reserveCapacity(max(totalBytes, 0))
+            let temporaryURL = jarFileURL.appendingPathExtension("download")
+            if FileManager.default.fileExists(atPath: temporaryURL.path()) {
+                try FileManager.default.removeItem(at: temporaryURL)
+            }
+            FileManager.default.createFile(atPath: temporaryURL.path(), contents: nil)
+            let fileHandle = try FileHandle(forWritingTo: temporaryURL)
+            defer {
+                try? fileHandle.close()
+            }
             
+            var downloadedBytes = 0
             var lastProgress: Double = 0
+            var buffer = Data()
+            buffer.reserveCapacity(512 * 1024)
             for try await byte in dataStream {
-                jarData.append(byte)
+                buffer.append(byte)
+                downloadedBytes += 1
+                if buffer.count >= 512 * 1024 {
+                    try fileHandle.write(contentsOf: buffer)
+                    buffer.removeAll(keepingCapacity: true)
+                }
                 
                 guard totalBytes > 0 else { continue }
-                let curProgress = Double(jarData.count) / Double(totalBytes)
+                let curProgress = Double(downloadedBytes) / Double(totalBytes)
                 let delta = curProgress - lastProgress
                 if delta > 0.01 || curProgress == 1 {
                     lastProgress = curProgress
@@ -145,8 +175,14 @@ struct GUIServer: Server, Sendable {
                     }
                 }
             }
+            if !buffer.isEmpty {
+                try fileHandle.write(contentsOf: buffer)
+            }
             
-            try jarData.write(to: jarFileURL, options: .atomic)
+            if FileManager.default.fileExists(atPath: jarFileURL.path()) {
+                try FileManager.default.removeItem(at: jarFileURL)
+            }
+            try FileManager.default.moveItem(at: temporaryURL, to: jarFileURL)
         }
         
         await MainActor.run {

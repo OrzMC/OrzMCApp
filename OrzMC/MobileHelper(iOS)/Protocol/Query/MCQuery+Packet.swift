@@ -72,6 +72,9 @@ extension MCQuery {
                 var lastIndex = 0
                 for (index, byte) in payload.enumerated() {
                     if(statusInfo.count == 5) {
+                        guard index + 1 < payload.count else {
+                            return nil
+                        }
                         let hostport = UInt16(payload[index + 1]) << 8 | UInt16(payload[index])
                         statusInfo.append(String(hostport))
                         lastIndex = index + 2
@@ -107,6 +110,9 @@ extension MCQuery {
         func parseFullStatus () -> MCServerFullStatus? {
             let paddingCount = 11
             if self.type == .status {
+                guard payload.count > paddingCount else {
+                    return nil
+                }
                 var keyValueInfo = [String]()
                 var lastIndex = 0
                 let invalidPayload = [Byte](payload[paddingCount..<payload.count])
@@ -117,6 +123,9 @@ extension MCQuery {
                             keyValueInfo.append(value)
                         }
                         lastIndex = index + 1
+                        guard lastIndex < invalidPayload.count else {
+                            return nil
+                        }
                         if(invalidPayload[lastIndex] == 0x00) {
                             lastIndex += paddingCount
                             break
@@ -125,6 +134,9 @@ extension MCQuery {
                 }
                 
                 var playersInfo = [String]()
+                guard lastIndex <= invalidPayload.count else {
+                    return nil
+                }
                 let playerSection = [Byte](invalidPayload[lastIndex..<invalidPayload.count])
                 lastIndex = 0
                 for (index, byte) in playerSection.enumerated() {

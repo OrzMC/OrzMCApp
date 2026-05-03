@@ -12,6 +12,7 @@ enum MCSLPError: Error {
     
     case socketCreateFailed
     case VarIntTooBig
+    case packetMalFormat
     case pingFailed
     
 }

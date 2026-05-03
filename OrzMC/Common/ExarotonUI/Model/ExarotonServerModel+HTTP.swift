@@ -10,6 +10,7 @@ import ExarotonHTTP
 extension ExarotonServerModel {
     @MainActor
     func fetchServers() async {
+        guard let httpClient else { return }
         do {
             let response = try await httpClient.getServers()
             switch response {
@@ -21,59 +22,81 @@ extension ExarotonServerModel {
                 break
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to fetch Exaroton servers: \(error.localizedDescription)"
         }
     }
 
     func startServer(serverId: String) async -> Bool {
+        guard let httpClient else { return false }
         do {
             let reponse = try await httpClient.getStartServer(path: .init(serverId: serverId))
             switch reponse {
             case .ok(let ok):
                 let json = try ok.body.json
-                return json.success ?? false
+                let success = json.success ?? false
+                statusMessage = success ? "Server start requested." : nil
+                if !success {
+                    errorMessage = "Exaroton did not accept the start request."
+                }
+                return success
             default:
+                errorMessage = "Failed to start Exaroton server: unexpected response."
                 return false
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to start Exaroton server: \(error.localizedDescription)"
             return false
         }
     }
 
     func stopServer(serverId: String) async -> Bool {
+        guard let httpClient else { return false }
         do {
             let reponse = try await httpClient.stopServer(path: .init(serverId: serverId))
             switch reponse {
             case .ok(let ok):
                 let json = try ok.body.json
-                return json.success ?? false
+                let success = json.success ?? false
+                statusMessage = success ? "Server stop requested." : nil
+                if !success {
+                    errorMessage = "Exaroton did not accept the stop request."
+                }
+                return success
             default:
+                errorMessage = "Failed to stop Exaroton server: unexpected response."
                 return false
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to stop Exaroton server: \(error.localizedDescription)"
             return false
         }
     }
 
     func restartServer(serverId: String) async -> Bool {
+        guard let httpClient else { return false }
         do {
             let reponse = try await httpClient.restartServer(path: .init(serverId: serverId))
             switch reponse {
             case .ok(let ok):
                 let json = try ok.body.json
-                return json.success ?? false
+                let success = json.success ?? false
+                statusMessage = success ? "Server restart requested." : nil
+                if !success {
+                    errorMessage = "Exaroton did not accept the restart request."
+                }
+                return success
             default:
+                errorMessage = "Failed to restart Exaroton server: unexpected response."
                 return false
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to restart Exaroton server: \(error.localizedDescription)"
             return false
         }
     }
 
     func fetchCreditPools() async {
+        guard let httpClient else { return }
         do {
             let response = try await httpClient.getCreditPools()
             switch response {
@@ -85,13 +108,16 @@ extension ExarotonServerModel {
                 break
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to fetch credit pools: \(error.localizedDescription)"
         }
     }
 
     func fetchCreditPoolInfo(_ pool: ExarotonCreditPool) async -> (ExarotonCreditPool?, [ExarotonCreditMember]?, [ExarotonServer]?)? {
         guard let poolId = pool.id
         else {
+            return nil
+        }
+        guard let httpClient else {
             return nil
         }
         do {
@@ -108,28 +134,34 @@ extension ExarotonServerModel {
                 return (nil, nil, nil)
             }
         } catch let error {
-            print(error.localizedDescription)
+            errorMessage = "Failed to fetch credit pool info: \(error.localizedDescription)"
             return (nil, nil, nil)
         }
     }
 
     func getRAM(serverId: String) async -> Int32? {
+        guard let httpClient else { return nil }
         do {
             let response = try await httpClient.getServerRam(path: .init(serverId: serverId))
             switch response {
             case .ok(let ok):
                 let data = try ok.body.json.data
+                if let ram = data?.ram {
+                    statusMessage = "Server RAM changed to \(ram) GB."
+                }
                 return data?.ram
             default:
+                errorMessage = "Failed to change server RAM: unexpected response."
                 return nil
             }
         } catch {
-            print(error.localizedDescription)
+            errorMessage = "Failed to fetch server RAM: \(error.localizedDescription)"
             return nil
         }
     }
 
     func changeRAM(serverId: String, ramGB: Int32) async -> Int32? {
+        guard let httpClient else { return nil }
         do {
             let response = try await httpClient.postServerRam(path: .init(serverId: serverId), body: .json(.init(ram: ramGB)))
             switch response {
@@ -140,7 +172,7 @@ extension ExarotonServerModel {
                 return nil
             }
         } catch {
-            print(error.localizedDescription)
+            errorMessage = "Failed to change server RAM: \(error.localizedDescription)"
             return nil
         }
     }
