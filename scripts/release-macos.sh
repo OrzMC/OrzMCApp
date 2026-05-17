@@ -63,6 +63,11 @@ auto_developer_id_application() {
         head -n 1
 }
 
+auto_developer_id_signing_identity() {
+    security find-identity -v -p codesigning 2>/dev/null |
+        awk '/"Developer ID Application:/ { print $2; exit }'
+}
+
 team_id_from_identity() {
     printf "%s" "$1" | sed -n 's/.*(\([A-Z0-9][A-Z0-9]*\)).*/\1/p'
 }
@@ -213,10 +218,10 @@ make_dmg() {
 
 codesign_distribution_args() {
     printf '%s\0' \
+        --sign "$DEVELOPER_ID_SIGNING_IDENTITY" \
         --force \
-        --options runtime \
         --timestamp \
-        --sign "$DEVELOPER_ID_APPLICATION"
+        --options runtime
 }
 
 codesign_app_args() {
@@ -297,6 +302,28 @@ validate_app_bundle() {
         warn "Code signature does not bind Info.plist."
         return 1
     fi
+    if [ "${DEVELOPER_ID_SIGNING_IDENTITY:-}" != "-" ]; then
+        validate_certificate_chain_embedded "$app_path"
+    fi
+}
+
+validate_certificate_chain_embedded() {
+    local app_path="$1"
+    local temp_dir
+    temp_dir="$(mktemp -d)"
+
+    if ! codesign -d --extract-certificates="$temp_dir/cert" "$app_path" >/dev/null 2>&1; then
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    if [ ! -f "$temp_dir/cert0" ]; then
+        rm -rf "$temp_dir"
+        warn "Code signature does not embed the signing certificate chain."
+        return 1
+    fi
+
+    rm -rf "$temp_dir"
 }
 
 validate_zip_artifact() {
@@ -412,6 +439,9 @@ BUILD_VERSION="${CURRENT_PROJECT_VERSION:-$(xcconfig_value CURRENT_PROJECT_VERSI
 
 DEVELOPER_ID_APPLICATION="${DEVELOPER_ID_APPLICATION:-$(auto_developer_id_application)}"
 [ -n "$DEVELOPER_ID_APPLICATION" ] || fail "Set DEVELOPER_ID_APPLICATION to your Developer ID Application certificate common name."
+
+DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$(auto_developer_id_signing_identity)}"
+DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$DEVELOPER_ID_APPLICATION}"
 
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-$(team_id_from_identity "$DEVELOPER_ID_APPLICATION")}"
 [ -n "$APPLE_TEAM_ID" ] || fail "Set APPLE_TEAM_ID, or use a Developer ID identity that includes the team id."
