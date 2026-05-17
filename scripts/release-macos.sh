@@ -74,6 +74,20 @@ find_sparkle_tool() {
         return 0
     fi
 
+    if [ -n "${DERIVED_DATA_PATH:-}" ]; then
+        local derived_data_root="$DERIVED_DATA_PATH"
+        if [ "${derived_data_root#/}" = "$derived_data_root" ]; then
+            derived_data_root="$ROOT_DIR/$derived_data_root"
+        fi
+
+        local found_in_configured_derived_data
+        found_in_configured_derived_data="$(find "$derived_data_root" -path "*/SourcePackages/artifacts/sparkle/Sparkle/bin/$tool" -type f -perm -111 2>/dev/null | head -n 1 || true)"
+        if [ -n "$found_in_configured_derived_data" ]; then
+            printf "%s" "$found_in_configured_derived_data"
+            return 0
+        fi
+    fi
+
     local found
     found="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/SourcePackages/artifacts/sparkle/Sparkle/bin/$tool" -type f -perm -111 2>/dev/null | head -n 1 || true)"
     if [ -n "$found" ]; then
