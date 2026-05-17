@@ -341,19 +341,24 @@ mkdir -p "$DIST_DIR" "$EXPORT_PATH"
 write_export_options "$EXPORT_OPTIONS_PLIST"
 
 log "Archiving $APP_NAME $MARKETING_VERSION ($BUILD_VERSION)"
-xcodebuild archive \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -destination "generic/platform=macOS" \
-    -archivePath "$ARCHIVE_PATH" \
-    "${ARCHIVE_DERIVED_DATA_ARGS[@]}" \
-    -skipPackagePluginValidation \
-    -skipMacroValidation \
-    COMPILER_INDEX_STORE_ENABLE=NO \
-    SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
-    -jobs "$(sysctl -n hw.ncpu)" \
-    "${ARCHIVE_SIGNING_ARGS[@]}" \
-    "${ARCHIVE_OPTIONAL_BUILD_SETTINGS[@]}"
+ARCHIVE_COMMAND=(
+    xcodebuild archive
+    -scheme "$SCHEME"
+    -configuration "$CONFIGURATION"
+    -destination "generic/platform=macOS"
+    -archivePath "$ARCHIVE_PATH"
+    "${ARCHIVE_DERIVED_DATA_ARGS[@]}"
+    -skipPackagePluginValidation
+    -skipMacroValidation
+    COMPILER_INDEX_STORE_ENABLE=NO
+    SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO
+    -jobs "$(sysctl -n hw.ncpu)"
+    "${ARCHIVE_SIGNING_ARGS[@]}"
+)
+if [ "${#ARCHIVE_OPTIONAL_BUILD_SETTINGS[@]}" -gt 0 ]; then
+    ARCHIVE_COMMAND+=("${ARCHIVE_OPTIONAL_BUILD_SETTINGS[@]}")
+fi
+"${ARCHIVE_COMMAND[@]}"
 
 log "Exporting Developer ID app"
 xcodebuild -exportArchive \
