@@ -42,6 +42,7 @@ NOTARY_KEYCHAIN_PROFILE=orzmc-notary
 SPARKLE_ED_KEY_FILE=/path/to/sparkle_private_key
 RELEASE_NOTES_FILE=/path/to/release-notes.md
 PUBLISH_GITHUB=1
+DERIVED_DATA_PATH=DerivedData
 ```
 
 For local packaging without notarization:
@@ -66,6 +67,31 @@ NOTARY_KEYCHAIN_PROFILE=orzmc-notary \
 
 The default repository is `OrzGeeker/OrzMCApp`, and the default release tag is
 the marketing version, matching the existing appcast URLs.
+
+## GitHub Actions
+
+`.github/workflows/release-app.yml` calls the same release script used locally.
+It imports the Developer ID certificate, reuses DerivedData and SwiftPM caches,
+then sets:
+
+```bash
+APPLE_TEAM_ID
+APPSTORE_PRIVATE_KEY
+APPSTORE_KEY_ID
+APPSTORE_ISSUER_ID
+SPARKLE_ED_PRIVATE_KEY
+GH_TOKEN
+DERIVED_DATA_PATH=DerivedData
+PUBLISH_GITHUB=1
+```
+
+For CI notarization, `APPSTORE_PRIVATE_KEY` and `SPARKLE_ED_PRIVATE_KEY` are
+Base64-encoded file contents. Local releases can continue to use
+`NOTARY_KEYCHAIN_PROFILE` and `SPARKLE_ED_KEY_FILE` instead.
+
+After the script publishes the release artifacts, the workflow commits
+`products/appcast.xml` back to the repository so the existing Sparkle feed URL
+keeps working.
 
 ## Feed Hosting
 

@@ -1,236 +1,83 @@
 name: Release App
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   app:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: maxim-lobanov/setup-xcode@v1
+
       - uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           p12-password: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
-      - run: |
+
+      - name: Configure git
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - uses: actions/cache@v4
         with:
           path: DerivedData
           key: ${{ runner.os }}-derived-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
+
       - uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData/SourcePackages
           key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+
       - uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
           key: ${{ runner.os }}-modulecache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
+
       - uses: actions/cache@v4
         with:
           path: |
             ~/.swiftpm
             ~/Library/Caches/org.swift.swiftpm
           key: ${{ runner.os }}-swiftpmcache-${{ hashFiles('**/Package.resolved') }}
+
       - name: Resolve package dependencies
         run: |
-          xcrun xcodebuild -resolvePackageDependencies -scheme OrzMC
-      - name: Archive app
-        run: |
-          mkdir -p build
-          xcrun xcodebuild archive \
+          xcrun xcodebuild -resolvePackageDependencies \
             -scheme OrzMC \
-            -configuration Release \
-            -destination "generic/platform=macOS" \
-            -archivePath build/OrzMC.xcarchive \
-            -derivedDataPath DerivedData \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
-            -jobs $(sysctl -n hw.ncpu)
-      - name: Export app (Developer ID)
+            -derivedDataPath DerivedData
+
+      - name: Build, notarize, and publish release
         env:
-          TEAM_ID: ${{ secrets.TEAM_ID }}
-        run: |
-          cat > exportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-            <dict>
-              <key>teamID</key>
-              <string>${TEAM_ID}</string>
-              <key>method</key>
-              <string>developer-id</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>signingCertificate</key>
-              <string>Developer ID Application</string>
-            </dict>
-          </plist>
-          EOF
-          xcrun xcodebuild -exportArchive \
-            -archivePath build/OrzMC.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
-            -exportPath build/mac-export
-      - name: Ensure Hardened Runtime (codesign)
-        env:
-          TEAM_ID: ${{ secrets.TEAM_ID }}
-        run: |
-          APP="build/mac-export/OrzMC.app"
-          IDENTITY_HASH=$(security find-identity -v -p codesigning | awk '/Developer ID Application/ {print $2; exit}')
-          if [ -z "$IDENTITY_HASH" ]; then echo "Developer ID Application identity not found"; exit 1; fi
-          ENTITLEMENTS="OrzMC/Common/OrzMC.entitlements"
-          if [ ! -f "$ENTITLEMENTS" ]; then ENTITLEMENTS=""; fi
-          /usr/bin/codesign --force --deep --options runtime --timestamp \
-            ${ENTITLEMENTS:+--entitlements "$ENTITLEMENTS"} \
-            --sign "$IDENTITY_HASH" "$APP"
-          /usr/bin/codesign -vvv --deep --strict "$APP"
-      - name: Notarize app (API Key)
-        env:
+          APPLE_TEAM_ID: ${{ secrets.TEAM_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NOTARY_TIMEOUT_DURATION: ${{ vars.NOTARY_TIMEOUT_DURATION }}
-        run: |
-          if [ -z "$APPSTORE_PRIVATE_KEY" ] || [ -z "$APPSTORE_KEY_ID" ] || [ -z "$APPSTORE_ISSUER_ID" ]; then
-            echo "Missing App Store Connect API Key secrets" && exit 1
-          fi
-          APP="build/mac-export/OrzMC.app"
-          ZIP="$APP.zip"
-          # Preflight: show code signature & runtime flags
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP" || true
-          /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | tee codesign-info.txt
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-          KEY_FILE="AuthKey_${APPSTORE_KEY_ID}.p8"
-          echo "$APPSTORE_PRIVATE_KEY" | base64 -d > "$KEY_FILE"
-          RESULT=$(xcrun notarytool submit \
-            --key "$KEY_FILE" \
-            --key-id "$APPSTORE_KEY_ID" \
-            --issuer "$APPSTORE_ISSUER_ID" \
-            --wait \
-            --timeout "${NOTARY_TIMEOUT_DURATION:-5m}" \
-            --output-format json \
-            "$ZIP")
-          echo "$RESULT" > notarization-result.json
-          STATUS=$(/usr/bin/plutil -extract status raw -o - notarization-result.json)
-          ID=$(/usr/bin/plutil -extract id raw -o - notarization-result.json)
-          echo "Notarization status: $STATUS, id: $ID"
-          if [ "$STATUS" != "Accepted" ] || [ -z "$ID" ] || [ "$ID" = "null" ]; then
-            echo "$RESULT"
-            if [ -n "$ID" ] && [ "$ID" != "null" ]; then
-              echo "Fetching notarization log..."
-              xcrun notarytool log "$ID" --key "$KEY_FILE" --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --output-format json | tee notarization-log.json || true
-            fi
-            echo "Notarization not accepted"; exit 1
-          fi
-          rm -f notarization-result.json
-          rm -f "$KEY_FILE" "$ZIP"
-          # Staple with retries to handle propagation delay
-          ATTEMPTS=10
-          SLEEP=30
-          i=1
-          while [ $i -le $ATTEMPTS ]; do
-            if xcrun stapler staple "$APP"; then
-              break
-            else
-              echo "Staple attempt $i failed, retrying after $SLEEP s..."
-              sleep $SLEEP
-              i=$((i+1))
-            fi
-          done
-          if [ $i -gt $ATTEMPTS ]; then
-            echo "Staple failed after $ATTEMPTS attempts"; exit 1
-          fi
-          spctl -a -t exec -vv "$APP"
-      - name: Prepare distribution metadata
-        id: meta
-        run: |
-          INFO="build/mac-export/OrzMC.app/Contents/Info.plist"
-          SHORT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO")
-          BUILD_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO")
-          DATE=$(TZ=Asia/Shanghai date +%Y%m%d_%H%M%S)
-          DIST_NAME="OrzMC_${SHORT_VERSION}_${BUILD_VERSION}_${DATE}.zip"
-          DIST_PATH="products/$DIST_NAME"
-          echo "short_version=$SHORT_VERSION" >> $GITHUB_OUTPUT
-          echo "build_version=$BUILD_VERSION" >> $GITHUB_OUTPUT
-          echo "dist_name=$DIST_NAME" >> $GITHUB_OUTPUT
-          echo "dist_path=$DIST_PATH" >> $GITHUB_OUTPUT
-      - name: Create distribution zip
-        run: |
-          mkdir -p products
-          ditto -c -k --sequesterRsrc --keepParent build/mac-export/OrzMC.app "${{ steps.meta.outputs.dist_path }}"
-      - name: Prepare Sparkle private key file
-        env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          DERIVED_DATA_PATH: DerivedData
+          PUBLISH_GITHUB: "1"
         run: |
-          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then echo "Missing SPARKLE_ED_PRIVATE_KEY secret"; exit 1; fi
-          PRIV="sparkle_ed_private_key"
-          echo "$SPARKLE_ED_PRIVATE_KEY" | base64 -d > "$PRIV"
-      - name: Generate appcast
-        run: |
-          set -euo pipefail
-          BIN="DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast"
-          if [ ! -x "$BIN" ]; then
-            ALT=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast" -print -quit 2>/dev/null)
-            if [ -x "$ALT" ]; then BIN="$ALT"; fi
-          fi
-          if [ ! -x "$BIN" ]; then echo "sparkle generate_appcast not found"; exit 1; fi
-          PRIV="sparkle_ed_private_key"
-          if [ ! -f "$PRIV" ]; then echo "Sparkle private key file missing"; exit 1; fi
-          "$BIN" --ed-key-file "$PRIV" products
-          rm -f "$PRIV"
-      - name: Update appcast enclosure URL
-        run: |
-          FILE="${{ steps.meta.outputs.dist_name }}"
-          URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.short_version }}/$FILE"
-          ESCAPED_FILE=$(printf "%s" "$FILE" | sed 's/\./\\./g')
-          ESCAPED_URL=$(printf "%s" "$URL" | sed 's/\./\\./g')
-          sed -i'' -e "s|https://.*$ESCAPED_FILE|$ESCAPED_URL|" products/appcast.xml
+          ./scripts/release-macos.sh
+
       - name: Commit appcast.xml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git add products/appcast.xml
-          git commit -m "Update appcast.xml for ${{ steps.meta.outputs.dist_name }}" || echo "No changes"
+          git commit -m "Update appcast.xml for macOS release" || echo "No appcast changes"
           git push
-      - name: Find or create release
-        id: find_or_create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          TAG="${{ steps.meta.outputs.short_version }}"
-          REPO="$GITHUB_REPOSITORY"
-          resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${REPO}/releases/tags/${TAG}" || true)
-          echo "$resp" > release.json
-          upload=$( /usr/bin/plutil -extract upload_url raw -o - release.json 2>/dev/null || true )
-          if [ -n "$upload" ]; then
-            echo "Found existing release for tag $TAG"
-            echo "upload_url=$upload" >> $GITHUB_OUTPUT
-          else
-            echo "Creating release for tag $TAG"
-            create=$(curl -s -X POST \
-              -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"draft\":false,\"prerelease\":false}" \
-              "https://api.github.com/repos/${REPO}/releases")
-            echo "$create" > release.json
-            upload=$( /usr/bin/plutil -extract upload_url raw -o - release.json )
-            echo "upload_url=$upload" >> $GITHUB_OUTPUT
-          fi
-      - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts to workflow run
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ steps.find_or_create_release.outputs.upload_url }}
-          asset_path: ${{ steps.meta.outputs.dist_path }}
-          asset_name: ${{ steps.meta.outputs.dist_name }}
-          asset_content_type: application/zip
+          name: macos-release-artifacts
+          path: |
+            dist/macos/**/*.zip
+            dist/macos/**/*.dmg
+            products/appcast.xml

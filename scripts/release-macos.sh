@@ -7,6 +7,9 @@ SCHEME="${SCHEME:-OrzMC}"
 CONFIGURATION="${CONFIGURATION:-Release}"
 APP_NAME="${APP_NAME:-OrzMC}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-OrzGeeker/OrzMCApp}"
+NOTARY_KEY_FILE=""
+SPARKLE_TEMP_KEY_FILE=""
+NOTARYTOOL_ARGS=()
 
 log() {
     printf "\n==> %s\n" "$*"
@@ -23,6 +26,19 @@ fail() {
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || fail "Missing required command: $1"
+}
+
+decode_base64_to_file() {
+    local value="$1"
+    local output="$2"
+
+    if printf "%s" "$value" | base64 --decode > "$output" 2>/dev/null; then
+        return 0
+    fi
+    if printf "%s" "$value" | base64 -d > "$output" 2>/dev/null; then
+        return 0
+    fi
+    printf "%s" "$value" | base64 -D > "$output"
 }
 
 xcconfig_value() {
@@ -74,6 +90,34 @@ find_sparkle_tool() {
     return 1
 }
 
+cleanup_sensitive_files() {
+    if [ -n "$NOTARY_KEY_FILE" ]; then
+        rm -f "$NOTARY_KEY_FILE"
+    fi
+    if [ -n "$SPARKLE_TEMP_KEY_FILE" ]; then
+        rm -f "$SPARKLE_TEMP_KEY_FILE"
+    fi
+}
+
+trap cleanup_sensitive_files EXIT
+
+prepare_notarytool_args() {
+    if [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]; then
+        NOTARYTOOL_ARGS=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
+        return 0
+    fi
+
+    if [ -n "${APPSTORE_PRIVATE_KEY:-}" ] && [ -n "${APPSTORE_KEY_ID:-}" ] && [ -n "${APPSTORE_ISSUER_ID:-}" ]; then
+        NOTARY_KEY_FILE="$DIST_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+        decode_base64_to_file "$APPSTORE_PRIVATE_KEY" "$NOTARY_KEY_FILE"
+        chmod 600 "$NOTARY_KEY_FILE"
+        NOTARYTOOL_ARGS=(--key "$NOTARY_KEY_FILE" --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID")
+        return 0
+    fi
+
+    fail "Set NOTARY_KEYCHAIN_PROFILE, or APPSTORE_PRIVATE_KEY/APPSTORE_KEY_ID/APPSTORE_ISSUER_ID. Use SKIP_NOTARIZE=1 for local packaging only."
+}
+
 notarize_and_staple() {
     local artifact="$1"
     local staple_target="$2"
@@ -83,13 +127,23 @@ notarize_and_staple() {
         return 0
     fi
 
-    [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ] || fail "Set NOTARY_KEYCHAIN_PROFILE, or use SKIP_NOTARIZE=1 for local packaging only."
+    prepare_notarytool_args
 
     log "Submitting $artifact to Apple notary service"
-    xcrun notarytool submit "$artifact" --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" --wait
+    xcrun notarytool submit "$artifact" "${NOTARYTOOL_ARGS[@]}" --wait --timeout "${NOTARY_TIMEOUT_DURATION:-30m}"
 
     log "Stapling notarization ticket to $staple_target"
-    xcrun stapler staple "$staple_target"
+    local attempts="${STAPLER_ATTEMPTS:-10}"
+    local sleep_seconds="${STAPLER_SLEEP_SECONDS:-30}"
+    local attempt=1
+    until xcrun stapler staple "$staple_target"; do
+        if [ "$attempt" -ge "$attempts" ]; then
+            fail "Stapling failed for $staple_target after $attempts attempts."
+        fi
+        warn "Staple attempt $attempt failed; retrying in ${sleep_seconds}s."
+        sleep "$sleep_seconds"
+        attempt=$((attempt + 1))
+    done
     xcrun stapler validate "$staple_target"
 }
 
@@ -160,6 +214,11 @@ update_appcast() {
 
     if [ -n "${SPARKLE_ED_KEY_FILE:-}" ]; then
         args+=("--ed-key-file" "$SPARKLE_ED_KEY_FILE")
+    elif [ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]; then
+        SPARKLE_TEMP_KEY_FILE="$DIST_DIR/sparkle_ed_private_key"
+        decode_base64_to_file "$SPARKLE_ED_PRIVATE_KEY" "$SPARKLE_TEMP_KEY_FILE"
+        chmod 600 "$SPARKLE_TEMP_KEY_FILE"
+        args+=("--ed-key-file" "$SPARKLE_TEMP_KEY_FILE")
     fi
 
     log "Generating Sparkle appcast"
@@ -226,6 +285,10 @@ NOTARY_ZIP="$DIST_DIR/${APP_NAME}_${MARKETING_VERSION}_${BUILD_VERSION}_${TIMEST
 UPDATE_ZIP="$DIST_DIR/${APP_NAME}_${MARKETING_VERSION}_${BUILD_VERSION}_${TIMESTAMP}.zip"
 DMG_PATH="$DIST_DIR/${APP_NAME}_${MARKETING_VERSION}_${BUILD_VERSION}_${TIMESTAMP}.dmg"
 APPCAST_WORK_DIR="$DIST_DIR/appcast"
+ARCHIVE_DERIVED_DATA_ARGS=()
+if [ -n "${DERIVED_DATA_PATH:-}" ]; then
+    ARCHIVE_DERIVED_DATA_ARGS=(-derivedDataPath "$DERIVED_DATA_PATH")
+fi
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR" "$EXPORT_PATH"
@@ -237,6 +300,12 @@ xcodebuild archive \
     -configuration "$CONFIGURATION" \
     -destination "generic/platform=macOS" \
     -archivePath "$ARCHIVE_PATH" \
+    "${ARCHIVE_DERIVED_DATA_ARGS[@]}" \
+    -skipPackagePluginValidation \
+    -skipMacroValidation \
+    COMPILER_INDEX_STORE_ENABLE=NO \
+    SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
+    -jobs "$(sysctl -n hw.ncpu)" \
     DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
     CODE_SIGN_STYLE=Manual \
     CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
