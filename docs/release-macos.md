@@ -1,16 +1,16 @@
-# macOS Release Flow
+# macOS 发布流程
 
-This project distributes the full macOS launcher outside the Mac App Store with
-Developer ID signing, Apple notarization, and Sparkle updates.
+本项目的完整 macOS 启动器不通过 Mac App Store 分发，而是使用
+Developer ID 签名、Apple 公证和 Sparkle 自动更新。
 
-## Prerequisites
+## 发布前准备
 
-- A `Developer ID Application` certificate installed in Keychain.
-- An Apple notarytool keychain profile.
-- The Sparkle EdDSA private key in Keychain, or a private key file.
-- Optional: GitHub CLI authenticated for release uploads.
+- 钥匙串中已安装 `Developer ID Application` 证书。
+- 已创建 Apple `notarytool` 钥匙串配置。
+- 已准备 Sparkle EdDSA 私钥，可以存放在钥匙串或文件中。
+- 可选：GitHub CLI 已登录，用于上传 Release 资产。
 
-Create the notarytool profile once:
+首次创建 `notarytool` 配置：
 
 ```bash
 xcrun notarytool store-credentials "orzmc-notary" \
@@ -19,38 +19,36 @@ xcrun notarytool store-credentials "orzmc-notary" \
   --password "APP_SPECIFIC_PASSWORD"
 ```
 
-## One Command Release
+## 一条命令发布
 
 ```bash
 NOTARY_KEYCHAIN_PROFILE=orzmc-notary \
 ./scripts/release-macos.sh
 ```
 
-The script reads `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from
-`OrzMC/Configuration/Config.xcconfig`, then creates:
+脚本会从 `OrzMC/Configuration/Config.xcconfig` 读取
+`MARKETING_VERSION` 和 `CURRENT_PROJECT_VERSION`，然后生成：
 
-- `dist/macos/<version>-<build>/...zip` for Sparkle updates
-- `dist/macos/<version>-<build>/...dmg` for direct downloads
-- `products/appcast.xml` updated for Sparkle
+- `dist/macos/<version>-<build>/...zip`：用于 Sparkle 更新。
+- `dist/macos/<version>-<build>/...dmg`：用于直接下载。
+- `products/appcast.xml`：用于 Sparkle 更新源。
 
-## Runtime Requirements
+## 运行要求
 
-Public macOS releases currently require:
+当前公开 macOS 版本要求：
 
-- macOS 14.0 Sonoma or later.
-- Apple Silicon or Intel Mac hardware.
-- Network access for first-run version/resource downloads and Sparkle updates.
-- A compatible JDK for the selected Minecraft Java Edition version. The app
-  checks the installed JDK major version and can download the required JDK when
-  needed.
+- macOS 14.0 Sonoma 或更新版本。
+- Apple Silicon 或 Intel Mac。
+- 首次获取版本清单、下载资源和 Sparkle 更新需要网络连接。
+- 启动所选 Minecraft Java Edition 版本需要兼容的 JDK。应用会检测已安装 JDK 的主版本，并可在需要时下载匹配版本。
 
-Keep these requirements aligned with:
+维护时需要保持以下位置一致：
 
-- `MACOSX_DEPLOYMENT_TARGET = 14.0` in `OrzMC.xcodeproj/project.pbxproj`
-- `sparkle:minimumSystemVersion` in `products/appcast.xml`
-- User-facing installation notes in `README.md`
+- `OrzMC.xcodeproj/project.pbxproj` 中的 `MACOSX_DEPLOYMENT_TARGET = 14.0`
+- `products/appcast.xml` 中的 `sparkle:minimumSystemVersion`
+- `README.md` 中面向用户的安装要求说明
 
-## Common Options
+## 常用选项
 
 ```bash
 DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)"
@@ -62,19 +60,17 @@ PUBLISH_GITHUB=1
 DERIVED_DATA_PATH=DerivedData
 ```
 
-For local packaging without notarization:
+仅做本地打包验证、不进行公证：
 
 ```bash
 SKIP_NOTARIZE=1 ./scripts/release-macos.sh
 ```
 
-`SKIP_NOTARIZE=1` is only for local validation. Public downloads should be
-notarized and stapled.
+`SKIP_NOTARIZE=1` 只用于本地验证。公开下载的构建必须完成公证并装订公证票据。
 
-## GitHub Release Upload
+## GitHub Release 上传
 
-By default the script only prepares local artifacts and updates the appcast.
-To upload artifacts:
+默认情况下，脚本只准备本地产物并更新 appcast。要上传 Release 资产：
 
 ```bash
 PUBLISH_GITHUB=1 \
@@ -82,14 +78,11 @@ NOTARY_KEYCHAIN_PROFILE=orzmc-notary \
 ./scripts/release-macos.sh
 ```
 
-The default repository is `OrzGeeker/OrzMCApp`, and the default release tag is
-the marketing version, matching the existing appcast URLs.
+默认仓库是 `OrzGeeker/OrzMCApp`，默认发布标签是 `MARKETING_VERSION`，与现有 appcast URL 保持一致。
 
 ## GitHub Actions
 
-`.github/workflows/release-app.yml` calls the same release script used locally.
-It imports the Developer ID certificate, reuses DerivedData and SwiftPM caches,
-then sets:
+`.github/workflows/release-app.yml` 会调用与本地相同的发布脚本。工作流会导入 Developer ID 证书，复用 DerivedData 和 SwiftPM 缓存，并设置：
 
 ```bash
 APPLE_TEAM_ID
@@ -104,34 +97,25 @@ RESIGN_EXPORTED_APP=1
 PUBLISH_GITHUB=1
 ```
 
-For CI notarization, `APPSTORE_PRIVATE_KEY` and `SPARKLE_ED_PRIVATE_KEY` are
-Base64-encoded file contents. Local releases can continue to use
-`NOTARY_KEYCHAIN_PROFILE` and `SPARKLE_ED_KEY_FILE` instead.
+CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Base64 编码后的文件内容。本地发布可以继续使用 `NOTARY_KEYCHAIN_PROFILE` 和 `SPARKLE_ED_KEY_FILE`。
 
-After the script publishes the release artifacts, the workflow commits
-`products/appcast.xml` back to the repository so the existing Sparkle feed URL
-keeps working.
+脚本上传 Release 资产后，工作流会把 `products/appcast.xml` 提交回仓库，保持现有 Sparkle 更新源地址可用。
 
-Actions archives without signing first, then signs the exported app with
-Developer ID and hardened runtime. That mirrors the historically successful CI
-path while keeping the local default on direct Developer ID archive signing.
+Actions 会先生成未签名 archive，再对导出的 app 使用 Developer ID 和强化运行时重新签名。这条路径复用了历史上稳定的 CI 流程，同时保留本地默认的直接 Developer ID archive 签名方式。
 
-## Feed Hosting
+## 更新源托管
 
-The app currently reads:
+应用当前读取的 Sparkle 更新源：
 
 ```text
 https://raw.githubusercontent.com/OrzGeeker/OrzMCApp/main/products/appcast.xml
 ```
 
-That works, but a GitHub Pages or CDN URL is easier to treat as release
-infrastructure. If the feed URL changes, update `SUFeedURL` in
-`OrzMC/Common/Info.plist` and keep the old feed reachable until most users have
-updated.
+这个地址可用，但 GitHub Pages 或 CDN 更适合作为发布基础设施。如果后续迁移更新源 URL，需要更新 `OrzMC/Common/Info.plist` 中的 `SUFeedURL`，并在大多数用户完成升级前保持旧更新源可访问。
 
-## Validation
+## 发布验证
 
-The release script runs:
+发布脚本会执行：
 
 ```bash
 codesign --verify --deep --strict
@@ -139,4 +123,4 @@ xcrun stapler validate
 spctl --assess --type execute
 ```
 
-If a public build fails any of these checks, do not publish it.
+如果公开构建没有通过这些检查，不要发布。

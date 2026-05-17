@@ -33,8 +33,8 @@
   - 在 Actions 运行 "Release App"
   - 要求 Secrets 已配置；workflow 会调用 `scripts/release-macos.sh`
   - 脚本会生成 Sparkle ZIP、签名 DMG、appcast.xml，并创建/复用同版本 tag 的 Release
-  - CI 会先无签名 archive，再在 export 后用 Developer ID + hardened runtime 重新签名，复用历史稳定路径
-  - workflow 最后会提交 `products/appcast.xml`，保持现有 Sparkle feed 地址可用
+  - CI 会先生成未签名 archive，再在 export 后用 Developer ID + 强化运行时重新签名，复用历史稳定路径
+  - workflow 最后会提交 `products/appcast.xml`，保持现有 Sparkle 更新源地址可用
 - Publish Docs
   - 运行 "Publish Docs"，生成 docs 并发布到 gh-pages
   - 访问根路径会自动重定向到 /documentation/orzmc/
@@ -60,7 +60,7 @@ base64 -i key | pbcopy
 
 ## 常见问题与诊断
 - 公证 Invalid / Hardened Runtime 未启用
-  - 发布脚本在 archive/export 阶段直接使用 Developer ID 签名，并开启 hardened runtime
+  - 发布脚本在 archive/export 阶段直接使用 Developer ID 签名，并开启强化运行时
   - 失败时优先在 Actions 日志里查看 `xcrun notarytool submit` 输出
 - Release 创建失败或资产已存在
   - 脚本使用 `gh release view/create/upload --clobber`，会复用已有 Release 并覆盖同名资产
