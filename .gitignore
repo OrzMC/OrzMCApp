@@ -5,11 +5,13 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.dmg
 .build/
 .swiftpm/
 .vscode/
 .DS_Store
 cache/
+dist/
 
 ## Custom
 products/*
