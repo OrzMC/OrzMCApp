@@ -283,12 +283,18 @@ sign_exported_app() {
 
 validate_app_bundle() {
     local app_path="$1"
+    local signature_info
 
     [ -d "$app_path" ] || fail "App bundle not found at $app_path"
-    if ! codesign --verify --deep --strict --verbose=2 "$app_path"; then
+    if ! codesign --verify --deep --strict --all-architectures --verbose=2 "$app_path"; then
         return 1
     fi
-    if ! codesign -dv --verbose=2 "$app_path" >/dev/null; then
+    if ! signature_info="$(codesign -dv --verbose=4 "$app_path" 2>&1)"; then
+        return 1
+    fi
+    printf "%s\n" "$signature_info" >&2
+    if ! printf "%s\n" "$signature_info" | grep -q "Info.plist entries="; then
+        warn "Code signature does not bind Info.plist."
         return 1
     fi
 }
