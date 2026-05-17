@@ -103,7 +103,7 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 Actions 会先生成未签名 archive，再对导出的 app 使用 Developer ID 和强化运行时重新签名。这条路径复用了历史上稳定的 CI 流程，同时保留本地默认的直接 Developer ID archive 签名方式。
 
-Release workflow 固定使用 `macos-15` runner。不要直接切换到 arm64 runner：历史构建在 arm64 runner 上出现过 `Info.plist=not bound` 的签名结果，CI 端验收可能通过，但下载到本机后会被严格 `codesign` 校验判定为无效。
+Release workflow 固定使用 `macos-15` runner 和 Xcode 16.4。不要直接切换到 arm64 runner 或 Xcode beta：历史构建在这些环境中出现过 `Info.plist=not bound` 的签名结果，CI 端验收可能通过，但下载到本机后会被严格 `codesign` 校验判定为无效。
 
 ## 更新源托管
 
