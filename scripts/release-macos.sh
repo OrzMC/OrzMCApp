@@ -310,6 +310,10 @@ ARCHIVE_DERIVED_DATA_ARGS=()
 if [ -n "${DERIVED_DATA_PATH:-}" ]; then
     ARCHIVE_DERIVED_DATA_ARGS=(-derivedDataPath "$DERIVED_DATA_PATH")
 fi
+ARCHIVE_OPTIONAL_BUILD_SETTINGS=()
+if [ -n "${ARCHIVE_ONLY_ACTIVE_ARCH:-}" ]; then
+    ARCHIVE_OPTIONAL_BUILD_SETTINGS+=(ONLY_ACTIVE_ARCH="$ARCHIVE_ONLY_ACTIVE_ARCH")
+fi
 ARCHIVE_SIGNING_ARGS=()
 case "${ARCHIVE_CODE_SIGNING_MODE:-manual}" in
     disabled)
@@ -349,8 +353,7 @@ xcodebuild archive \
     SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
     -jobs "$(sysctl -n hw.ncpu)" \
     "${ARCHIVE_SIGNING_ARGS[@]}" \
-    SKIP_INSTALL=NO \
-    ONLY_ACTIVE_ARCH=NO
+    "${ARCHIVE_OPTIONAL_BUILD_SETTINGS[@]}"
 
 log "Exporting Developer ID app"
 xcodebuild -exportArchive \
