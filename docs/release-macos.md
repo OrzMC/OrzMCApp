@@ -120,7 +120,8 @@ https://raw.githubusercontent.com/OrzGeeker/OrzMCApp/main/products/appcast.xml
 ```bash
 codesign --verify --deep --strict
 xcrun stapler validate
+hdiutil verify
 spctl --assess --type execute
 ```
 
-如果公开构建没有通过这些检查，不要发布。
+脚本会校验导出的 app、解包后的 Sparkle ZIP，以及挂载后的 DMG 内部 app。如果公开构建没有通过这些检查，不要发布。

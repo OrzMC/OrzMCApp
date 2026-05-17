@@ -106,7 +106,7 @@ find_sparkle_tool() {
 
 entitlements_file() {
     local path="$ROOT_DIR/OrzMC/Common/OrzMC.entitlements"
-    if [ -f "$path" ]; then
+    if [ -f "$path" ] && /usr/libexec/PlistBuddy -c "Print" "$path" 2>/dev/null | grep -q "="; then
         printf "%s" "$path"
     fi
 }
@@ -203,12 +203,130 @@ make_dmg() {
     local staging
     staging="$(mktemp -d)"
 
-    cp -R "$app_path" "$staging/$APP_NAME.app"
+    ditto "$app_path" "$staging/$APP_NAME.app"
     ln -s /Applications "$staging/Applications"
     rm -f "$dmg_path"
     hdiutil create -volname "$APP_NAME" -srcfolder "$staging" -ov -format UDZO "$dmg_path"
     rm -rf "$staging"
     codesign --force --sign "$DEVELOPER_ID_APPLICATION" "$dmg_path"
+}
+
+codesign_distribution_args() {
+    printf '%s\0' \
+        --force \
+        --options runtime \
+        --timestamp \
+        --sign "$DEVELOPER_ID_APPLICATION"
+}
+
+codesign_app_args() {
+    codesign_distribution_args
+
+    local entitlements
+    entitlements="$(entitlements_file)"
+    if [ -n "$entitlements" ]; then
+        printf '%s\0' --entitlements "$entitlements"
+    fi
+}
+
+sign_path() {
+    local path="$1"
+    shift
+    local args=("$@")
+
+    codesign "${args[@]}" "$path"
+}
+
+is_mach_o_file() {
+    file "$1" | grep -q "Mach-O"
+}
+
+sign_exported_app() {
+    local app_path="$1"
+    local args=()
+    local app_args=()
+    local nested_path
+
+    while IFS= read -r -d '' arg; do
+        args+=("$arg")
+    done < <(codesign_distribution_args)
+
+    while IFS= read -r -d '' arg; do
+        app_args+=("$arg")
+    done < <(codesign_app_args)
+
+    while IFS= read -r nested_path; do
+        if is_mach_o_file "$nested_path"; then
+            sign_path "$nested_path" "${args[@]}"
+        fi
+    done < <(
+        find "$app_path/Contents" -type f -perm +111 -print 2>/dev/null |
+        grep -v "^$app_path/Contents/MacOS/$APP_NAME$" |
+        awk '{ print length($0) " " $0 }' |
+        sort -rn |
+        cut -d ' ' -f 2-
+    )
+
+    while IFS= read -r nested_path; do
+        sign_path "$nested_path" "${args[@]}"
+    done < <(
+        find "$app_path/Contents" \
+            \( -name "*.app" -o -name "*.xpc" -o -name "*.appex" -o -name "*.framework" -o -name "*.dylib" \) \
+            -print 2>/dev/null |
+        awk '{ print length($0) " " $0 }' |
+        sort -rn |
+        cut -d ' ' -f 2-
+    )
+
+    sign_path "$app_path" "${app_args[@]}"
+}
+
+validate_app_bundle() {
+    local app_path="$1"
+
+    [ -d "$app_path" ] || fail "App bundle not found at $app_path"
+    if ! codesign --verify --deep --strict --verbose=2 "$app_path"; then
+        return 1
+    fi
+    if ! codesign -dv --verbose=2 "$app_path" >/dev/null; then
+        return 1
+    fi
+}
+
+validate_zip_artifact() {
+    local zip_path="$1"
+    local temp_dir
+    temp_dir="$(mktemp -d)"
+
+    ditto -x -k "$zip_path" "$temp_dir"
+    if ! validate_app_bundle "$temp_dir/$APP_NAME.app"; then
+        rm -rf "$temp_dir"
+        fail "ZIP artifact validation failed: $zip_path"
+    fi
+    rm -rf "$temp_dir"
+}
+
+validate_dmg_artifact() {
+    local dmg_path="$1"
+    local mount_dir
+    local mounted=0
+    mount_dir="$(mktemp -d)"
+
+    hdiutil verify "$dmg_path"
+    hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_dir"
+    mounted=1
+    if ! validate_app_bundle "$mount_dir/$APP_NAME.app"; then
+        if [ "$mounted" = "1" ]; then
+            hdiutil detach "$mount_dir" || true
+        fi
+        rmdir "$mount_dir" || true
+        fail "DMG artifact validation failed: $dmg_path"
+    fi
+
+    if [ "$mounted" = "1" ]; then
+        hdiutil detach "$mount_dir"
+    fi
+    rmdir "$mount_dir"
 }
 
 update_appcast() {
@@ -273,6 +391,7 @@ publish_github_release() {
 require_command xcodebuild
 require_command xcrun
 require_command ditto
+require_command file
 require_command hdiutil
 require_command codesign
 require_command spctl
@@ -369,24 +488,12 @@ xcodebuild -exportArchive \
 [ -d "$APP_PATH" ] || fail "Exported app not found at $APP_PATH"
 
 if [ "${RESIGN_EXPORTED_APP:-0}" = "1" ]; then
-    RESIGN_ARGS=(
-        --force
-        --deep
-        --options runtime
-        --timestamp
-        --sign "$DEVELOPER_ID_APPLICATION"
-    )
-    ENTITLEMENTS_FILE="$(entitlements_file)"
-    if [ -n "$ENTITLEMENTS_FILE" ]; then
-        RESIGN_ARGS+=(--entitlements "$ENTITLEMENTS_FILE")
-    fi
-
     log "Re-signing exported app with hardened runtime"
-    codesign "${RESIGN_ARGS[@]}" "$APP_PATH"
+    sign_exported_app "$APP_PATH"
 fi
 
 log "Verifying exported app signature"
-codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+validate_app_bundle "$APP_PATH"
 
 log "Creating notarization upload zip"
 make_zip "$APP_PATH" "$NOTARY_ZIP"
@@ -394,10 +501,12 @@ notarize_and_staple "$NOTARY_ZIP" "$APP_PATH"
 
 log "Creating Sparkle update zip"
 make_zip "$APP_PATH" "$UPDATE_ZIP"
+validate_zip_artifact "$UPDATE_ZIP"
 
 log "Creating signed DMG"
 make_dmg "$APP_PATH" "$DMG_PATH"
 notarize_and_staple "$DMG_PATH" "$DMG_PATH"
+validate_dmg_artifact "$DMG_PATH"
 
 log "Assessing app with Gatekeeper"
 if ! spctl --assess --type execute --verbose=4 "$APP_PATH"; then
