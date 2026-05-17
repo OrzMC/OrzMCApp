@@ -33,6 +33,23 @@ The script reads `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from
 - `dist/macos/<version>-<build>/...dmg` for direct downloads
 - `products/appcast.xml` updated for Sparkle
 
+## Runtime Requirements
+
+Public macOS releases currently require:
+
+- macOS 14.0 Sonoma or later.
+- Apple Silicon or Intel Mac hardware.
+- Network access for first-run version/resource downloads and Sparkle updates.
+- A compatible JDK for the selected Minecraft Java Edition version. The app
+  checks the installed JDK major version and can download the required JDK when
+  needed.
+
+Keep these requirements aligned with:
+
+- `MACOSX_DEPLOYMENT_TARGET = 14.0` in `OrzMC.xcodeproj/project.pbxproj`
+- `sparkle:minimumSystemVersion` in `products/appcast.xml`
+- User-facing installation notes in `README.md`
+
 ## Common Options
 
 ```bash
