@@ -63,6 +63,8 @@ jobs:
           NOTARY_TIMEOUT_DURATION: ${{ vars.NOTARY_TIMEOUT_DURATION }}
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DERIVED_DATA_PATH: DerivedData
+          ARCHIVE_CODE_SIGNING_MODE: disabled
+          RESIGN_EXPORTED_APP: "1"
           PUBLISH_GITHUB: "1"
         run: |
           ./scripts/release-macos.sh

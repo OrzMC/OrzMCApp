@@ -33,6 +33,7 @@
   - 在 Actions 运行 "Release App"
   - 要求 Secrets 已配置；workflow 会调用 `scripts/release-macos.sh`
   - 脚本会生成 Sparkle ZIP、签名 DMG、appcast.xml，并创建/复用同版本 tag 的 Release
+  - CI 会先无签名 archive，再在 export 后用 Developer ID + hardened runtime 重新签名，复用历史稳定路径
   - workflow 最后会提交 `products/appcast.xml`，保持现有 Sparkle feed 地址可用
 - Publish Docs
   - 运行 "Publish Docs"，生成 docs 并发布到 gh-pages

@@ -104,6 +104,13 @@ find_sparkle_tool() {
     return 1
 }
 
+entitlements_file() {
+    local path="$ROOT_DIR/OrzMC/Common/OrzMC.entitlements"
+    if [ -f "$path" ]; then
+        printf "%s" "$path"
+    fi
+}
+
 cleanup_sensitive_files() {
     if [ -n "$NOTARY_KEY_FILE" ]; then
         rm -f "$NOTARY_KEY_FILE"
@@ -303,6 +310,27 @@ ARCHIVE_DERIVED_DATA_ARGS=()
 if [ -n "${DERIVED_DATA_PATH:-}" ]; then
     ARCHIVE_DERIVED_DATA_ARGS=(-derivedDataPath "$DERIVED_DATA_PATH")
 fi
+ARCHIVE_SIGNING_ARGS=()
+case "${ARCHIVE_CODE_SIGNING_MODE:-manual}" in
+    disabled)
+        ARCHIVE_SIGNING_ARGS=(
+            CODE_SIGN_IDENTITY=
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            DEVELOPMENT_TEAM=
+        )
+        ;;
+    manual)
+        ARCHIVE_SIGNING_ARGS=(
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION"
+        )
+        ;;
+    *)
+        fail "Unsupported ARCHIVE_CODE_SIGNING_MODE: ${ARCHIVE_CODE_SIGNING_MODE:-}"
+        ;;
+esac
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR" "$EXPORT_PATH"
@@ -320,9 +348,7 @@ xcodebuild archive \
     COMPILER_INDEX_STORE_ENABLE=NO \
     SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
     -jobs "$(sysctl -n hw.ncpu)" \
-    DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-    CODE_SIGN_STYLE=Manual \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
+    "${ARCHIVE_SIGNING_ARGS[@]}" \
     SKIP_INSTALL=NO \
     ONLY_ACTIVE_ARCH=NO
 
@@ -333,6 +359,23 @@ xcodebuild -exportArchive \
     -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
 
 [ -d "$APP_PATH" ] || fail "Exported app not found at $APP_PATH"
+
+if [ "${RESIGN_EXPORTED_APP:-0}" = "1" ]; then
+    RESIGN_ARGS=(
+        --force
+        --deep
+        --options runtime
+        --timestamp
+        --sign "$DEVELOPER_ID_APPLICATION"
+    )
+    ENTITLEMENTS_FILE="$(entitlements_file)"
+    if [ -n "$ENTITLEMENTS_FILE" ]; then
+        RESIGN_ARGS+=(--entitlements "$ENTITLEMENTS_FILE")
+    fi
+
+    log "Re-signing exported app with hardened runtime"
+    codesign "${RESIGN_ARGS[@]}" "$APP_PATH"
+fi
 
 log "Verifying exported app signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"

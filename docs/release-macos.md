@@ -82,6 +82,8 @@ APPSTORE_ISSUER_ID
 SPARKLE_ED_PRIVATE_KEY
 GH_TOKEN
 DERIVED_DATA_PATH=DerivedData
+ARCHIVE_CODE_SIGNING_MODE=disabled
+RESIGN_EXPORTED_APP=1
 PUBLISH_GITHUB=1
 ```
 
@@ -92,6 +94,10 @@ Base64-encoded file contents. Local releases can continue to use
 After the script publishes the release artifacts, the workflow commits
 `products/appcast.xml` back to the repository so the existing Sparkle feed URL
 keeps working.
+
+Actions archives without signing first, then signs the exported app with
+Developer ID and hardened runtime. That mirrors the historically successful CI
+path while keeping the local default on direct Developer ID archive signing.
 
 ## Feed Hosting
 
