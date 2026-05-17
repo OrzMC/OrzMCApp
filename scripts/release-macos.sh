@@ -278,7 +278,7 @@ sign_exported_app() {
         cut -d ' ' -f 2-
     )
 
-    sign_path "$app_path" "${app_args[@]}"
+    sign_path "$app_path" --deep "${app_args[@]}"
 }
 
 validate_app_bundle() {
