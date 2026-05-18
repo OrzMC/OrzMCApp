@@ -283,7 +283,9 @@ sign_exported_app() {
         cut -d ' ' -f 2-
     )
 
-    sign_path "$app_path" --deep "${app_args[@]}"
+    # Sign the outer app bundle last without --deep so codesign treats it as a
+    # bundle signature and binds Contents/Info.plist into the main executable.
+    sign_path "$app_path" "${app_args[@]}"
 }
 
 validate_app_bundle() {
