@@ -434,6 +434,10 @@ require_command security
 
 [ -f "$CONFIG_FILE" ] || fail "Missing config file: $CONFIG_FILE"
 
+log "Build host toolchain"
+sw_vers
+xcodebuild -version
+
 MARKETING_VERSION="${MARKETING_VERSION:-$(xcconfig_value MARKETING_VERSION)}"
 BUILD_VERSION="${CURRENT_PROJECT_VERSION:-$(xcconfig_value CURRENT_PROJECT_VERSION)}"
 [ -n "$MARKETING_VERSION" ] || fail "MARKETING_VERSION is empty."

@@ -8,10 +8,16 @@ permissions:
 
 jobs:
   app:
-    runs-on: macos-26
+    runs-on: macos-26-intel
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode 26.4.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.4.1.app/Contents/Developer
+          sw_vers
+          xcodebuild -version
 
       - uses: apple-actions/import-codesign-certs@v2
         with:
