@@ -102,7 +102,7 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然后默认做一次脚本侧二次签名。二次签名会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次不带 `--deep` 的 bundle 签名，避免导出产物保留无效的空 entitlements blob 或未被当前系统接受的嵌套框架签名。本地排障时可设置 `RESIGN_EXPORTED_APP=0` 临时跳过二次签名。
 
-Release workflow 固定使用 `macos-26-intel` runner，并显式选择 `/Applications/Xcode_26.4.1.app`，让 CI 的签名工具链与当前本机复验环境保持一致。GitHub 的 `macos-15` 或较旧默认 Xcode 可能放过会被 macOS 26.4.1 判定为无效的签名结果。Intel 兼容性不只依赖 runner 架构，还必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
+Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.4.1.app`，让 CI 的签名工具链与当前本机复验环境保持一致。缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。GitHub 的 `macos-15`、`macos-26-intel` 或较旧默认 Xcode 可能放过会被 macOS 26.4.1 判定为无效的 universal arm64 签名结果。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
 
 ## 更新源托管
 

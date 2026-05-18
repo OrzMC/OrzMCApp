@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   app:
-    runs-on: macos-26-intel
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
@@ -32,24 +32,24 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: DerivedData
-          key: ${{ runner.os }}-derived-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-derived-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
 
       - uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData/SourcePackages
-          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles('**/Package.resolved') }}
 
       - uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
-          key: ${{ runner.os }}-modulecache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-modulecache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
 
       - uses: actions/cache@v4
         with:
           path: |
             ~/.swiftpm
             ~/Library/Caches/org.swift.swiftpm
-          key: ${{ runner.os }}-swiftpmcache-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-swiftpmcache-${{ hashFiles('**/Package.resolved') }}
 
       - name: Resolve package dependencies
         run: |
