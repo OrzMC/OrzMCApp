@@ -61,8 +61,10 @@ base64 -i key | pbcopy
 
 ## 常见问题与诊断
 - 公证 Invalid / Hardened Runtime 未启用
-  - 发布脚本在 archive/export 阶段直接使用 Developer ID 签名，并开启强化运行时
+  - 发布脚本在 archive/export 阶段使用 Developer ID 签名，并开启强化运行时
+  - CI 设置 `RESIGN_EXPORTED_APP=1`，导出后会再做一次不带空 entitlements 的 Developer ID 二次签名
   - 主应用没有签名权限需求时，不要给 target 绑定空 entitlements 文件；空 entitlements blob 可能导致 macOS 26.4.1 本机验签失败
+  - 脚本会显式拦截 `invalid entitlements blob`，避免问题产物继续上传 Release
   - 失败时优先在 Actions 日志里查看 `xcrun notarytool submit` 输出
 - Release 创建失败或资产已存在
   - 脚本使用 `gh release view/create/upload --clobber`，会复用已有 Release 并覆盖同名资产

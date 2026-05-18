@@ -92,6 +92,7 @@ APPSTORE_ISSUER_ID
 SPARKLE_ED_PRIVATE_KEY
 GH_TOKEN
 DERIVED_DATA_PATH=DerivedData
+RESIGN_EXPORTED_APP=1
 PUBLISH_GITHUB=1
 ```
 
@@ -99,7 +100,7 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 脚本上传 Release 资产后，工作流会把 `products/appcast.xml` 提交回仓库，保持现有 Sparkle 更新源地址可用。
 
-Actions 默认使用 Xcode 的 Developer ID archive/export 路径完成签名和导出，避免发布流程生成未绑定 `Contents/Info.plist` 的手工复签结果。`scripts/release-macos.sh` 仍保留 `RESIGN_EXPORTED_APP=1` 兜底开关；只有在需要手工修复导出签名时才启用，启用后会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次不带 `--deep` 的 bundle 签名。
+Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然后启用 `RESIGN_EXPORTED_APP=1` 做一次脚本侧二次签名。二次签名会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次不带 `--deep` 的 bundle 签名，避免导出产物保留无效的空 entitlements blob。
 
 Release workflow 固定使用 `macos-26-intel` runner，并显式选择 `/Applications/Xcode_26.4.1.app`，让 CI 的签名工具链与当前本机复验环境保持一致。GitHub 的 `macos-15` 或较旧默认 Xcode 可能放过会被 macOS 26.4.1 判定为无效的签名结果。Intel 兼容性不只依赖 runner 架构，还必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
 
@@ -124,6 +125,6 @@ hdiutil verify
 spctl --assess --type execute
 ```
 
-脚本会校验导出的 app、解包后的 Sparkle ZIP，以及挂载后的 DMG 内部 app，并要求 `codesign -dv --verbose=4` 输出包含 `Info.plist entries=`，同时要求 Developer ID 签名中能提取到嵌入的证书链。公开构建还需要下载 ZIP/DMG 到本机复验；如果没有通过这些检查，不要发布。
+脚本会校验导出的 app、解包后的 Sparkle ZIP，以及挂载后的 DMG 内部 app，并要求 `codesign -dv --verbose=4` 输出包含 `Info.plist entries=`，拒绝 `codesign -d --entitlements :-` 报告的 `invalid entitlements blob`，同时要求 Developer ID 签名中能提取到嵌入的证书链。公开构建还需要下载 ZIP/DMG 到本机复验；如果没有通过这些检查，不要发布。
 
 主应用当前没有启用 App Sandbox，也没有需要声明的签名权限，因此 Xcode target 不应配置空的 entitlements 文件。空 entitlements blob 在较新的 macOS 26.4.1 验签环境中会被报告为无效签名。

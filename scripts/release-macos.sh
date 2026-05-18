@@ -291,6 +291,7 @@ sign_exported_app() {
 validate_app_bundle() {
     local app_path="$1"
     local signature_info
+    local entitlements_info
 
     [ -d "$app_path" ] || fail "App bundle not found at $app_path"
     if ! codesign --verify --deep --strict --all-architectures --verbose=2 "$app_path"; then
@@ -302,6 +303,12 @@ validate_app_bundle() {
     printf "%s\n" "$signature_info" >&2
     if ! printf "%s\n" "$signature_info" | grep -q "Info.plist entries="; then
         warn "Code signature does not bind Info.plist."
+        return 1
+    fi
+    entitlements_info="$(codesign -d --entitlements :- "$app_path" 2>&1 || true)"
+    if printf "%s\n" "$entitlements_info" | grep -q "invalid entitlements blob"; then
+        printf "%s\n" "$entitlements_info" >&2
+        warn "Code signature contains an invalid entitlements blob."
         return 1
     fi
     if [ "${DEVELOPER_ID_SIGNING_IDENTITY:-}" != "-" ]; then
