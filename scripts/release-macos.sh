@@ -536,7 +536,7 @@ xcodebuild -exportArchive \
 
 [ -d "$APP_PATH" ] || fail "Exported app not found at $APP_PATH"
 
-if [ "${RESIGN_EXPORTED_APP:-0}" = "1" ]; then
+if [ "${RESIGN_EXPORTED_APP:-1}" != "0" ]; then
     log "Re-signing exported app with hardened runtime"
     sign_exported_app "$APP_PATH"
 fi
