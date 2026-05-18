@@ -281,6 +281,12 @@ sign_exported_app() {
     # Sign the outer app bundle last without --deep so codesign treats it as a
     # bundle signature and binds Contents/Info.plist into the main executable.
     sign_path "$app_path" "${app_args[@]}"
+
+    # macOS 26.4 strict validation has rejected some CI-produced universal
+    # Developer ID signatures after download even when the same bundle passed
+    # validation on the GitHub runner. A final deep pass forces codesign to
+    # rebuild every nested seal and the outer bundle signature in one operation.
+    sign_path "$app_path" --deep "${app_args[@]}"
 }
 
 validate_app_bundle() {
