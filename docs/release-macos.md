@@ -125,3 +125,5 @@ spctl --assess --type execute
 ```
 
 脚本会校验导出的 app、解包后的 Sparkle ZIP，以及挂载后的 DMG 内部 app，并要求 `codesign -dv --verbose=4` 输出包含 `Info.plist entries=`，同时要求 Developer ID 签名中能提取到嵌入的证书链。公开构建还需要下载 ZIP/DMG 到本机复验；如果没有通过这些检查，不要发布。
+
+主应用当前没有启用 App Sandbox，也没有需要声明的签名权限，因此 Xcode target 不应配置空的 entitlements 文件。空 entitlements blob 在较新的 macOS 26.4.1 验签环境中会被报告为无效签名。

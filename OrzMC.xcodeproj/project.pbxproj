@@ -823,7 +823,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = "AppIcon-iOS";
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphonesimulator*]" = "AppIcon-iOS";
-				CODE_SIGN_ENTITLEMENTS = OrzMC/Common/OrzMC.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -865,7 +864,6 @@
 			baseConfigurationReference = F3FFCD152C45856100414587 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = OrzMC/Common/OrzMC.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
