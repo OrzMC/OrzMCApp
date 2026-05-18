@@ -58,14 +58,26 @@ xcconfig_value() {
 }
 
 auto_developer_id_application() {
+    local line
+    line="$(developer_id_identity_line)"
+    printf "%s" "$line" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p'
+}
+
+auto_developer_id_signing_identity() {
+    local line
+    line="$(developer_id_identity_line)"
+    printf "%s" "$line" | awk '{ print $2 }'
+}
+
+developer_id_identity_line() {
     local keychain_args=()
     if [ -n "${DEVELOPER_ID_KEYCHAIN:-}" ]; then
         keychain_args=("$DEVELOPER_ID_KEYCHAIN")
     fi
 
     security find-identity -v -p codesigning "${keychain_args[@]}" 2>/dev/null |
-        sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' |
-        head -n 1
+        grep '"Developer ID Application:' |
+        head -n 1 || true
 }
 
 team_id_from_identity() {
@@ -249,6 +261,43 @@ sign_path() {
     codesign "${args[@]}" "$path"
 }
 
+validate_distribution_signing_identity() {
+    local keychain_args=()
+    local temp_dir
+    local probe
+    local signature_info
+
+    if [ -n "${DEVELOPER_ID_KEYCHAIN:-}" ]; then
+        keychain_args=("$DEVELOPER_ID_KEYCHAIN")
+    fi
+
+    log "Validating Developer ID signing identity"
+    security find-identity -v -p codesigning "${keychain_args[@]}"
+    security find-certificate -a -c "$DEVELOPER_ID_APPLICATION" -Z "${keychain_args[@]}" >/dev/null ||
+        fail "Developer ID certificate was not found in the signing keychain. Re-export DEVELOPER_ID_CERT_P12 from the Keychain Access 'My Certificates' item so the private key and certificate are included together."
+
+    temp_dir="$(mktemp -d)"
+    probe="$temp_dir/codesign-probe"
+    printf "OrzMC Developer ID signing probe\n" > "$probe"
+    if [ -n "${DEVELOPER_ID_KEYCHAIN:-}" ]; then
+        codesign --force --sign "$DEVELOPER_ID_SIGNING_IDENTITY" --keychain "$DEVELOPER_ID_KEYCHAIN" "$probe"
+    else
+        codesign --force --sign "$DEVELOPER_ID_SIGNING_IDENTITY" "$probe"
+    fi
+
+    signature_info="$(codesign -dv --verbose=4 "$probe" 2>&1)"
+    printf "%s\n" "$signature_info" >&2
+    if ! printf "%s\n" "$signature_info" | grep -q "^Authority=Developer ID Application:"; then
+        rm -rf "$temp_dir"
+        fail "Developer ID signing probe did not embed a usable Developer ID certificate authority."
+    fi
+    if ! codesign -d --extract-certificates="$temp_dir/cert" "$probe" >/dev/null 2>&1 || [ ! -f "$temp_dir/cert0" ]; then
+        rm -rf "$temp_dir"
+        fail "Developer ID signing probe did not embed the signing certificate chain."
+    fi
+    rm -rf "$temp_dir"
+}
+
 is_mach_o_file() {
     file "$1" | grep -q "Mach-O"
 }
@@ -313,6 +362,10 @@ validate_app_bundle() {
     printf "%s\n" "$signature_info" >&2
     if ! printf "%s\n" "$signature_info" | grep -q "Info.plist entries="; then
         warn "Code signature does not bind Info.plist."
+        return 1
+    fi
+    if ! printf "%s\n" "$signature_info" | grep -q "^Authority=Developer ID Application:"; then
+        warn "Code signature does not contain a usable Developer ID Application authority."
         return 1
     fi
     entitlements_info="$(codesign -d --entitlements :- "$app_path" 2>&1 || true)"
@@ -463,7 +516,9 @@ BUILD_VERSION="${CURRENT_PROJECT_VERSION:-$(xcconfig_value CURRENT_PROJECT_VERSI
 DEVELOPER_ID_APPLICATION="${DEVELOPER_ID_APPLICATION:-$(auto_developer_id_application)}"
 [ -n "$DEVELOPER_ID_APPLICATION" ] || fail "Set DEVELOPER_ID_APPLICATION to your Developer ID Application certificate common name."
 
-DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$DEVELOPER_ID_APPLICATION}"
+DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$(auto_developer_id_signing_identity)}"
+[ -n "$DEVELOPER_ID_SIGNING_IDENTITY" ] || DEVELOPER_ID_SIGNING_IDENTITY="$DEVELOPER_ID_APPLICATION"
+validate_distribution_signing_identity
 
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-$(team_id_from_identity "$DEVELOPER_ID_APPLICATION")}"
 [ -n "$APPLE_TEAM_ID" ] || fail "Set APPLE_TEAM_ID, or use a Developer ID identity that includes the team id."
