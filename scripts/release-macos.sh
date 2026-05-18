@@ -58,7 +58,12 @@ xcconfig_value() {
 }
 
 auto_developer_id_application() {
-    security find-identity -v -p codesigning 2>/dev/null |
+    local keychain_args=()
+    if [ -n "${DEVELOPER_ID_KEYCHAIN:-}" ]; then
+        keychain_args=("$DEVELOPER_ID_KEYCHAIN")
+    fi
+
+    security find-identity -v -p codesigning "${keychain_args[@]}" 2>/dev/null |
         sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' |
         head -n 1
 }
