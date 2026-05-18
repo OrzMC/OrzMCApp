@@ -103,7 +103,7 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 Actions 会先生成未签名 archive，再对导出的 app 使用 Developer ID 和强化运行时重新签名。最终 app 复签会使用 Developer ID 证书 SHA-1 identity，签名参数按 `codesign` 推荐顺序传入，并带 `--deep`，确保主 app、嵌套 Sparkle 组件和资源封口在同一次最终签名中一致。这条路径复用了历史上稳定的 CI 流程，同时保留本地默认的直接 Developer ID archive 签名方式。
 
-Release workflow 固定使用 `macos-26` runner 和 Xcode 16.4，让 CI 的签名验收环境与当前用户系统保持一致。GitHub 的 `macos-15` 标签当前会分配到 arm64 镜像，且 macOS 15 上的 `codesign` 可能放过会被 macOS 26 判定为无效的签名结果。Intel 兼容性不依赖 runner 架构，而依赖产物本身保持 `x86_64 arm64` universal binary。
+Release workflow 固定使用 `macos-26` runner，并使用该镜像默认 Xcode，让 CI 的签名验收环境与当前用户系统保持一致。GitHub 的 `macos-15` 标签当前会分配到 arm64 镜像，且 macOS 15 上的 `codesign` 可能放过会被 macOS 26 判定为无效的签名结果。Intel 兼容性不依赖 runner 架构，而依赖产物本身保持 `x86_64 arm64` universal binary。
 
 ## 更新源托管
 

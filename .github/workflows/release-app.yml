@@ -13,10 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "16.4"
-
       - uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
