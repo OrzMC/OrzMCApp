@@ -4,6 +4,14 @@
         <title>OrzMC</title>
         <item>
             <title>0.1.2</title>
+            <pubDate>Mon, 18 May 2026 07:22:04 +0000</pubDate>
+            <sparkle:version>40</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/OrzMC/OrzMCApp/releases/download/0.1.2/OrzMC_0.1.2_40_20260518_070152.zip" length="7124216" type="application/octet-stream" sparkle:edSignature="s5M/uPrqctVrqOyCxhcw9CgSVTnmExV50rcQ2VId9tqtr6Upi2SHdKuCOAU+B1PWExIk0yg2ZKnKE5O7vnq5CA=="/>
+        </item>
+        <item>
+            <title>0.1.2</title>
             <pubDate>Mon, 18 May 2026 06:52:32 +0000</pubDate>
             <sparkle:version>39</sparkle:version>
             <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
@@ -17,14 +25,6 @@
             <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/OrzMC/OrzMCApp/releases/download/0.1.2/OrzMC_0.1.2_38_20260518_054127.zip" length="7122480" type="application/octet-stream" sparkle:edSignature="mhn0zAyQsw9wOLiLZEJZglbSGFIFzZGBsukxtGJpyzmSlIl8pNKtwiXK5+7L1VfppcpYN1N44igCm+aIEKd7Aw=="/>
-        </item>
-        <item>
-            <title>0.1.2</title>
-            <pubDate>Mon, 18 May 2026 05:14:24 +0000</pubDate>
-            <sparkle:version>37</sparkle:version>
-            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/OrzMC/OrzMCApp/releases/download/0.1.2/OrzMC_0.1.2_37_20260518_045115.zip" length="7122538" type="application/octet-stream" sparkle:edSignature="sq1BLuffQr/rZrgwqS+yC4hE9E8N8xwGyv+BXR3CB5Sp2Qzfv0rZfXVVs+a/jxBxRirr23KHdFXKs22rmInBCQ=="/>
         </item>
     </channel>
 </rss>
