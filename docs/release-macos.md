@@ -104,6 +104,8 @@ Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然
 
 脚本侧二次签名默认使用完整的 Developer ID Application 证书名称，而不是 `security find-identity` 返回的 SHA-1 hash。这样与 Xcode archive/export 的签名身份格式保持一致，也便于发布后通过 `codesign -d --extract-certificates` 复验证书链是否嵌入公开产物。
 
+CI 会把 `DEVELOPER_ID_KEYCHAIN` 指向导入 Developer ID 证书的临时 keychain。脚本侧重签会把该 keychain 显式传给 `codesign --keychain`，避免 runner 上存在多个 keychain 或同名证书时解析到不完整的签名身份。
+
 Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.4.1.app`，让 CI 的签名工具链与当前本机复验环境保持一致。缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。GitHub 的 `macos-15`、`macos-26-intel` 或较旧默认 Xcode 可能放过会被 macOS 26.4.1 判定为无效的 universal arm64 签名结果。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
 
 ## 更新源托管

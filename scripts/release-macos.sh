@@ -212,11 +212,18 @@ make_dmg() {
 }
 
 codesign_distribution_args() {
-    printf '%s\0' \
+    local args=(
         --sign "$DEVELOPER_ID_SIGNING_IDENTITY" \
         --force \
         --timestamp \
         --options runtime
+    )
+
+    if [ -n "${DEVELOPER_ID_KEYCHAIN:-}" ]; then
+        args+=(--keychain "$DEVELOPER_ID_KEYCHAIN")
+    fi
+
+    printf '%s\0' "${args[@]}"
 }
 
 codesign_app_args() {
