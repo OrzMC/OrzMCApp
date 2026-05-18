@@ -63,11 +63,6 @@ auto_developer_id_application() {
         head -n 1
 }
 
-auto_developer_id_signing_identity() {
-    security find-identity -v -p codesigning 2>/dev/null |
-        awk '/"Developer ID Application:/ { print $2; exit }'
-}
-
 team_id_from_identity() {
     printf "%s" "$1" | sed -n 's/.*(\([A-Z0-9][A-Z0-9]*\)).*/\1/p'
 }
@@ -453,7 +448,6 @@ BUILD_VERSION="${CURRENT_PROJECT_VERSION:-$(xcconfig_value CURRENT_PROJECT_VERSI
 DEVELOPER_ID_APPLICATION="${DEVELOPER_ID_APPLICATION:-$(auto_developer_id_application)}"
 [ -n "$DEVELOPER_ID_APPLICATION" ] || fail "Set DEVELOPER_ID_APPLICATION to your Developer ID Application certificate common name."
 
-DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$(auto_developer_id_signing_identity)}"
 DEVELOPER_ID_SIGNING_IDENTITY="${DEVELOPER_ID_SIGNING_IDENTITY:-$DEVELOPER_ID_APPLICATION}"
 
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-$(team_id_from_identity "$DEVELOPER_ID_APPLICATION")}"
