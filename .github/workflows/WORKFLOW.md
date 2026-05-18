@@ -33,7 +33,7 @@
   - 在 Actions 运行 "Release App"
   - 要求 Secrets 已配置；workflow 会调用 `scripts/release-macos.sh`
   - 脚本会生成 Sparkle ZIP、签名 DMG、appcast.xml，并创建/复用同版本 tag 的 Release
-  - CI 固定使用 `macos-15-intel` 和 Xcode 16.4，会先生成未签名 archive，再在 export 后用 Developer ID + 强化运行时重新签名，复用历史稳定路径
+  - CI 固定使用 `macos-26` 和 Xcode 16.4，会先生成未签名 archive，再在 export 后用 Developer ID + 强化运行时重新签名，复用当前用户系统的严格验签环境
   - 发布脚本会校验 `Info.plist entries=` 与 Developer ID 证书链嵌入情况；发布后仍需下载公开 ZIP/DMG 到本机复验
   - workflow 最后会提交 `products/appcast.xml`，保持现有 Sparkle 更新源地址可用
 - Publish Docs
