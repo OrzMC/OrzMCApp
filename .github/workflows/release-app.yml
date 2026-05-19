@@ -6,12 +6,15 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   app:
     runs-on: macos-26
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Select Xcode 26.3
         run: |
@@ -48,22 +51,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-derived-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData/SourcePackages
           key: ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles('**/Package.resolved') }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
           key: ${{ runner.os }}-${{ runner.arch }}-modulecache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.swiftpm
@@ -99,7 +102,7 @@ jobs:
           git push
 
       - name: Upload release artifacts to workflow run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-release-artifacts
           path: |
