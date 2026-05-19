@@ -100,13 +100,13 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 脚本上传 Release 资产后，工作流会把 `products/appcast.xml` 提交回仓库，保持现有 Sparkle 更新源地址可用。
 
-Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然后默认做一次脚本侧二次签名。二次签名会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次 bundle 签名，并追加一次最终 `--deep` 签名兜底，确保 CI 产物下载到 macOS 26.4 以后仍能通过严格签名校验。本地排障时可设置 `RESIGN_EXPORTED_APP=0` 临时跳过二次签名。
+Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出。当前 GitHub Actions 发布流设置 `RESIGN_EXPORTED_APP=0`，优先使用 Xcode 导出的 Developer ID app，避免在 CI 中对已经导出的 bundle 做额外重签。本地排障时如果需要验证脚本侧重签逻辑，可临时设置 `RESIGN_EXPORTED_APP=1`；脚本会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次 bundle 签名，并追加一次最终 `--deep` 签名兜底。
 
 脚本侧二次签名默认使用完整的 Developer ID Application 证书名称，而不是 `security find-identity` 返回的 SHA-1 hash。这样与 Xcode archive/export 的签名身份格式保持一致，也便于发布后通过 `codesign -d --extract-certificates` 复验证书链是否嵌入公开产物。
 
 CI 会把 `DEVELOPER_ID_KEYCHAIN` 指向导入 Developer ID 证书的临时 keychain。脚本侧重签会把该 keychain 显式传给 `codesign --keychain`，避免 runner 上存在多个 keychain 或同名证书时解析到不完整的签名身份。
 
-Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.4.1.app`，让 CI 的签名工具链与当前本机复验环境保持一致。缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。GitHub 的 `macos-15`、`macos-26-intel` 或较旧默认 Xcode 可能放过会被 macOS 26.4.1 判定为无效的 universal arm64 签名结果。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
+Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.3.app`。当前 GitHub runner 镜像系统版本为 macOS 26.3；使用与系统小版本更匹配的 Xcode 26.3 可以避免 `macOS 26.3 runner + Xcode 26.4.1 / macOS 26.4 SDK` 组合产出本机 macOS 26.4.1 无法验证的 Developer ID 签名。缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
 
 ## 更新源托管
 
