@@ -106,7 +106,11 @@ Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然
 
 CI 会把 `DEVELOPER_ID_KEYCHAIN` 指向导入 Developer ID 证书的临时 keychain。脚本侧重签会把该 keychain 显式传给 `codesign --keychain`，避免 runner 上存在多个 keychain 或同名证书时解析到不完整的签名身份。
 
-Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.3.app`。当前 GitHub runner 镜像系统版本为 macOS 26.3；使用与系统小版本更匹配的 Xcode 26.3 可以避免 `macOS 26.3 runner + Xcode 26.4.1 / macOS 26.4 SDK` 组合产出本机 macOS 26.4.1 无法验证的 Developer ID 签名。缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
+Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式选择 `/Applications/Xcode_26.3.app`。当前 GitHub hosted runner 已验证存在限制：即使显式导入 Apple Developer ID 中间证书、切换 Xcode 26.3、并执行脚本侧二次签名，公开下载的 ZIP/DMG 在本机 macOS 26.4.1 上仍会出现 `Authority=(unavailable)`、`Info.plist=not bound`、`arm64 invalid signature`。因此 hosted workflow 默认不再发布 GitHub Release，只用于构建、诊断和上传 workflow artifact；正式发布应改用本机或 self-hosted macOS 26.4.1 runner 执行签名、公证、staple、发布。
+
+如果确实要临时恢复 hosted workflow 发布，可设置仓库变量 `PUBLISH_GITHUB=1`，但必须在发布后下载公开 ZIP/DMG 到本机执行严格复验；未通过 `codesign --verify --deep --strict --all-architectures` 和 `spctl -a -vvv -t exec` 的产物不要分发。
+
+缓存 key 包含 `runner.arch`，避免 Intel 与 Apple Silicon 的 DerivedData、SPM artifact 混用。Intel 兼容性不依赖 runner 架构，而必须在发布验证中确认产物本身保持 `x86_64 arm64` universal binary。
 
 ## 更新源托管
 

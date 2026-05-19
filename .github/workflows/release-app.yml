@@ -87,7 +87,7 @@ jobs:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DERIVED_DATA_PATH: DerivedData
           RESIGN_EXPORTED_APP: "1"
-          PUBLISH_GITHUB: "1"
+          PUBLISH_GITHUB: ${{ vars.PUBLISH_GITHUB || '0' }}
         run: |
           export DEVELOPER_ID_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
           ./scripts/release-macos.sh
