@@ -33,7 +33,8 @@
   - 在 Actions 运行 "Release App"
   - 要求 Secrets 已配置；workflow 会调用 `scripts/release-macos.sh`
   - 脚本会生成 Sparkle ZIP、签名 DMG、appcast.xml，并创建/复用同版本 tag 的 Release
-  - CI 固定使用原生 Apple Silicon `macos-26`，并显式选择与 runner 系统版本更匹配的 Xcode 26.3；避免在 macOS 26.3 runner 上用 Xcode 26.4.1 / macOS 26.4 SDK 产出本机 macOS 26.4.1 无法验证的 Developer ID 签名
+  - CI 固定使用原生 Apple Silicon `macos-26`，并显式选择与 runner 系统版本更匹配的 Xcode 26.3；当前策略继续使用 CI 产物分发，发布后需要记录本机 `codesign` / `spctl` 复验结果
+  - 已知 macOS 26.4.1 本机严格验签可能报告 `Authority=(unavailable)` / `arm64 invalid signature`；如果实际用户安装失败，应切回本机或 self-hosted runner 发布
   - 发布脚本会校验 `Info.plist entries=` 与 Developer ID 证书链嵌入情况；发布后仍需下载公开 ZIP/DMG 到本机复验
   - workflow 最后会提交 `products/appcast.xml`，保持现有 Sparkle 更新源地址可用
 - Publish Docs
