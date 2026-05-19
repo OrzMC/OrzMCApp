@@ -100,7 +100,7 @@ CI 公证使用的 `APPSTORE_PRIVATE_KEY` 和 `SPARKLE_ED_PRIVATE_KEY` 都是 Ba
 
 脚本上传 Release 资产后，工作流会把 `products/appcast.xml` 提交回仓库，保持现有 Sparkle 更新源地址可用。
 
-Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出。当前 GitHub Actions 发布流设置 `RESIGN_EXPORTED_APP=0`，优先使用 Xcode 导出的 Developer ID app，避免在 CI 中对已经导出的 bundle 做额外重签。本地排障时如果需要验证脚本侧重签逻辑，可临时设置 `RESIGN_EXPORTED_APP=1`；脚本会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次 bundle 签名，并追加一次最终 `--deep` 签名兜底。
+Actions 先使用 Xcode 的 Developer ID archive/export 路径完成导出，然后执行脚本侧二次签名。二次签名会先签内部 dylib、framework、XPC 和子 app，最后对最外层 `.app` 做一次 bundle 签名，并追加一次最终 `--deep` 签名兜底。排障时可临时设置 `RESIGN_EXPORTED_APP=0` 跳过二次签名，用来区分 Xcode 导出签名与脚本侧重签的差异。
 
 脚本侧二次签名默认使用完整的 Developer ID Application 证书名称，而不是 `security find-identity` 返回的 SHA-1 hash。这样与 Xcode archive/export 的签名身份格式保持一致，也便于发布后通过 `codesign -d --extract-certificates` 复验证书链是否嵌入公开产物。
 
