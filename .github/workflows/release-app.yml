@@ -67,7 +67,7 @@ jobs:
           NOTARY_TIMEOUT_DURATION: ${{ vars.NOTARY_TIMEOUT_DURATION }}
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DERIVED_DATA_PATH: DerivedData
-          RESIGN_EXPORTED_APP: "1"
+          RESIGN_EXPORTED_APP: "0"
           PUBLISH_GITHUB: "1"
         run: |
           export DEVELOPER_ID_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
