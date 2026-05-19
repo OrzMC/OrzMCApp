@@ -339,12 +339,10 @@ sign_exported_app() {
         cut -d ' ' -f 2-
     )
 
-    # Sign the outer app bundle last without --deep so codesign treats it as a
-    # bundle signature and binds Contents/Info.plist into the main executable.
-    sign_path "$app_path" "${app_args[@]}"
-
-    # Do not use a final --deep pass for the outer bundle. On macOS 26.4,
-    # downloaded artifacts signed that way can report Info.plist=not bound.
+    # Sign the outer app bundle last with --deep. macOS 26.4 strict validation
+    # rejects the exported bundle if nested Sparkle components are not resealed
+    # into the final app signature.
+    sign_path "$app_path" "${app_args[@]}" --deep
 }
 
 validate_app_bundle() {
