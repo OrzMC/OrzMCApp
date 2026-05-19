@@ -24,6 +24,25 @@ jobs:
           p12-file-base64: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           p12-password: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
 
+      - name: Import Developer ID intermediate certificates
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
+          curl -fsSLo "$RUNNER_TEMP/DeveloperIDCA.cer" https://www.apple.com/certificateauthority/DeveloperIDCA.cer
+          curl -fsSLo "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security import "$RUNNER_TEMP/DeveloperIDCA.cer" -k "$KEYCHAIN" -T /usr/bin/codesign || true
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KEYCHAIN" -T /usr/bin/codesign || true
+
+      - name: Debug macOS signing environment
+        run: |
+          set -euo pipefail
+          sw_vers
+          xcodebuild -version
+          KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
+          security find-certificate -a -c "Developer ID" -Z "$KEYCHAIN" || true
+          security find-certificate -a -c "Developer ID" -Z /Library/Keychains/System.keychain || true
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"

@@ -182,7 +182,7 @@ notarize_and_staple() {
         sleep "$sleep_seconds"
         attempt=$((attempt + 1))
     done
-    xcrun stapler validate "$staple_target"
+    xcrun stapler validate -v "$staple_target"
 }
 
 write_export_options() {
