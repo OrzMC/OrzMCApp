@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/OrzMC/OrzMCKit.git",
       "state" : {
-        "revision" : "4fb4ba8a467c229d35852d1512d8c5813f009db6",
-        "version" : "0.0.6"
+        "branch" : "main",
+        "revision" : "1244125aabdf741c3e2282d58b7976a052e19e73"
       }
     },
     {
