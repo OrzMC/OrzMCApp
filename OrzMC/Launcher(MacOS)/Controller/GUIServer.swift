@@ -28,6 +28,9 @@ struct GUIServer: Server, Sendable {
             return try await startPaperServer()
         case .vanilla:
             return try await startVanillaServer()
+        case .fabric, .forge:
+            // 引擎已声明能力矩阵；GUI 暂未接入 fabric/forge 服务端部署。
+            return nil
         }
     }
     
@@ -101,11 +104,18 @@ struct GUIServer: Server, Sendable {
             try FileManager.default.moveItem(at: temporaryURL, to: jarFileURL)
         }
         await progressHandler(1)
-        let process = try await launchServer(jarFileURL.path(), workDirectory: workDirectory, jarArgs: [
-            "--online-mode=\(serverInfo.onlineMode ? "true" : "false")",
-            "--nojline",
-            "--noconsole"
-        ])
+        let major = await JavaRuntime.javaMajor(forMCVersion: version)
+        let javaExecutable = try await JavaRuntime.ensure(root: GameDir.root, major: major)
+        let process = try await launchServer(
+            jarFileURL.path(),
+            workDirectory: workDirectory,
+            javaExecutable: javaExecutable,
+            jarArgs: [
+                "--online-mode=\(serverInfo.onlineMode ? "true" : "false")",
+                "--nojline",
+                "--noconsole"
+            ]
+        )
         
         return process
     }
@@ -182,9 +192,12 @@ struct GUIServer: Server, Sendable {
         await progressHandler(1)
         
         // Vanilla 通过 --nogui 关闭图形界面
+        let major = await JavaRuntime.javaMajor(forMCVersion: versionId)
+        let javaExecutable = try await JavaRuntime.ensure(root: GameDir.root, major: major)
         let process = try await launchServer(
             jarFileURL.path(),
             workDirectory: workDirectory,
+            javaExecutable: javaExecutable,
             jarArgs: ["--nogui"]
         )
         return process
