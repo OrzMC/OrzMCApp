@@ -80,7 +80,7 @@ NOTARY_KEYCHAIN_PROFILE=orzmc-notary \
 ./scripts/release-macos.sh
 ```
 
-默认仓库是 `OrzGeeker/OrzMCApp`，默认发布标签是 `MARKETING_VERSION`，与现有 appcast URL 保持一致。
+默认仓库是 `OrzMC/OrzMCApp`，默认发布标签是 `MARKETING_VERSION`，与现有 appcast URL 保持一致。
 
 ## GitHub Actions
 
@@ -119,7 +119,7 @@ Release workflow 固定使用原生 Apple Silicon `macos-26` runner，并显式�
 应用当前读取的 Sparkle 更新源：
 
 ```text
-https://raw.githubusercontent.com/OrzGeeker/OrzMCApp/main/products/appcast.xml
+https://raw.githubusercontent.com/OrzMC/OrzMCApp/main/products/appcast.xml
 ```
 
 这个地址可用，但 GitHub Pages 或 CDN 更适合作为发布基础设施。如果后续迁移更新源 URL，需要更新 `OrzMC/Common/Info.plist` 中的 `SUFeedURL`，并在大多数用户完成升级前保持旧更新源可访问。

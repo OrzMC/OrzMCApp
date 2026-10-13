@@ -985,7 +985,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		2B62C97F2BF73EBD00387498 /* XCRemoteSwiftPackageReference "ExarotonAPI" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/wangzhizhou/ExarotonAPI.git";
+			repositoryURL = "https://github.com/OrzMC/ExarotonAPI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.0.9;

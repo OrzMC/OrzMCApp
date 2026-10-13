@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/OrzGeeker/OrzMCApp/main/products/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/OrzMC/OrzMCApp/main/products/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>MDP24/x5Za+H4heLvGXTGSYzvaZMCFcOVUAC2wH5hAg=</string>
 </dict>
