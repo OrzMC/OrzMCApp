@@ -22,7 +22,10 @@ jobs:
           xcodebuild -version
 
       - name: Resolve package dependencies
-        run: xcodebuild -resolvePackageDependencies -scheme OrzMC
+        # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
+        run: |
+          rm -f OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -scheme OrzMC
 
       - name: Build (no signing)
         run: |
