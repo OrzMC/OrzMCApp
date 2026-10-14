@@ -25,8 +25,9 @@ struct GUIClient: Client  {
     
     /// 下载启动器启动需要的文件（共用引擎 `downloadClient`；Phase 4）。
     mutating func download() async throws {
+        let handler = progressHandler
         try await downloadClient { fraction in
-            Task { await progressHandler(fraction) }
+            Task { await handler(fraction) }
         }
     }
     
