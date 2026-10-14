@@ -41,20 +41,8 @@ struct GUIClient: Client  {
         }
     }
     
-    /// 启动客户端
+    /// 启动客户端（后台运行，不等待退出）；共用引擎 `launchClient`。
     mutating func launch() async throws {
-        guard let args = try await parseBootArgs() else {
-            return
-        }
-        // 客户端启动后，可以从UI界面关闭，所以可以异步启动
-        let gameDir = GamePlan.clientDir(version: clientInfo.version.id)
-        // 托管 JRE（B5）：不依赖系统 java。
-        let major = await JavaRuntime.javaMajor(forMCVersion: clientInfo.version.id)
-        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
-        try Shell.run(path: javaExecutable, args: args, workDirectory: gameDir, terminationHandler: { process in
-            guard process.terminationStatus == 0 else {
-                return
-            }
-        })
+        _ = try await launchClient()
     }
 }
