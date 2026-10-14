@@ -49,7 +49,7 @@ struct GUIServer: Server, Sendable {
         }
         
         let workDirectory = GamePlan.serverDir(version: serverInfo.version, type: .paper)
-        let serverJarFileDirPath = workDirectory.dirPath
+        let serverJarFileDirPath = workDirectory
         let dirURL = URL(filePath: serverJarFileDirPath)
         if !FileManager.default.fileExists(atPath: dirURL.path()) {
             try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
@@ -126,7 +126,7 @@ struct GUIServer: Server, Sendable {
         
         let versionId = serverInfo.version
         let workDirectory = GamePlan.serverDir(version: versionId, type: .vanilla)
-        let serverJarFileDirPath = workDirectory.dirPath
+        let serverJarFileDirPath = workDirectory
         
         let dirURL = URL(filePath: serverJarFileDirPath)
         if !FileManager.default.fileExists(atPath: dirURL.path()) {

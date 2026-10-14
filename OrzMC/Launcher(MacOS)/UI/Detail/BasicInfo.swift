@@ -305,7 +305,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: .paper).dirPath
+        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: .paper)
     }
     
     var vanillaServerDirPath: String? {
