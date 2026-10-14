@@ -47,10 +47,10 @@ struct GUIClient: Client  {
             return
         }
         // 客户端启动后，可以从UI界面关闭，所以可以异步启动
-        let gameDir = GameDir.client(version: clientInfo.version.id).dirPath
+        let gameDir = GamePlan.clientDir(version: clientInfo.version.id)
         // 托管 JRE（B5）：不依赖系统 java。
         let major = await JavaRuntime.javaMajor(forMCVersion: clientInfo.version.id)
-        let javaExecutable = try await JavaRuntime.ensure(root: GameDir.root, major: major)
+        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
         try Shell.run(path: javaExecutable, args: args, workDirectory: gameDir, terminationHandler: { process in
             guard process.terminationStatus == 0 else {
                 return

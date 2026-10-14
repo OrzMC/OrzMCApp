@@ -53,13 +53,13 @@ struct GameList: View {
 private extension GameList {
     func installState(for version: Version) -> (icon: String, labels: [String]) {
         var labels = [String]()
-        if GameDir.client(version: version.id, type: GameType.vanilla.rawValue).dirPath.isExist() {
+        if GamePlan.clientDir(version: version.id).isExist() {
             labels.append("Client")
         }
-        if GameDir.server(version: version.id, type: GameType.paper.rawValue).dirPath.isExist() {
+        if GamePlan.serverDir(version: version.id, type: .paper).isExist() {
             labels.append("Paper server")
         }
-        if GameDir.server(version: version.id, type: GameType.vanilla.rawValue).dirPath.isExist() {
+        if GamePlan.serverDir(version: version.id, type: .vanilla).isExist() {
             labels.append("Vanilla server")
         }
 

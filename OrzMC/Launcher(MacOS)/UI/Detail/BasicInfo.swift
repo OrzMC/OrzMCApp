@@ -289,7 +289,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GameDir.server(version: selectedVersion.id, type: GameType.paper.rawValue).dirPath
+        return GamePlan.serverDir(version: selectedVersion.id, type: .paper)
     }
     
     var paperServerPluginDirPath: String? {
@@ -297,7 +297,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GameDir.serverPlugin(version: selectedVersion.id, type: GameType.paper.rawValue).dirPath
+        return GamePlan.serverPluginDir(version: selectedVersion.id, type: .paper)
     }
     
     var paperServerPluginUpdateDirPath: String? {
@@ -305,7 +305,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GameDir.serverPluginUpdate(version: selectedVersion.id, type: GameType.paper.rawValue).dirPath
+        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: .paper).dirPath
     }
     
     var vanillaServerDirPath: String? {
@@ -313,7 +313,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GameDir.server(version: selectedVersion.id, type: GameType.vanilla.rawValue).dirPath
+        return GamePlan.serverDir(version: selectedVersion.id, type: .vanilla)
     }
     
     var clientDirPath: String? {
@@ -321,7 +321,7 @@ extension BasicInfo {
         else {
             return nil
         }
-        return GameDir.client(version: selectedVersion.id, type: GameType.vanilla.rawValue).dirPath
+        return GamePlan.clientDir(version: selectedVersion.id)
     }
 }
 

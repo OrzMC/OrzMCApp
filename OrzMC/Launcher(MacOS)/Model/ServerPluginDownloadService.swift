@@ -14,10 +14,10 @@ struct ServerPluginDownloadService {
         versionId: String,
         progressHandler: @escaping ServerPluginDownloadProgressHandler
     ) async throws {
-        let updateDirPath = GameDir.serverPluginUpdate(
+        let updateDirPath = GamePlan.serverPluginUpdateDir(
             version: versionId,
-            type: Game.GameType.paper.rawValue
-        ).dirPath
+            type: .paper
+        )
         try updateDirPath.makeDirIfNeed()
 
         let outputDirFileURL = URL(fileURLWithPath: updateDirPath)

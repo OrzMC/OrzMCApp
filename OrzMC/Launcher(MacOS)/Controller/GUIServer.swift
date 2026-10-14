@@ -48,7 +48,7 @@ struct GUIServer: Server, Sendable {
             return nil
         }
         
-        let workDirectory = GameDir.server(version: serverInfo.version, type: GameType.paper.rawValue)
+        let workDirectory = GamePlan.serverDir(version: serverInfo.version, type: .paper)
         let serverJarFileDirPath = workDirectory.dirPath
         let dirURL = URL(filePath: serverJarFileDirPath)
         if !FileManager.default.fileExists(atPath: dirURL.path()) {
@@ -106,7 +106,7 @@ struct GUIServer: Server, Sendable {
         }
         await progressHandler(1)
         let major = await JavaRuntime.javaMajor(forMCVersion: version)
-        let javaExecutable = try await JavaRuntime.ensure(root: GameDir.root, major: major)
+        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
         let process = try await launchServer(
             jarFileURL.path(),
             workDirectory: workDirectory,
@@ -125,7 +125,7 @@ struct GUIServer: Server, Sendable {
     public func startVanillaServer() async throws -> ManagedProcess? {
         
         let versionId = serverInfo.version
-        let workDirectory = GameDir.server(version: versionId, type: GameType.vanilla.rawValue)
+        let workDirectory = GamePlan.serverDir(version: versionId, type: .vanilla)
         let serverJarFileDirPath = workDirectory.dirPath
         
         let dirURL = URL(filePath: serverJarFileDirPath)
@@ -194,7 +194,7 @@ struct GUIServer: Server, Sendable {
         
         // Vanilla 通过 --nogui 关闭图形界面
         let major = await JavaRuntime.javaMajor(forMCVersion: versionId)
-        let javaExecutable = try await JavaRuntime.ensure(root: GameDir.root, major: major)
+        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
         let process = try await launchServer(
             jarFileURL.path(),
             workDirectory: workDirectory,
