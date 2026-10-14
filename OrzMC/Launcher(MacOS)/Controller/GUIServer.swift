@@ -8,6 +8,7 @@
 import Foundation
 import DownloadAPI
 import Game
+import JokerKits
 import MojangAPI
 
 struct GUIServer: Server, Sendable {
@@ -21,7 +22,7 @@ struct GUIServer: Server, Sendable {
     
     let progressHandler: LaunchProgressHandler
     
-    func start() async throws -> Process? {
+    func start() async throws -> ManagedProcess? {
         
         switch serverType {
         case .paper:
@@ -35,7 +36,7 @@ struct GUIServer: Server, Sendable {
     }
     
     // MARK: PaperMC
-    public func startPaperServer() async throws -> Process? {
+    public func startPaperServer() async throws -> ManagedProcess? {
         
         let version = serverInfo.version
         
@@ -121,7 +122,7 @@ struct GUIServer: Server, Sendable {
     }
     
     // MARK: Vanilla
-    public func startVanillaServer() async throws -> Process? {
+    public func startVanillaServer() async throws -> ManagedProcess? {
         
         let versionId = serverInfo.version
         let workDirectory = GameDir.server(version: versionId, type: GameType.vanilla.rawValue)
