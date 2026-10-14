@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import JokerKits
 import Game
 
 struct GUIClient: Client  {
@@ -24,20 +23,10 @@ struct GUIClient: Client  {
         try await self.launch()
     }
     
-    /// 下载启动器启动需要的文件
+    /// 下载启动器启动需要的文件（共用引擎 `downloadClient`；Phase 4）。
     mutating func download() async throws {
-        let downloadItems = try await generateDownloadItemInfos()
-        var progress = 0.0
-        var count = 0
-        let total = downloadItems.count
-        for try await _ in downloadItems.asyncSequence {
-            count += 1
-            let curProgress = Double(count) / Double(total)
-            let delta = curProgress - progress
-            if delta > 0.01 || curProgress == 1 {
-                progress = curProgress
-                await progressHandler(progress)
-            }
+        try await downloadClient { fraction in
+            Task { await progressHandler(fraction) }
         }
     }
     
