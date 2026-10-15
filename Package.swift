@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "OrzMCKit",
+    name: "OrzMCAppKit",
     platforms: [
         .iOS(.v17),
         .macOS(.v14)
