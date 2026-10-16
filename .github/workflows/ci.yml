@@ -21,15 +21,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
           xcodebuild -version
 
-      # 滚动缓存：HEAD 制会删锁重解析，resolved 不稳定，故用 run_id 作 key +
-      # 前缀 restore-keys 总是命中上一轮；命中后 xcodebuild 只重编变更的源。
-      - name: Cache SwiftPM / DerivedData
-        uses: actions/cache@v4
+      # 只在 main 落盘（PR 只 restore），避免每轮/每分支新增一份 3GiB。
+      # key 用工程文件哈希（稳定）；HEAD 重解析导致的依赖变化由 xcodebuild 自己增量重编。
+      - name: Restore SwiftPM / DerivedData cache
+        id: cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/Developer/Xcode/DerivedData
-          key: xcode-${{ runner.os }}-${{ github.run_id }}
+          key: xcode-${{ runner.os }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj') }}
           restore-keys: |
             xcode-${{ runner.os }}-
 
@@ -49,3 +50,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+
+      - name: Save SwiftPM / DerivedData cache
+        if: github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ steps.cache.outputs.cache-primary-key }}
