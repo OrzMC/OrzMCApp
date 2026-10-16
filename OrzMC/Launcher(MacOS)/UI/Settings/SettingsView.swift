@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Game
 import SwiftUI
 import SwiftUIX
 
@@ -58,7 +59,7 @@ struct SettingsView: View {
             GroupBox {
                 HStack(spacing: 12) {
                     Button("Contact Author", systemImage: "envelope") {
-                        if let url = URL(string: "mailto:\(Constants.feedbackEmail)") {
+                        if let url = URL(string: "mailto:\(Compliance.contactEmail)") {
                             NSWorkspace.shared.open(url)
                         }
                     }
@@ -80,12 +81,21 @@ struct SettingsView: View {
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(Constants.disclaimer)
+                    Text(Compliance.disclaimer)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("OrzMC 是独立的社区开源项目，与 Mojang / Microsoft 无隶属关系，对本应用负责。联系：\(Constants.feedbackEmail)")
+                    Text("\(Compliance.disclaimerZh)\(Compliance.trademarkZh)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        Button("联系作者") {
+                            if let url = URL(string: "mailto:\(Compliance.contactEmail)") { NSWorkspace.shared.open(url) }
+                        }
+                        Button("隐私政策") {
+                            if let url = URL(string: Compliance.privacyURL) { NSWorkspace.shared.open(url) }
+                        }
+                    }
+                    .font(.footnote)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } label: {
