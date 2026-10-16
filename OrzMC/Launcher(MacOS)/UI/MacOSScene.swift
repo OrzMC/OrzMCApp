@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Game
 import SwiftUI
 
 struct MacOSScene: Scene {
@@ -37,7 +38,7 @@ struct MacOSScene: Scene {
 
             CommandGroup(after: .help) {
                 Button("Contact Author") {
-                    if let url = URL(string: "mailto:\(Constants.feedbackEmail)") {
+                    if let url = URL(string: "mailto:\(Compliance.contactEmail)") {
                         NSWorkspace.shared.open(url)
                     }
                 }
