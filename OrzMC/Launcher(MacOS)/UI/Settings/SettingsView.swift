@@ -78,6 +78,21 @@ struct SettingsView: View {
                     .font(.title)
             }
 
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(Constants.disclaimer)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("OrzMC 是独立的社区开源项目，与 Mojang / Microsoft 无隶属关系，对本应用负责。联系：\(Constants.feedbackEmail)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } label: {
+                Label("Disclaimer", systemImage: "info.circle")
+                    .font(.title)
+            }
+
             Spacer()
         }
         .padding()
