@@ -21,6 +21,18 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
           xcodebuild -version
 
+      # 滚动缓存：HEAD 制会删锁重解析，resolved 不稳定，故用 run_id 作 key +
+      # 前缀 restore-keys 总是命中上一轮；命中后 xcodebuild 只重编变更的源。
+      - name: Cache SwiftPM / DerivedData
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
+          key: xcode-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            xcode-${{ runner.os }}-
+
       - name: Resolve package dependencies
         # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
         run: |
