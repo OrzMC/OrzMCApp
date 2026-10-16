@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
