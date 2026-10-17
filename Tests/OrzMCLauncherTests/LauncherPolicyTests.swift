@@ -11,10 +11,12 @@ final class LauncherPolicyTests: XCTestCase {
     func testJavaRuntimeStatus() {
         let policy = JavaRuntimePolicy()
 
-        XCTAssertEqual(policy.status(for: .init(currentMajorVersion: nil, requiredMajorVersion: 21)), .unknown)
-        XCTAssertEqual(policy.status(for: .init(currentMajorVersion: 17, requiredMajorVersion: 21)), .invalid)
-        XCTAssertEqual(policy.status(for: .init(currentMajorVersion: 21, requiredMajorVersion: 21)), .valid)
-        XCTAssertEqual(policy.status(for: .init(currentMajorVersion: 22, requiredMajorVersion: 21)), .valid)
+        // 只认引擎托管的 JRE（`<root>/java/<major>`），不再比较系统 JDK 版本高低。
+        XCTAssertEqual(policy.status(for: .init(installedMajorVersions: [17], requiredMajorVersion: nil)), .unknown)
+        XCTAssertEqual(policy.status(for: .init(installedMajorVersions: [], requiredMajorVersion: 21)), .missing)
+        XCTAssertEqual(policy.status(for: .init(installedMajorVersions: [17], requiredMajorVersion: 21)), .missing)
+        XCTAssertEqual(policy.status(for: .init(installedMajorVersions: [21], requiredMajorVersion: 21)), .valid)
+        XCTAssertEqual(policy.status(for: .init(installedMajorVersions: [17, 21], requiredMajorVersion: 21)), .valid)
     }
 
     func testVersionListFiltering() {

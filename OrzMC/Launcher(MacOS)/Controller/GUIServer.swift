@@ -6,203 +6,31 @@
 //
 
 import Foundation
-import DownloadAPI
 import Game
 import JokerKits
-import MojangAPI
 
-struct GUIServer: Server, Sendable {
-    
+/// GUI 的服务端适配器：**只做「选类型」**。
+///
+/// 下载 / 部署 / EULA / 启动参数全部交给引擎 `Game/Server/Deploy/*`，与
+/// `orzmc server --type {vanilla,paper,fabric,forge}` 是同一份实现——GUI 不再自己
+/// 拼下载或跳过 fabric/forge。
+struct GUIServer: Server {
+
     let serverInfo: ServerInfo
-    
-    let serverType: GameType
-    
-    /// 用于 Vanilla 下载官方 server.jar 的 Mojang Version 元信息
-    let selectedVersion: Version
-    
-    let progressHandler: LaunchProgressHandler
-    
-    func start() async throws -> ManagedProcess? {
-        
-        switch serverType {
-        case .paper:
-            return try await startPaperServer()
-        case .vanilla:
-            return try await startVanillaServer()
-        case .fabric, .forge:
-            // 引擎已声明能力矩阵；GUI 暂未接入 fabric/forge 服务端部署。
-            return nil
-        }
-    }
-    
-    // MARK: PaperMC
-    public func startPaperServer() async throws -> ManagedProcess? {
-        
-        let version = serverInfo.version
-        
-        guard let (build, name, _, _, _) = try await client.latestBuildInfo(
-            project: DownloadAPIClient.Project.paper,
-            version: version
-        )
-        else {
-            return nil
-        }
-        
-        let workDirectory = GamePlan.serverDir(version: serverInfo.version, type: .paper)
-        let serverJarFileDirPath = workDirectory
-        let dirURL = URL(filePath: serverJarFileDirPath)
-        if !FileManager.default.fileExists(atPath: dirURL.path()) {
-            try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
-        }
-        let jarFileURL = dirURL.appending(path: name)
-        
-        if !FileManager.default.fileExists(atPath: jarFileURL.path()) {
-            guard let (dataStream, total) = try await client.downloadBuild(
-                project: DownloadAPIClient.Project.paper,
-                version: version,
-                build: build,
-                bufferSize: 512 * 1024
-            )
-            else {
-                return nil
-            }
-            
-            let temporaryURL = jarFileURL.appendingPathExtension("download")
-            if FileManager.default.fileExists(atPath: temporaryURL.path()) {
-                try FileManager.default.removeItem(at: temporaryURL)
-            }
-            FileManager.default.createFile(atPath: temporaryURL.path(), contents: nil)
-            let fileHandle = try FileHandle(forWritingTo: temporaryURL)
-            defer {
-                try? fileHandle.close()
-            }
 
-            var downloadedBytes = 0
-            var progress: Double = 0
-            for try await byteChunkResult in dataStream {
-                switch byteChunkResult {
-                case .success(let byteChunk):
-                    let data = Data(byteChunk)
-                    try fileHandle.write(contentsOf: data)
-                    downloadedBytes += data.count
-                    let curProgress = Double(downloadedBytes) / Double(total)
-                    let delta = curProgress - progress
-                    if delta > 0.01 || curProgress == 1 {
-                        progress = curProgress
-                        await progressHandler(curProgress)
-                    }
-                case .failure(let error):
-                    throw error
-                }
-            }
-            
-            if !FileManager.default.fileExists(atPath: dirURL.path()) {
-                try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
-            }
-            if FileManager.default.fileExists(atPath: jarFileURL.path()) {
-                try FileManager.default.removeItem(at: jarFileURL)
-            }
-            try FileManager.default.moveItem(at: temporaryURL, to: jarFileURL)
+    /// 服务端核心类型（vanilla / paper / fabric / forge）。
+    let serverType: GameType
+
+    func start() async throws -> ManagedProcess? {
+        switch serverType {
+        case .vanilla:
+            return try await VanillaServer(serverInfo: serverInfo).start()
+        case .paper:
+            return try await PaperServer(serverInfo: serverInfo).start()
+        case .fabric:
+            return try await FabricServer(serverInfo: serverInfo).start()
+        case .forge:
+            return try await ForgeServer(serverInfo: serverInfo).start()
         }
-        await progressHandler(1)
-        let major = await JavaRuntime.javaMajor(forMCVersion: version)
-        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
-        let process = try await launchServer(
-            jarFileURL.path(),
-            workDirectory: workDirectory,
-            javaExecutable: javaExecutable,
-            jarArgs: [
-                "--online-mode=\(serverInfo.onlineMode ? "true" : "false")",
-                "--nojline",
-                "--noconsole"
-            ]
-        )
-        
-        return process
     }
-    
-    // MARK: Vanilla
-    public func startVanillaServer() async throws -> ManagedProcess? {
-        
-        let versionId = serverInfo.version
-        let workDirectory = GamePlan.serverDir(version: versionId, type: .vanilla)
-        let serverJarFileDirPath = workDirectory
-        
-        let dirURL = URL(filePath: serverJarFileDirPath)
-        if !FileManager.default.fileExists(atPath: dirURL.path()) {
-            try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
-        }
-        
-        // Mojang 官方 server.jar 下载地址来自 version json 的 downloads.server.url
-        let gameVersion = try await selectedVersion.gameVersion
-        guard let serverDownload = gameVersion?.downloads.server,
-              let serverURL = URL(string: serverDownload.url)
-        else {
-            return nil
-        }
-        
-        // 统一落盘为 server.jar，避免 Mojang URL 末尾文件名变动造成重复下载
-        let jarFileURL = dirURL.appending(path: "server.jar")
-        
-        if !FileManager.default.fileExists(atPath: jarFileURL.path()) {
-            await progressHandler(0)
-            
-            let (dataStream, response) = try await URLSession.shared.bytes(from: serverURL)
-            let totalBytes = Int(response.expectedContentLength)
-            
-            let temporaryURL = jarFileURL.appendingPathExtension("download")
-            if FileManager.default.fileExists(atPath: temporaryURL.path()) {
-                try FileManager.default.removeItem(at: temporaryURL)
-            }
-            FileManager.default.createFile(atPath: temporaryURL.path(), contents: nil)
-            let fileHandle = try FileHandle(forWritingTo: temporaryURL)
-            defer {
-                try? fileHandle.close()
-            }
-            
-            var downloadedBytes = 0
-            var lastProgress: Double = 0
-            var buffer = Data()
-            buffer.reserveCapacity(512 * 1024)
-            for try await byte in dataStream {
-                buffer.append(byte)
-                downloadedBytes += 1
-                if buffer.count >= 512 * 1024 {
-                    try fileHandle.write(contentsOf: buffer)
-                    buffer.removeAll(keepingCapacity: true)
-                }
-                
-                guard totalBytes > 0 else { continue }
-                let curProgress = Double(downloadedBytes) / Double(totalBytes)
-                let delta = curProgress - lastProgress
-                if delta > 0.01 || curProgress == 1 {
-                    lastProgress = curProgress
-                    await progressHandler(curProgress)
-                }
-            }
-            if !buffer.isEmpty {
-                try fileHandle.write(contentsOf: buffer)
-            }
-            
-            if FileManager.default.fileExists(atPath: jarFileURL.path()) {
-                try FileManager.default.removeItem(at: jarFileURL)
-            }
-            try FileManager.default.moveItem(at: temporaryURL, to: jarFileURL)
-        }
-        
-        await progressHandler(1)
-        
-        // Vanilla 通过 --nogui 关闭图形界面
-        let major = await JavaRuntime.javaMajor(forMCVersion: versionId)
-        let javaExecutable = try await JavaRuntime.ensure(root: GamePlan.defaultRoot, major: major)
-        let process = try await launchServer(
-            jarFileURL.path(),
-            workDirectory: workDirectory,
-            javaExecutable: javaExecutable,
-            jarArgs: ["--nogui"]
-        )
-        return process
-    }
-    
-    private let client = DownloadAPIClient()
 }

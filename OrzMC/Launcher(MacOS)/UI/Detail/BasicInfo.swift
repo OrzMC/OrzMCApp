@@ -141,76 +141,56 @@ struct BasicInfo: View {
 
     private var detailsForm: some View {
         Form {
-            let paperStatus = statusFor(software: .paper)
-            let vanillaStatus = statusFor(software: .vanilla)
-            let paperStopAction = stopActionFor(software: .paper)
-            let vanillaStopAction = stopActionFor(software: .vanilla)
-
-            if let paperServerDirPath, paperServerDirPath.isExist() {
-                Section {
-                    FilePathEntry(
-                        name: "Game",
-                        path: paperServerDirPath
-                    )
-                    if let paperServerPluginDirPath {
+            // 四种核心（Vanilla/Paper/Fabric/Forge）同一份渲染：只显示已存在的目录，
+            // 插件目录仅 Paper 有（引擎 `GamePlan.serverPluginDir` 仅对 paper 有意义）。
+            ForEach(SettingsModel.ServerSoftware.allCases) { software in
+                if let serverDirPath = serverDirPath(for: software), serverDirPath.isExist() {
+                    let status = statusFor(software: software)
+                    Section {
                         FilePathEntry(
-                            name: "Plugins",
-                            path: paperServerPluginDirPath
+                            name: "Game",
+                            path: serverDirPath
                         )
-                        if let paperServerPluginUpdateDirPath {
-                            VStack(alignment: .leading) {
-                                FilePathEntry(
-                                    name: "PluginsUpdate",
-                                    path: paperServerPluginUpdateDirPath
-                                )
-                                .onLongPressGesture {
-                                    Task {
-                                        try await model.downloadAllServerPlugins()
+                        if software.supportsPlugins,
+                           let pluginDirPath = serverPluginDirPath(for: software) {
+                            FilePathEntry(
+                                name: "Plugins",
+                                path: pluginDirPath
+                            )
+                            if let pluginUpdateDirPath = serverPluginUpdateDirPath(for: software) {
+                                VStack(alignment: .leading) {
+                                    FilePathEntry(
+                                        name: "PluginsUpdate",
+                                        path: pluginUpdateDirPath
+                                    )
+                                    .onLongPressGesture {
+                                        Task {
+                                            try await model.downloadAllServerPlugins()
+                                        }
                                     }
-                                }
-                                if (model.serverPluginDownloadProgress > 0) {
-                                    HStack {
-                                        Text(model.serverPluginDownloadProgressTitle)
-                                        Spacer()
-                                        ProgressView(value: model.serverPluginDownloadProgress)
-                                            .progressViewStyle(.linear)
+                                    if (model.serverPluginDownloadProgress > 0) {
+                                        HStack {
+                                            Text(model.serverPluginDownloadProgressTitle)
+                                            Spacer()
+                                            ProgressView(value: model.serverPluginDownloadProgress)
+                                                .progressViewStyle(.linear)
+                                        }
                                     }
-                                        
                                 }
                             }
                         }
+                    } header: {
+                        FormSectionHeader(
+                            title: "Server (\(software.rawValue))",
+                            deleteBtnAction: {
+                                deleteTarget = .server(software: software, path: serverDirPath)
+                            },
+                            stopBtnAction: stopActionFor(software: software),
+                            statusText: status.text,
+                            statusDotColor: status.dotColor,
+                            statusTextColor: status.textColor
+                        )
                     }
-                } header: {
-                    FormSectionHeader(
-                        title: "Server (Paper)",
-                        deleteBtnAction: {
-                            deleteTarget = .paper(path: paperServerDirPath)
-                        },
-                        stopBtnAction: paperStopAction,
-                        statusText: paperStatus.text,
-                        statusDotColor: paperStatus.dotColor,
-                        statusTextColor: paperStatus.textColor
-                    )
-                }
-            }
-
-            if let vanillaServerDirPath, vanillaServerDirPath.isExist() {
-                Section {
-                    FilePathEntry(
-                        name: "Game",
-                        path: vanillaServerDirPath
-                    )
-                } header: {
-                    FormSectionHeader(
-                        title: "Server (Vanilla)",
-                        deleteBtnAction: {
-                            deleteTarget = .vanilla(path: vanillaServerDirPath)
-                        },
-                        stopBtnAction: vanillaStopAction,
-                        statusText: vanillaStatus.text,
-                        statusDotColor: vanillaStatus.dotColor,
-                        statusTextColor: vanillaStatus.textColor
-                    )
                 }
             }
 
@@ -233,25 +213,22 @@ struct BasicInfo: View {
 
 private extension BasicInfo {
     enum DeleteTarget: Identifiable {
-        case paper(path: String)
-        case vanilla(path: String)
+        case server(software: SettingsModel.ServerSoftware, path: String)
         case client(path: String)
 
         var id: String { path }
 
         var path: String {
             switch self {
-            case let .paper(path), let .vanilla(path), let .client(path):
+            case let .server(_, path), let .client(path):
                 path
             }
         }
 
         var confirmationTitle: String {
             switch self {
-            case .paper:
-                "Delete Paper Server Files?"
-            case .vanilla:
-                "Delete Vanilla Server Files?"
+            case let .server(software, _):
+                "Delete \(software.rawValue) Server Files?"
             case .client:
                 "Delete Client Files?"
             }
@@ -284,36 +261,28 @@ extension BasicInfo {
         }
     }
     
-    var paperServerDirPath: String? {
+    func serverDirPath(for software: SettingsModel.ServerSoftware) -> String? {
         guard let selectedVersion = model.selectedVersion
         else {
             return nil
         }
-        return GamePlan.serverDir(version: selectedVersion.id, type: .paper)
+        return GamePlan.serverDir(version: selectedVersion.id, type: software.gameType)
     }
-    
-    var paperServerPluginDirPath: String? {
+
+    func serverPluginDirPath(for software: SettingsModel.ServerSoftware) -> String? {
         guard let selectedVersion = model.selectedVersion
         else {
             return nil
         }
-        return GamePlan.serverPluginDir(version: selectedVersion.id, type: .paper)
+        return GamePlan.serverPluginDir(version: selectedVersion.id, type: software.gameType)
     }
-    
-    var paperServerPluginUpdateDirPath: String? {
+
+    func serverPluginUpdateDirPath(for software: SettingsModel.ServerSoftware) -> String? {
         guard let selectedVersion = model.selectedVersion
         else {
             return nil
         }
-        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: .paper)
-    }
-    
-    var vanillaServerDirPath: String? {
-        guard let selectedVersion = model.selectedVersion
-        else {
-            return nil
-        }
-        return GamePlan.serverDir(version: selectedVersion.id, type: .vanilla)
+        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: software.gameType)
     }
     
     var clientDirPath: String? {

@@ -8,7 +8,6 @@
 import SwiftUI
 import MojangAPI
 import Game
-import JokerKits
 
 struct GameView: View {
     
@@ -19,14 +18,6 @@ struct GameView: View {
     @State private var showOnlyRelease: Bool = true
     
     @FocusState private var usernameTextFieldFocused: Bool
-    
-    @State private var downloadingJDK: Bool = false
-    
-    @State private var downloadJDKProgress: Double = 0
-    
-    @State private var downloadJDKCompleted: Bool = false
-    
-    @State private var jdkFileURL: URL? = nil
     
     @Environment(GameModel.self) private var model
 
@@ -75,75 +66,42 @@ struct GameView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Spacer()
-                                Text("Java Version")
+                                Text("Java Runtime (managed)")
                                     .foregroundStyle(model.javaVersionTextColor)
                                 Spacer()
                             }
-                            
+
                             HStack {
-                                Text("Current:")
-                                if let currentJavaMajorVersion = model.currentJavaMajorVersion {
-                                    Text("\(currentJavaMajorVersion)")
-                                } else {
-                                    Spacer()
-                                    Button {
-                                        model.fetchCurrentJavaMajorVersion()
-                                    } label: {
-                                        Image(systemName: "arrow.triangle.2.circlepath")
-                                    }
+                                Text("Installed:")
+                                Text(model.installedJavaVersionsText)
+                                Spacer()
+                                Button {
+                                    model.refreshJavaRuntimes()
+                                } label: {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
                                 }
+                                .help("Rescan the managed Java runtimes under the game folder")
                             }
                             .foregroundStyle(Color.orange)
-                            
+
                             HStack {
                                 Text("Required:")
                                 if let requiredJavaMajorVersion = model.selectedGameJavaMajorVersionRequired {
                                     Text("\(requiredJavaMajorVersion)")
                                 }
-                                if model.javaRuntimeStatus != .valid, let javaVersionInt = model.selectedGameJavaMajorVersionRequired  {
-                                    Spacer()
-                                    Button {
-                                        Task {
-                                            if let jdkFilePath = jdkFileURL?.path() {
-                                                downloadJDKCompleted = FileManager.default.fileExists(atPath: jdkFilePath)
-                                                if downloadJDKCompleted {
-                                                    await Shell.runCommand(with: ["open", "\(jdkFilePath)"])
-                                                    return
-                                                }
-                                            }
-                                            
-                                            do {
-                                                downloadingJDK = true
-                                                defer {
-                                                    downloadingJDK = false
-                                                }
-                                                let javaVersion = String(javaVersionInt)
-                                                jdkFileURL = try await OracleJava.downloadJDK(javaVersion) { progress in
-                                                    await MainActor.run {
-                                                        downloadJDKProgress = progress * 100
-                                                    }
-                                                }
-
-                                                if let jdkFilePath = jdkFileURL?.path() {
-                                                    downloadJDKCompleted = FileManager.default.fileExists(atPath: jdkFilePath)
-                                                } else {
-                                                    downloadJDKCompleted = false
-                                                }
-                                            } catch {
-                                                downloadJDKCompleted = false
-                                                model.errorMessage = "Failed to download JDK: \(error.localizedDescription)"
-                                            }
-                                        }
-                                        
-                                    } label: {
-                                        Label(downloadingJDK ? String(format: "%.2f %%", downloadJDKProgress) : "\(downloadJDKCompleted ? "Install" : "Download") JDK", systemImage: downloadJDKCompleted ? "folder" : "arrow.down.circle")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(downloadingJDK)
+                                Spacer()
+                                switch model.javaRuntimeStatus {
+                                case .valid:
+                                    Label("Ready", systemImage: "checkmark.circle")
+                                        .foregroundStyle(Color.green)
+                                case .missing:
+                                    Label("Will be installed on launch", systemImage: "arrow.down.circle")
+                                        .foregroundStyle(Color.secondary)
+                                case .unknown:
+                                    EmptyView()
                                 }
                             }
                             .foregroundStyle(Color.teal)
-                            
                         }
                         .font(.headline)
                         .bold()
@@ -218,11 +176,19 @@ struct GameView: View {
                                     .font(.headline)
                                     .bold()
                                 
-                                if (model.progress > 0 && model.progress < 1) {
-                                    ProgressView(value: model.progress, total: 1)
-                                        .progressViewStyle(.circular)
-                                        .controlSize(.small)
+                                if (model.progress > 0 && model.progress < 1) || model.progressIsIndefinite {
+                                    if model.progressIsIndefinite {
+                                        ProgressView()
+                                            .progressViewStyle(.circular)
+                                            .controlSize(.small)
+                                    } else {
+                                        ProgressView(value: model.progress, total: 1)
+                                            .progressViewStyle(.circular)
+                                            .controlSize(.small)
+                                    }
                                     Text(model.progressDesc)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
                                 } else if model.progress >= 1 {
                                     Image(systemName: "checkmark.seal.fill")
                                         .controlSize(.regular)
