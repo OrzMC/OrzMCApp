@@ -37,8 +37,18 @@ jobs:
 
       - name: Resolve package dependencies
         # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
+        # 坑：共享仓库缓存（org.swift.swiftpm/repositories）里的**分支 ref** 可能落后于上游，
+        # 删除 Package.resolved 也没用——解析会用缓存里的旧 main。先显式刷新分支依赖
+        # （OrzMCKit main），否则 CI 会把源码回退到旧 revision（实测过）。
         run: |
           rm -f OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          for repo in "$HOME"/Library/Caches/org.swift.swiftpm/repositories/OrzMCKit-*; do
+            [ -d "$repo" ] || continue
+            git -C "$repo" fetch --prune origin '+refs/heads/*:refs/heads/*' || true
+          done
+          # 缓存里的 SourcePackages 解析状态/checkout 也钉着旧 revision，清掉让 Xcode 重新取
+          rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
+          rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
           xcodebuild -resolvePackageDependencies -scheme OrzMC
 
       - name: Build (no signing)

@@ -59,7 +59,7 @@ struct SettingsView: View {
             GroupBox {
                 HStack(spacing: 12) {
                     Button("Contact Author", systemImage: "envelope") {
-                        if let url = URL(string: "mailto:\(Compliance.contactEmail)") {
+                        if let url = URL(string: Compliance.contactURL) {
                             NSWorkspace.shared.open(url)
                         }
                     }
@@ -84,12 +84,15 @@ struct SettingsView: View {
                     Text(Compliance.disclaimer)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("\(Compliance.disclaimerZh)\(Compliance.trademarkZh)")
+                    Text("\(Compliance.disclaimerZh)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("\(Compliance.trademarkZh)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 12) {
                         Button("联系作者") {
-                            if let url = URL(string: "mailto:\(Compliance.contactEmail)") { NSWorkspace.shared.open(url) }
+                            if let url = URL(string: Compliance.contactURL) { NSWorkspace.shared.open(url) }
                         }
                         Button("隐私政策") {
                             if let url = URL(string: Compliance.privacyURL) { NSWorkspace.shared.open(url) }

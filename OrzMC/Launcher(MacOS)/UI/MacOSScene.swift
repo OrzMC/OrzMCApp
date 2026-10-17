@@ -38,7 +38,7 @@ struct MacOSScene: Scene {
 
             CommandGroup(after: .help) {
                 Button("Contact Author") {
-                    if let url = URL(string: "mailto:\(Compliance.contactEmail)") {
+                    if let url = URL(string: Compliance.contactURL) {
                         NSWorkspace.shared.open(url)
                     }
                 }
