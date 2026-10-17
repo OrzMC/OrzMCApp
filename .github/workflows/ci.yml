@@ -46,6 +46,9 @@ jobs:
             [ -d "$repo" ] || continue
             git -C "$repo" fetch --prune origin '+refs/heads/*:refs/heads/*' || true
           done
+          # 缓存里的 SourcePackages 解析状态/checkout 也钉着旧 revision，清掉让 Xcode 重新取
+          rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
+          rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
           xcodebuild -resolvePackageDependencies -scheme OrzMC
 
       - name: Build (no signing)
