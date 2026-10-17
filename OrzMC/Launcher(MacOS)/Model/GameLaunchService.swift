@@ -39,6 +39,8 @@ struct GameLaunchService {
             jvmArgs.append(jvmDebuggerArgs)
         }
 
+        // 引擎的 `ServerInfo.onProgress` 是唯一进度出口（无控制台的前端用它）。
+        let handler = progressHandler
         let serverInfo = ServerInfo(
             version: version.id,
             gui: false,
@@ -50,13 +52,13 @@ struct GameLaunchService {
             jvmArgs: jvmArgs,
             onlineMode: false,
             showJarHelpInfo: false,
-            jarOptions: nil
+            jarOptions: nil,
+            console: nil,
+            onProgress: { event in Task { await handler(event) } }
         )
         let launcher = GUIServer(
             serverInfo: serverInfo,
-            serverType: software.gameType,
-            selectedVersion: version,
-            progressHandler: progressHandler
+            serverType: software.gameType
         )
         guard let process = try await launcher.start()
         else {

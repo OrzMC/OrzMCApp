@@ -5,7 +5,10 @@
 //  Created by Codex on 2026/5/23.
 //
 
-typealias LaunchProgressHandler = @Sendable (Double) async -> Void
+import Game
+
+/// 引擎传出的**结构化进度**（count/bytes、不定长、阶段标题），GUI 用它驱动进度 UI。
+typealias LaunchProgressHandler = @Sendable (LaunchProgress) async -> Void
 
 typealias ServerPluginDownloadProgressHandler = @Sendable (ServerPluginDownloadProgress) async -> Void
 

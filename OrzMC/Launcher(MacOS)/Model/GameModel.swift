@@ -29,11 +29,11 @@ final class GameModel {
             else {
                 return
             }
-            progress = 0.0
+            resetProgress()
         }
         didSet {
             fetchGameInfo()
-            fetchCurrentJavaMajorVersion()
+            refreshJavaRuntimes()
         }
     }
     
@@ -45,11 +45,24 @@ final class GameModel {
             else {
                 return
             }
-            progress = 0.0
+            resetProgress()
         }
     }
     
+    /// 进度 0…1（不定长时保持 0，`progressIsIndefinite` 为真，UI 不画假进度）。
     var progress: Double = 0.0
+
+    /// 结构化进度（B8）：阶段标题 + 已完成/总量（count 或 bytes）。
+    var progressTitle: String = ""
+
+    var progressCompleted: Int64 = 0
+
+    var progressTotal: Int64?
+
+    /// 进度单位（items = 文件数，bytes = 字节数），决定文案怎么渲染。
+    var progressKind: LaunchProgress.Kind = .items
+
+    var progressIsIndefinite: Bool = false
     
     var isFetchingGameVersions: Bool = false
 
@@ -74,7 +87,8 @@ final class GameModel {
 
     var gameInfoMap = [Version: GameVersion]()
     
-    var currentJavaMajorVersion: Int?
+    /// 已就位的托管 JRE major（`<root>/java/<major>`，升序）。
+    var installedJavaMajorVersions: [Int] = []
     
     var isShowKillAllServerButton: Bool = false
     
@@ -112,16 +126,32 @@ extension GameModel {
             return .primary
         case .valid:
             return .green
-        case .invalid:
-            return .red
+        case .missing:
+            // 未安装不等于错误：启动时会按 B5 自动安装托管 JRE。
+            return .orange
         }
     }
     
-    var showJavaVersionArea: Bool { currentJavaMajorVersion != nil || selectedGameJavaMajorVersionRequired != nil }
+    var showJavaVersionArea: Bool { selectedGameJavaMajorVersionRequired != nil }
     
+    /// 进度文案：有总量时显示「已下载 / 总量」，否则退回百分比或阶段标题。
     var progressDesc: String {
-        return String(format: "%.2f%%", progress * 100)
+        if let progressTotal, progressTotal > 0 {
+            switch progressKind {
+            case .bytes:
+                return "\(Self.byteText(progressCompleted)) / \(Self.byteText(progressTotal))"
+            case .items:
+                return "\(progressCompleted) / \(progressTotal)"
+            }
+        }
+        if progress > 0 {
+            return String(format: "%.0f%%", progress * 100)
+        }
+        return progressTitle
     }
+
+    /// 当前阶段说明（下载/安装/启动）；空串表示无。
+    var progressStageText: String { progressTitle }
     
     var selectedGameJavaMajorVersionRequired: Int? {
         guard
@@ -135,12 +165,19 @@ extension GameModel {
     }
     
     typealias JavaRuntimeStatus = JavaRuntimeService.Status
-    
+
     var javaRuntimeStatus: JavaRuntimeStatus {
         javaRuntimeService.status(
-            currentMajorVersion: currentJavaMajorVersion,
+            installedMajorVersions: installedJavaMajorVersions,
             requiredMajorVersion: selectedGameJavaMajorVersionRequired
         )
+    }
+
+    /// 已安装的托管 JRE 列表文案（如 "17, 21"；空则 "None"）。
+    var installedJavaVersionsText: String {
+        installedJavaMajorVersions.isEmpty
+            ? "None"
+            : installedJavaMajorVersions.map(String.init).joined(separator: ", ")
     }
     
     var selectedServerPID: String? {
@@ -162,12 +199,9 @@ extension GameModel {
 
 extension GameModel {
     
-    func fetchCurrentJavaMajorVersion() {
-        guard let currentJavaMajorVersion = javaRuntimeService.currentMajorVersion()
-        else {
-            return
-        }
-        self.currentJavaMajorVersion = currentJavaMajorVersion
+    /// 重新扫描托管 JRE（引擎 `<root>/java/<major>`）——唯一事实源，不再探系统 JDK。
+    func refreshJavaRuntimes() {
+        installedJavaMajorVersions = javaRuntimeService.installedMajorVersions()
     }
     
     func fetchGameVersions() async throws {
@@ -221,7 +255,7 @@ extension GameModel {
                     try await startServer(selectedVersion)
                 }
             } catch {
-                self.progress = 0
+                self.resetProgress()
                 self.errorMessage = "Failed to start \(gameType.rawValue): \(error.localizedDescription)"
             }
         }
@@ -290,14 +324,38 @@ extension GameModel {
         serverProcessService.key(versionId: versionId, software: software)
     }
 
-    func updateProgress(_ progress: Double) {
-        self.progress = progress
+    func resetProgress() {
+        progress = 0
+        progressTitle = ""
+        progressKind = .items
+        progressCompleted = 0
+        progressTotal = nil
+        progressIsIndefinite = false
+    }
+
+    /// 人类可读字节数（仅 `progressKind == .bytes` 时使用）。
+    static func byteText(_ value: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    /// 消费引擎的结构化进度（B8）：`fraction == nil` 视为不定长，只更新阶段文案。
+    func updateProgress(_ event: LaunchProgress) {
+        if let label = event.label, !label.isEmpty {
+            progressTitle = label
+        }
+        progressKind = event.kind
+        progressCompleted = event.completed
+        progressTotal = event.total
+        progressIsIndefinite = event.fraction == nil
+        if let fraction = event.fraction {
+            progress = fraction
+        }
     }
 
     var progressHandler: LaunchProgressHandler {
-        { [weak self] progress in
+        { [weak self] event in
             await MainActor.run {
-                self?.updateProgress(progress)
+                self?.updateProgress(event)
             }
         }
     }
