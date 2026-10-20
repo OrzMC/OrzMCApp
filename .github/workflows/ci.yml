@@ -11,9 +11,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  split:
+    # 平台分层校验（`docs/app-platform-split.md`）：共用目标里不许出现 AppKit/UIKit。
+    # 只读源码，秒级；先跑它，省得两个平台构建白跑。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check platform split
+        run: ./scripts/check-platform-split.sh
+
   build:
     # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
     runs-on: macos-26
+    needs: split
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # iOS 以前**从没进过 CI**（只构建 macOS）→ iOS 代码路径可以腐烂很久没人知道。
+          - destination: "platform=macOS"
+            cache_key: macos
+          - destination: "generic/platform=iOS Simulator"
+            cache_key: ios
     steps:
       - uses: actions/checkout@v5
 
@@ -31,9 +50,9 @@ jobs:
           path: |
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/Developer/Xcode/DerivedData
-          key: xcode-${{ runner.os }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj') }}
+          key: xcode-${{ matrix.cache_key }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj') }}
           restore-keys: |
-            xcode-${{ runner.os }}-
+            xcode-${{ matrix.cache_key }}-
 
       - name: Resolve package dependencies
         # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
@@ -49,13 +68,13 @@ jobs:
           # 缓存里的 SourcePackages 解析状态/checkout 也钉着旧 revision，清掉让 Xcode 重新取
           rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
           rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
-          xcodebuild -resolvePackageDependencies -scheme OrzMC
+          xcodebuild -resolvePackageDependencies -scheme OrzMC -destination '${{ matrix.destination }}'
 
       - name: Build (no signing)
         run: |
           xcodebuild build \
             -scheme OrzMC \
-            -destination 'platform=macOS' \
+            -destination '${{ matrix.destination }}' \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
