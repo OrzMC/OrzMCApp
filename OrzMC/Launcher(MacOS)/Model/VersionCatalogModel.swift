@@ -1,0 +1,131 @@
+//
+//  VersionCatalogModel.swift
+//  OrzMC
+//
+
+import Foundation
+import Game
+import MojangAPI
+import Observation
+import OrzMCLauncher
+
+/// 版本目录：拉列表、过滤、选中、装了什么。
+///
+/// 只做"版本目录"这一件事（以前混在 390 行的 `GameModel` 里）。
+/// - `filtered` 是**计算属性**：不再把派生结果复制成 `@State` 再两处同步；
+/// - `installStates` 在列表/磁盘变化时算一次并缓存，视图 body 里不再做文件 IO；
+/// - 选中变化通过 `onSelectionChange` 回调通知根模型（拉 gameInfo、刷 JRE），模型之间不互相持有。
+@MainActor
+@Observable
+final class VersionCatalogModel {
+
+    /// 注入点：默认走真实网络（`GameCatalogService`），单测可替换。
+    typealias VersionsLoader = @Sendable () async throws -> [Version]
+    typealias GameInfoLoader = @Sendable (Version) async throws -> GameVersion?
+
+    private(set) var versions: [Version] = []
+    private(set) var isLoading = false
+    private(set) var gameInfoMap: [Version: GameVersion] = [:]
+    private(set) var installStates: [String: VersionInstallState] = [:]
+
+    var searchText = ""
+    var releaseOnly = true
+
+    var selected: Version? {
+        didSet {
+            guard selected != oldValue else { return }
+            if let selected {
+                onSelectionChange?(selected)
+                loadGameInfoIfNeeded(for: selected)
+                lastSelectedVersionId = selected.id
+            }
+        }
+    }
+
+    /// 上次选中的版本 id（由根模型从设置注入/保存）。
+    var lastSelectedVersionId: String?
+
+    var onSelectionChange: ((Version) -> Void)?
+
+    private let loadVersionsHandler: VersionsLoader
+    private let loadGameInfoHandler: GameInfoLoader
+    private let filter = VersionListFilter()
+    private let scanner: InstalledVersionScanner
+
+    init(
+        scanner: InstalledVersionScanner = .live(),
+        loadVersions: @escaping VersionsLoader = { try await GameCatalogService().fetchVersions() },
+        loadGameInfo: @escaping GameInfoLoader = { try await GameCatalogService().fetchGameInfo(for: $0) }
+    ) {
+        self.scanner = scanner
+        self.loadVersionsHandler = loadVersions
+        self.loadGameInfoHandler = loadGameInfo
+    }
+
+    // MARK: 派生
+
+    /// 过滤后的列表（搜索 + 只看正式版）。
+    var filtered: [Version] {
+        filter.filter(versions: versions, searchText: searchText, releaseOnly: releaseOnly)
+    }
+
+    func gameInfo(for version: Version) -> GameVersion? { gameInfoMap[version] }
+
+    func installState(for version: Version) -> VersionInstallState {
+        installStates[version.id] ?? .none
+    }
+
+    /// 所需 Java major（来自 gameInfo）；未知时 `nil`。
+    func requiredJavaMajor(for version: Version?) -> Int? {
+        guard let version, let info = gameInfoMap[version], let java = info.javaVersion else {
+            return nil
+        }
+        return Int(java.majorVersion)
+    }
+
+    // MARK: 加载
+
+    func load() async throws {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        versions = try await loadVersionsHandler()
+        refreshInstallStates()
+        restoreSelection()
+        if let selected { loadGameInfoIfNeeded(for: selected) }
+    }
+
+    /// 版本列表变化/删除文件后调用（列表滚动时不再逐行 stat）。
+    func refreshInstallStates() {
+        var states = [String: VersionInstallState]()
+        for version in versions {
+            states[version.id] = scanner.state(
+                clientDir: GamePlan.clientDir(version: version.id),
+                serverDirs: SettingsModel.ServerSoftware.allCases.map {
+                    ($0.rawValue.lowercased(), GamePlan.serverDir(version: version.id, type: $0.gameType))
+                }
+            )
+        }
+        installStates = states
+    }
+
+    /// 尽量复原上次选中的版本；没有就选过滤后的第一个。
+    private func restoreSelection() {
+        if let lastSelectedVersionId,
+           let restored = versions.first(where: { $0.id == lastSelectedVersionId }) {
+            selected = restored
+            return
+        }
+        if selected == nil { selected = filtered.first }
+    }
+
+    private func loadGameInfoIfNeeded(for version: Version) {
+        guard gameInfoMap[version] == nil else { return }
+        let handler = loadGameInfoHandler
+        Task { [weak self] in
+            guard let info = try? await handler(version) else { return }
+            self?.gameInfoMap[version] = info
+        }
+    }
+}

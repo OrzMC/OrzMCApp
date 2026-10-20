@@ -7,12 +7,11 @@
 
 import SwiftUI
 
+/// 主界面：左侧版本/启动表单，右侧详情。**只做布局**，逻辑在 `AppModel`。
 struct LauncherUI: View {
-    @Environment(GameModel.self) private var model
+    @Environment(AppModel.self) private var app
 
     var body: some View {
-        @Bindable var model = model
-
         NavigationSplitView {
             GameView()
                 .navigationSplitViewColumnWidth(Constants.sidebarWidth)
@@ -20,15 +19,17 @@ struct LauncherUI: View {
             GameInfoView()
         }
         .navigationSplitViewStyle(.prominentDetail)
-        .alert("Operation Failed", isPresented: Binding(
-            get: { model.errorMessage != nil },
-            set: { if !$0 { model.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {
-                model.errorMessage = nil
-            }
+        .alert(
+            "Operation Failed",
+            isPresented: Binding(
+                get: { app.error != nil },
+                set: { if !$0 { app.error = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { app.error = nil }
         } message: {
-            Text(model.errorMessage ?? "")
+            // 文案 + 规范错误码（`E_VERIFY` 之类），便于用户搜索/上报。
+            Text(app.error?.description ?? "")
         }
     }
 }
@@ -36,5 +37,5 @@ struct LauncherUI: View {
 #Preview {
     LauncherUI()
         .frame(minWidth: Constants.minWidth, minHeight: Constants.minHeight)
-        .environment(GameModel())
+        .environment(AppModel())
 }

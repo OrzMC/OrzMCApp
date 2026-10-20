@@ -87,25 +87,25 @@ struct FilePathEntry: View {
 }
 struct BasicInfo: View {
 
-    @Environment(GameModel.self) private var model
+    @Environment(AppModel.self) private var app
     
     @State private var deleteTarget: DeleteTarget?
     
     var body: some View {
         Group {
-            if model.selectedVersion == nil {
+            if app.catalog.selected == nil {
                 EmptyContentView(OrzMCContentStates.noVersionSelected)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 detailsForm
             }
         }
-        .navigationTitle(model.detailTitle)
+        .navigationTitle(app.detailTitle)
         .toolbar {
-            if model.isShowKillAllServerButton {
+            if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
-                        model.stopAllRunningServer()
+                        app.stopAllServers()
                     } label: {
                         Label("Stop All Servers", systemImage: "stop.circle")
                     }
@@ -160,14 +160,14 @@ struct BasicInfo: View {
                                     )
                                     .onLongPressGesture {
                                         Task {
-                                            try await model.downloadAllServerPlugins()
+                                            try await app.downloadAllServerPlugins()
                                         }
                                     }
-                                    if (model.serverPluginDownloadProgress > 0) {
+                                    if (app.plugins.isDownloading) {
                                         HStack {
-                                            Text(model.serverPluginDownloadProgressTitle)
+                                            Text(app.plugins.title)
                                             Spacer()
-                                            ProgressView(value: model.serverPluginDownloadProgress)
+                                            ProgressView(value: app.plugins.progress)
                                                 .progressViewStyle(.linear)
                                         }
                                     }
@@ -234,11 +234,11 @@ private extension BasicInfo {
 extension BasicInfo {
 
     func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, dotColor: Color, textColor: Color) {
-        guard let selectedVersion = model.selectedVersion
+        guard let selectedVersion = app.catalog.selected
         else {
             return ("Unknown", .secondary, .secondary)
         }
-        let running = model.isServerRunning(versionId: selectedVersion.id, software: software)
+        let running = app.servers.isRunning(versionId: selectedVersion.id, software: software)
         if running {
             return ("Running", .green, .green)
         }
@@ -246,18 +246,18 @@ extension BasicInfo {
     }
     
     func stopActionFor(software: SettingsModel.ServerSoftware) -> FormSectionHeader.ButtonAction? {
-        guard let selectedVersion = model.selectedVersion,
-              model.isServerRunning(versionId: selectedVersion.id, software: software)
+        guard let selectedVersion = app.catalog.selected,
+              app.servers.isRunning(versionId: selectedVersion.id, software: software)
         else {
             return nil
         }
         return {
-            model.stopServer(versionId: selectedVersion.id, software: software)
+            app.stopServer(software: software)
         }
     }
     
     func serverDirPath(for software: SettingsModel.ServerSoftware) -> String? {
-        guard let selectedVersion = model.selectedVersion
+        guard let selectedVersion = app.catalog.selected
         else {
             return nil
         }
@@ -265,7 +265,7 @@ extension BasicInfo {
     }
 
     func serverPluginDirPath(for software: SettingsModel.ServerSoftware) -> String? {
-        guard let selectedVersion = model.selectedVersion
+        guard let selectedVersion = app.catalog.selected
         else {
             return nil
         }
@@ -273,7 +273,7 @@ extension BasicInfo {
     }
 
     func serverPluginUpdateDirPath(for software: SettingsModel.ServerSoftware) -> String? {
-        guard let selectedVersion = model.selectedVersion
+        guard let selectedVersion = app.catalog.selected
         else {
             return nil
         }
@@ -281,7 +281,7 @@ extension BasicInfo {
     }
     
     var clientDirPath: String? {
-        guard let selectedVersion = model.selectedVersion
+        guard let selectedVersion = app.catalog.selected
         else {
             return nil
         }
@@ -294,9 +294,9 @@ extension BasicInfo {
     
     @Previewable
     @State
-    var gameModel = GameModel()
-    
+    var app = AppModel()
+
     BasicInfo()
         .frame(width: Constants.minWidth - Constants.sidebarWidth, height: Constants.minHeight)
-        .environment(gameModel)
+        .environment(app)
 }

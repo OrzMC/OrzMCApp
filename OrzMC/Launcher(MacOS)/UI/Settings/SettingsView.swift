@@ -57,6 +57,50 @@ struct SettingsView: View {
                         .font(.title)
                 }
 
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Client Type")
+                            Spacer()
+                            Picker("", selection: $model.clientType) {
+                                ForEach(SettingsModel.ClientKind.allCases) { kind in
+                                    Text(kind.rawValue).tag(kind)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .frame(width: 200)
+                        }
+
+                        Divider().padding(.vertical, 4)
+
+                        HStack {
+                            Text("JVM Memory")
+                            Spacer()
+                            TextField("512M", text: $model.minMem)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 90)
+                            Text("–")
+                            TextField("2G", text: $model.maxMem)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 90)
+                        }
+
+                        if let message = model.memoryValidationMessage {
+                            Text("Invalid: \(message) (expected e.g. 512M / 2G)")
+                                .font(.caption)
+                                .foregroundStyle(Color.red)
+                        } else {
+                            Text("Same rules as the CLI (--min-mem / --max-mem).")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } label: {
+                    Label("Game", systemImage: "gamecontroller")
+                        .font(.title)
+                }
+
                 CommandLineSettingsSection()
 
                 GroupBox {

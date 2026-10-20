@@ -7,6 +7,7 @@
 
 import Foundation
 import Game
+import OrzMCLauncher
 
 /// 用户设置（**持久化**：重启后保留）。
 ///
@@ -27,7 +28,7 @@ final class SettingsModel {
         static let maxMem = "orzmc.settings.maxMem"
         static let username = "orzmc.settings.username"
         static let lastSelectedVersion = "orzmc.settings.lastSelectedVersion"
-        static let gameType = "orzmc.settings.gameType"
+        static let gameMode = "orzmc.settings.gameMode"
     }
 
     static let defaultMinMem = "512M"
@@ -49,6 +50,9 @@ final class SettingsModel {
         self.maxMem = defaults.string(forKey: Keys.maxMem) ?? SettingsModel.defaultMaxMem
         self.username = defaults.string(forKey: Keys.username) ?? ""
         self.lastSelectedVersionId = defaults.string(forKey: Keys.lastSelectedVersion)
+        self.gameMode = GameMode(
+            rawValue: defaults.string(forKey: Keys.gameMode) ?? ""
+        ) ?? .client
     }
 
     /// 远程 JVM 调试（服务端）。
@@ -86,6 +90,11 @@ final class SettingsModel {
     /// 上次选中的版本 id（版本目录加载后尽量复原）。
     var lastSelectedVersionId: String? {
         didSet { defaults.set(lastSelectedVersionId, forKey: Keys.lastSelectedVersion) }
+    }
+
+    /// 客户端 / 服务端（下次启动保留）。
+    var gameMode: GameMode {
+        didSet { defaults.set(gameMode.rawValue, forKey: Keys.gameMode) }
     }
 
     // MARK: 校验（共用引擎规则）
