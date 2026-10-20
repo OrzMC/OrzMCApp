@@ -12,13 +12,18 @@ struct GameLaunchService {
     func startClient(
         version: Version,
         username: String,
+        clientType: SettingsModel.ClientKind,
+        minMem: String,
+        maxMem: String,
         progressHandler: @escaping LaunchProgressHandler
     ) async throws {
+        // 内存/客户端类型来自设置（校验已在 `SettingsModel` 用引擎 `MemorySpec` 做过）。
         let clientInfo = ClientInfo(
             version: version,
             username: username,
-            minMem: "512M",
-            maxMem: "2G"
+            type: clientType.gameType,
+            minMem: minMem,
+            maxMem: maxMem
         )
         var launcher = GUIClient(
             clientInfo: clientInfo,
@@ -30,6 +35,8 @@ struct GameLaunchService {
     func startServer(
         version: Version,
         software: SettingsModel.ServerSoftware,
+        minMem: String,
+        maxMem: String,
         enableJVMDebugger: Bool,
         jvmDebuggerArgs: String,
         progressHandler: @escaping LaunchProgressHandler
@@ -47,8 +54,8 @@ struct GameLaunchService {
             debug: false,
             forceUpgrade: false,
             demo: false,
-            minMem: "512M",
-            maxMem: "2G",
+            minMem: minMem,
+            maxMem: maxMem,
             jvmArgs: jvmArgs,
             onlineMode: false,
             showJarHelpInfo: false,

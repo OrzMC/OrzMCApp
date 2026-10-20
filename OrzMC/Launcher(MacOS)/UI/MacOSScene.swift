@@ -18,6 +18,8 @@ struct MacOSScene: Scene {
             LauncherUI()
                 .frame(minWidth: Constants.minWidth, minHeight: Constants.minHeight)
                 .environment(model)
+                // 周期探活（2s，`kill(pid, 0)`；只探自己登记过的服务端）。
+                .task { await model.startMonitoring() }
         }
         .defaultSize(width: Constants.minWidth, height: Constants.minHeight)
         .windowResizability(.contentMinSize)

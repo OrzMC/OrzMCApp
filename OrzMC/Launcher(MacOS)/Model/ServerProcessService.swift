@@ -9,27 +9,36 @@ import JokerKits
 import OrzMCFoundation
 import OrzMCLauncher
 
+/// 只做「停一个 PID」——**不再做全机进程扫描**。
+///
+/// 旧实现每轮 `Shell.allRunningServerPids()`（= `ps` 全机搜索 `nogui`）来"发现"服务端，
+/// 于是把**别人启动的**服务端也算成自己的，`Stop All` 会误杀；而且每秒一次子进程。
 protocol ServerProcessCommanding: AnyObject {
-    func runningServerPids() throws -> [String]
     func stop(processId: String) throws
 }
 
 final class ShellServerProcessCommander: ServerProcessCommanding {
-    func runningServerPids() throws -> [String] {
-        try Shell.allRunningServerPids()
-    }
-
     func stop(processId: String) throws {
         try Shell.runCommand(with: ["kill", processId])
     }
 }
 
 struct ServerProcessService {
-    private var store = ManagedServerProcessStore()
+    /// 登记表落盘（app 重启后仍记得自己启动过哪些服务端）。
+    private var store = ManagedServerProcessStore(
+        persistence: FileServerProcessPersistence()
+    )
     private let commander: ServerProcessCommanding
+    private let probe: ProcessLivenessProbing
 
-    init(commander: ServerProcessCommanding = ShellServerProcessCommander()) {
+    init(
+        commander: ServerProcessCommanding = ShellServerProcessCommander(),
+        probe: ProcessLivenessProbing = KernelProcessLivenessProbe(),
+        persistence: ServerProcessPersisting? = FileServerProcessPersistence()
+    ) {
         self.commander = commander
+        self.probe = probe
+        self.store = ManagedServerProcessStore(persistence: persistence)
     }
 
     func key(versionId: String, software: SettingsModel.ServerSoftware) -> String {
@@ -43,12 +52,19 @@ struct ServerProcessService {
         )
     }
 
-    mutating func refresh(runningPids: Set<String>) {
-        store.refresh(runningProcessIds: Set(runningPids.map { ProcessIdentifier($0) }))
+    /// 探活**已登记**的进程（`kill(pid, 0)`，无子进程）；死掉的顺手从登记表移除。
+    mutating func refreshAliveness() {
+        let alive = Set(store.registeredProcessIds().filter { probe.isAlive($0) })
+        store.refresh(runningProcessIds: alive)
     }
 
-    func runningServerPids() -> Set<String> {
-        Set((try? commander.runningServerPids()) ?? [])
+    /// 已登记的 PID 里仍然活着的（供 UI 显示/停止）。
+    func aliveRegisteredPids() -> Set<String> {
+        Set(
+            store.registeredProcessIds()
+                .filter { probe.isAlive($0) }
+                .map(\.rawValue)
+        )
     }
 
     var hasManagedRunningServers: Bool {

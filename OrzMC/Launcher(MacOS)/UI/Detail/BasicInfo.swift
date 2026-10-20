@@ -90,8 +90,6 @@ struct BasicInfo: View {
     @Environment(GameModel.self) private var model
     
     @State private var deleteTarget: DeleteTarget?
-
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         Group {
@@ -103,9 +101,6 @@ struct BasicInfo: View {
             }
         }
         .navigationTitle(model.detailTitle)
-        .onReceive(timer) { _ in
-            model.checkRunningServer()
-        }
         .toolbar {
             if model.isShowKillAllServerButton {
                 ToolbarItem {

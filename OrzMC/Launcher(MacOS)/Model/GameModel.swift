@@ -8,6 +8,7 @@
 import SwiftUI
 import Game
 import MojangAPI
+import OrzMCLauncher
 
 @MainActor
 @Observable
@@ -37,7 +38,11 @@ final class GameModel {
         }
     }
     
-    var username: String = ""
+    /// 离线用户名（初值/改动都同步到设置，下次启动预填）。
+    var username: String {
+        get { settingsModel.username }
+        set { settingsModel.username = newValue }
+    }
     
     var gameType: GameType = .client {
         willSet {
@@ -66,7 +71,14 @@ final class GameModel {
     
     var isFetchingGameVersions: Bool = false
 
-    var errorMessage: String?
+    /// 结构化错误（**保留规范错误码**，UI 显示"人话 (code)"）。
+    var error: LauncherError?
+
+    /// 兼容旧 UI：只要文案。
+    var errorMessage: String? {
+        get { error?.description }
+        set { error = newValue.map { LauncherError(code: "E_RUNTIME", message: $0) } }
+    }
     
     var isClient: Bool { gameType == .client }
     
@@ -75,7 +87,8 @@ final class GameModel {
     var canStartGame: Bool {
         guard selectedVersion != nil,
               !isFetchingGameVersions,
-              !isLaunchingGame
+              !isLaunchingGame,
+              settingsModel.isMemoryValid
         else {
             return false
         }
@@ -228,7 +241,8 @@ extension GameModel {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Failed to load game info: \(error.localizedDescription)"
+                    self.error = LauncherError.wrap(
+                        error, fallbackCode: "E_NETWORK")
                 }
             }
         }
@@ -256,7 +270,7 @@ extension GameModel {
                 }
             } catch {
                 self.resetProgress()
-                self.errorMessage = "Failed to start \(gameType.rawValue): \(error.localizedDescription)"
+                self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
             }
         }
     }
@@ -265,6 +279,9 @@ extension GameModel {
         try await gameLaunchService.startClient(
             version: selectedVersion,
             username: username,
+            clientType: settingsModel.clientType,
+            minMem: settingsModel.minMem,
+            maxMem: settingsModel.maxMem,
             progressHandler: progressHandler
         )
     }
@@ -273,6 +290,8 @@ extension GameModel {
         guard let launchedServer = try await gameLaunchService.startServer(
             version: selectedVersion,
             software: settingsModel.serverSoftware,
+            minMem: settingsModel.minMem,
+            maxMem: settingsModel.maxMem,
             enableJVMDebugger: settingsModel.enableJVMDebugger,
             jvmDebuggerArgs: settingsModel.jvmDebuggerArgs,
             progressHandler: progressHandler
@@ -283,11 +302,19 @@ extension GameModel {
         serverProcessService.record(launchedServer)
     }
     
+    /// 探活**自己登记过的**服务端（`kill(pid, 0)`，不起子进程、不误判别人的进程）。
     func checkRunningServer() {
-        let runningPids = serverProcessService.runningServerPids()
-        runningServerPids = runningPids
-        serverProcessService.refresh(runningPids: runningPids)
-        isShowKillAllServerButton = serverProcessService.hasManagedRunningServers
+        serverProcessService.refreshAliveness()
+        runningServerPids = serverProcessService.aliveRegisteredPids()
+        isShowKillAllServerButton = !runningServerPids.isEmpty
+    }
+
+    /// 周期探活（2s；仅在确有登记时才是有效工作）。由场景在出现时启动。
+    func startMonitoring() async {
+        while !Task.isCancelled {
+            checkRunningServer()
+            try? await Task.sleep(for: .seconds(2))
+        }
     }
     
     func stopAllRunningServer() {
@@ -297,7 +324,7 @@ extension GameModel {
                 serverProcessService.removeAll()
                 checkRunningServer()
             } catch {
-                errorMessage = "Failed to stop servers: \(error.localizedDescription)"
+                self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
             }
         }
     }
@@ -316,7 +343,7 @@ extension GameModel {
             serverProcessService.remove(versionId: versionId, software: software)
             checkRunningServer()
         } catch {
-            errorMessage = "Failed to stop server: \(error.localizedDescription)"
+            self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
         }
     }
 
@@ -375,7 +402,7 @@ extension GameModel {
             )
         } catch {
             serverPluginDownloadProgress = 0
-            errorMessage = "Failed to download server plugins: \(error.localizedDescription)"
+            self.error = LauncherError.wrap(error, fallbackCode: "E_NETWORK")
         }
     }
 
