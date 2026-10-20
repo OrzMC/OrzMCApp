@@ -43,12 +43,13 @@ let package = Package(
             dependencies: ["OrzMCFoundation"],
             path: "Sources/OrzMCLauncher"
         ),
+        // iOS 专用（服务器状态查询 / RCON）；与 GUI 的 `OrzMC/` 源码分开，独立可测。
         .target(
             name: "OrzMCProtocol",
             dependencies: [
                 .product(name: "Socket", package: "BlueSocket")
             ],
-            path: "OrzMC/MobileHelper(iOS)/Protocol"
+            path: "Sources/OrzMCProtocol"
         ),
         .target(
             name: "OrzMCRemoteHosting",
