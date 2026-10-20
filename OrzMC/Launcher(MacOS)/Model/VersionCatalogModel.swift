@@ -20,8 +20,8 @@ import OrzMCLauncher
 final class VersionCatalogModel {
 
     /// 注入点：默认走真实网络（`GameCatalogService`），单测可替换。
-    typealias VersionsLoader = @Sendable () async throws -> [Version]
-    typealias GameInfoLoader = @Sendable (Version) async throws -> GameVersion?
+    typealias VersionsLoader = @Sendable (String) async throws -> [Version]
+    typealias GameInfoLoader = @Sendable (Version, String) async throws -> GameVersion?
 
     private(set) var versions: [Version] = []
     private(set) var isLoading = false
@@ -45,6 +45,14 @@ final class VersionCatalogModel {
     /// 上次选中的版本 id（由根模型从设置注入/保存）。
     var lastSelectedVersionId: String?
 
+    /// 游戏根目录（多实例 = 换根）。变化时重算"装了什么"。
+    var rootDir: String = GamePlan.defaultRoot {
+        didSet {
+            guard rootDir != oldValue else { return }
+            refreshInstallStates()
+        }
+    }
+
     var onSelectionChange: ((Version) -> Void)?
 
     private let loadVersionsHandler: VersionsLoader
@@ -54,8 +62,12 @@ final class VersionCatalogModel {
 
     init(
         scanner: InstalledVersionScanner = .live(),
-        loadVersions: @escaping VersionsLoader = { try await GameCatalogService().fetchVersions() },
-        loadGameInfo: @escaping GameInfoLoader = { try await GameCatalogService().fetchGameInfo(for: $0) }
+        loadVersions: @escaping VersionsLoader = { root in
+            try await GameCatalogService().fetchVersions(root: root)
+        },
+        loadGameInfo: @escaping GameInfoLoader = { version, root in
+            try await GameCatalogService().fetchGameInfo(for: version, root: root)
+        }
     ) {
         self.scanner = scanner
         self.loadVersionsHandler = loadVersions
@@ -90,7 +102,7 @@ final class VersionCatalogModel {
         isLoading = true
         defer { isLoading = false }
 
-        versions = try await loadVersionsHandler()
+        versions = try await loadVersionsHandler(rootDir)
         refreshInstallStates()
         restoreSelection()
         if let selected { loadGameInfoIfNeeded(for: selected) }
@@ -101,9 +113,12 @@ final class VersionCatalogModel {
         var states = [String: VersionInstallState]()
         for version in versions {
             states[version.id] = scanner.state(
-                clientDir: GamePlan.clientDir(version: version.id),
+                clientDir: GamePlan.clientDir(version: version.id, root: rootDir),
                 serverDirs: SettingsModel.ServerSoftware.allCases.map {
-                    ($0.rawValue.lowercased(), GamePlan.serverDir(version: version.id, type: $0.gameType))
+                    (
+                        $0.rawValue.lowercased(),
+                        GamePlan.serverDir(version: version.id, type: $0.gameType, root: rootDir)
+                    )
                 }
             )
         }
@@ -123,8 +138,9 @@ final class VersionCatalogModel {
     private func loadGameInfoIfNeeded(for version: Version) {
         guard gameInfoMap[version] == nil else { return }
         let handler = loadGameInfoHandler
+        let root = rootDir
         Task { [weak self] in
-            guard let info = try? await handler(version) else { return }
+            guard let info = try? await handler(version, root) else { return }
             self?.gameInfoMap[version] = info
         }
     }

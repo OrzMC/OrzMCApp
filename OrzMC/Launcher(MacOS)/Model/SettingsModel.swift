@@ -29,6 +29,7 @@ final class SettingsModel {
         static let username = "orzmc.settings.username"
         static let lastSelectedVersion = "orzmc.settings.lastSelectedVersion"
         static let gameMode = "orzmc.settings.gameMode"
+        static let rootDir = "orzmc.settings.rootDir"
     }
 
     static let defaultMinMem = "512M"
@@ -53,6 +54,7 @@ final class SettingsModel {
         self.gameMode = GameMode(
             rawValue: defaults.string(forKey: Keys.gameMode) ?? ""
         ) ?? .client
+        self.rootDir = defaults.string(forKey: Keys.rootDir) ?? GamePlan.defaultRoot
     }
 
     /// 远程 JVM 调试（服务端）。
@@ -95,6 +97,20 @@ final class SettingsModel {
     /// 客户端 / 服务端（下次启动保留）。
     var gameMode: GameMode {
         didSet { defaults.set(gameMode.rawValue, forKey: Keys.gameMode) }
+    }
+
+    /// 游戏根目录（规范 §3 的全局 `--root-dir`；多实例就是换一个根）。
+    ///
+    /// 引擎的 `ClientInfo` / `ServerInfo` / `GamePlan.*(root:)` 都已参数化，
+    /// GUI 之前固定用 `GamePlan.defaultRoot`，等于"多实例不可用"。
+    var rootDir: String {
+        didSet { defaults.set(rootDir, forKey: Keys.rootDir) }
+    }
+
+    var isRootDirValid: Bool { rootDir.hasPrefix("/") }
+
+    func resetRootDir() {
+        rootDir = GamePlan.defaultRoot
     }
 
     // MARK: 校验（共用引擎规则）

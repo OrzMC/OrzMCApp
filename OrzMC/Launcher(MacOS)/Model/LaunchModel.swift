@@ -30,6 +30,7 @@ final class LaunchModel {
         version: Version,
         username: String,
         clientType: SettingsModel.ClientKind,
+        rootDir: String,
         minMem: String,
         maxMem: String
     ) async throws {
@@ -37,6 +38,7 @@ final class LaunchModel {
             version: version,
             username: username,
             clientType: clientType,
+            rootDir: rootDir,
             minMem: minMem,
             maxMem: maxMem,
             progressHandler: progressHandler
@@ -46,6 +48,7 @@ final class LaunchModel {
     func startServer(
         version: Version,
         software: SettingsModel.ServerSoftware,
+        rootDir: String,
         minMem: String,
         maxMem: String,
         enableJVMDebugger: Bool,
@@ -54,6 +57,7 @@ final class LaunchModel {
         try await service.startServer(
             version: version,
             software: software,
+            rootDir: rootDir,
             minMem: minMem,
             maxMem: maxMem,
             enableJVMDebugger: enableJVMDebugger,

@@ -38,6 +38,8 @@ final class AppModel {
         self.plugins = PluginDownloadModel()
 
         catalog.lastSelectedVersionId = settings.lastSelectedVersionId
+        catalog.rootDir = settings.rootDir
+        java.rootDir = settings.rootDir
         catalog.onSelectionChange = { [weak self] version in
             self?.selectionDidChange(version)
         }
@@ -57,6 +59,22 @@ final class AppModel {
     }
 
     var selectedVersion: Version? { catalog.selected }
+
+    /// 游戏根目录（多实例）：改根要重算"装了什么"、重置 JRE 与进程视图。
+    var rootDir: String {
+        get { settings.rootDir }
+        set {
+            guard settings.rootDir != newValue else { return }
+            settings.rootDir = newValue
+            catalog.rootDir = newValue
+            java.rootDir = newValue
+            java.refresh()
+            servers.refresh()
+            launch.resetProgress()
+        }
+    }
+
+    var isRootDirValid: Bool { settings.isRootDirValid }
 
     var detailTitle: String {
         guard let selected = catalog.selected else { return "Minecraft" }
@@ -108,6 +126,7 @@ final class AppModel {
                             version: version,
                             username: username,
                             clientType: settings.clientType,
+                            rootDir: settings.rootDir,
                             minMem: settings.minMem,
                             maxMem: settings.maxMem
                         )
@@ -115,6 +134,7 @@ final class AppModel {
                         if let launched = try await launch.startServer(
                             version: version,
                             software: settings.serverSoftware,
+                            rootDir: settings.rootDir,
                             minMem: settings.minMem,
                             maxMem: settings.maxMem,
                             enableJVMDebugger: settings.enableJVMDebugger,

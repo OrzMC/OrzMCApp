@@ -12,7 +12,9 @@ import SwiftUIX
 
 struct SettingsView: View {
 
-    @Environment(SettingsModel.self) private var model
+    @Environment(AppModel.self) private var app
+
+    private var model: SettingsModel { app.settings }
 
     var body: some View {
         @Bindable var model = model
@@ -59,6 +61,33 @@ struct SettingsView: View {
 
                 GroupBox {
                     VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Game Folder")
+                            Spacer()
+                            TextField(model.rootDir, text: $model.rootDir)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(.body, design: .monospaced))
+                            Button("Choose…") { chooseRootDir() }
+                            Button {
+                                model.resetRootDir()
+                            } label: {
+                                Image(systemName: "arrow.uturn.backward")
+                            }
+                            .help("Reset to \(GamePlan.defaultRoot)")
+                        }
+
+                        if !model.isRootDirValid {
+                            Text("Path must be absolute (start with /).")
+                                .font(.caption)
+                                .foregroundStyle(Color.red)
+                        } else {
+                            Text("Multiple instances = one game folder each (same as the CLI's --root-dir).")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Divider().padding(.vertical, 4)
+
                         HStack {
                             Text("Client Type")
                             Spacer()
@@ -157,9 +186,22 @@ struct SettingsView: View {
         }
         .frame(width: 600, height: 620)
     }
+
+    /// 选游戏根目录（多实例）：只挑目录，不创建——引擎会在下载时就地建好。
+    private func chooseRootDir() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Use Folder"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        app.rootDir = url.path
+    }
 }
 
 #Preview {
     SettingsView()
-        .environment(SettingsModel())
+        .environment(AppModel())
+
 }

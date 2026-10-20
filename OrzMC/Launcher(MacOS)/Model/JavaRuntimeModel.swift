@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Game
 import Observation
 import OrzMCLauncher
 
@@ -35,7 +36,10 @@ final class JavaRuntimeModel {
         installedMajors.isEmpty ? "None" : installedMajors.map(String.init).joined(separator: ", ")
     }
 
+    /// 游戏根目录（与设置一致；多实例下 JRE 也在该根下）。
+    var rootDir: String = GamePlan.defaultRoot
+
     func refresh() {
-        installedMajors = service.installedMajorVersions()
+        installedMajors = service.installedMajorVersions(root: rootDir)
     }
 }

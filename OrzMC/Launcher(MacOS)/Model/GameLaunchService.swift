@@ -13,6 +13,7 @@ struct GameLaunchService {
         version: Version,
         username: String,
         clientType: SettingsModel.ClientKind,
+        rootDir: String,
         minMem: String,
         maxMem: String,
         progressHandler: @escaping LaunchProgressHandler
@@ -21,6 +22,7 @@ struct GameLaunchService {
         let clientInfo = ClientInfo(
             version: version,
             username: username,
+            rootDir: rootDir,
             type: clientType.gameType,
             minMem: minMem,
             maxMem: maxMem
@@ -35,6 +37,7 @@ struct GameLaunchService {
     func startServer(
         version: Version,
         software: SettingsModel.ServerSoftware,
+        rootDir: String,
         minMem: String,
         maxMem: String,
         enableJVMDebugger: Bool,
@@ -50,6 +53,7 @@ struct GameLaunchService {
         let handler = progressHandler
         let serverInfo = ServerInfo(
             version: version.id,
+            rootDir: rootDir,
             gui: false,
             debug: false,
             forceUpgrade: false,
