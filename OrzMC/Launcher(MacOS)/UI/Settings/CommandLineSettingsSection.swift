@@ -5,13 +5,19 @@
 //  Created by pi on 2026/10/17.
 //
 
+import OrzMCLauncher
 import SwiftUI
 
 /// 设置页的「命令行工具」区块：显示 PATH 上 `orzmc` 的安装事实，并提供
 /// **GUI → CLI** 的安装入口（D7 的另一半；另一半是 CLI 的 `orzmc app`）。
+///
+/// `install.conf` 的 `surface` 在这里是**一等公民**（规范 `install-update.md` §3.1）：
+/// 显示「谁装的」+「从哪个通道来的」，并据此决定默认动作——
+/// 有真身时优先 **Update**（保留 `surface`），没有才 Fallback 到 Install（会把 `surface` 写成本应用）。
 struct CommandLineSettingsSection: View {
     @State private var model = CommandLineToolModel()
     @State private var pendingChannel: CommandLineToolModel.Channel?
+    @State private var pendingUninstall = false
 
     var body: some View {
         GroupBox {
@@ -20,28 +26,12 @@ struct CommandLineSettingsSection: View {
 
                 Divider().padding(.vertical, 2)
 
-                HStack(spacing: 8) {
-                    Button("Install \(CommandLineToolModel.Channel.python.title)") {
-                        pendingChannel = .python
-                    }
-                    Button("Install \(CommandLineToolModel.Channel.swift.title)") {
-                        pendingChannel = .swift
-                    }
-                    .help("两个通道是同一份规范的两个发布源；后装者覆盖先装者")
-                    Spacer()
-                    Button {
-                        model.refresh()
-                    } label: {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                    }
-                    .help("Re-read install.conf")
-                }
-                .disabled(model.isInstalling)
+                actionRow
 
-                if model.isInstalling {
+                if model.isBusy {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
-                        Text("Running installer…").font(.footnote).foregroundStyle(.secondary)
+                        Text("Running…").font(.footnote).foregroundStyle(.secondary)
                     }
                 }
 
@@ -80,7 +70,7 @@ struct CommandLineSettingsSection: View {
         }
         .task { model.refresh() }
         .confirmationDialog(
-            confirmationTitle,
+            "Install orzmc CLI?",
             isPresented: Binding(
                 get: { pendingChannel != nil },
                 set: { if !$0 { pendingChannel = nil } }
@@ -95,56 +85,138 @@ struct CommandLineSettingsSection: View {
             }
             Button("Cancel", role: .cancel) { pendingChannel = nil }
         } message: { channel in
-            Text("""
-            This downloads and runs the official OrzMC installer:
+            Text(
+                """
+                This downloads and runs the official OrzMC installer:
 
-            \(channel.oneLiner)
+                \(channel.oneLiner)
 
-            It installs to ~/.local/bin and may add that directory to your shell PATH.
-            No administrator rights are needed.
-            """)
+                It installs to ~/.local/bin and may add that directory to your shell PATH. \
+                No administrator rights are needed.
+
+                \(InstallSurfacePolicy.reinstallNotice())
+                """
+            )
+        }
+        .confirmationDialog(
+            "Uninstall orzmc CLI?",
+            isPresented: $pendingUninstall
+        ) {
+            Button("Uninstall", role: .destructive) {
+                Task { await model.uninstall() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                """
+                Runs `orzmc uninstall --yes`: removes the binary, the PATH line it added, \
+                the shell completion, and the install record. Your game files are kept.
+                """
+            )
         }
     }
 
-    private var confirmationTitle: String {
-        "Install orzmc CLI?"
-    }
+    // MARK: 状态
 
     @ViewBuilder
     private var statusRow: some View {
         if let status = model.status {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text("orzmc \(status.version)")
                         .font(.headline)
                     Text(status.surfaceText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let channel = status.channel {
+                        Text(channel.title)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.15), in: Capsule())
+                    }
                     Spacer()
                     if status.binaryExists {
                         Button("Reveal") { model.revealBinary() }
                             .font(.caption)
                     }
                 }
+
                 Text(status.binaryPath)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(status.binaryExists ? Color.secondary : Color.red)
                     .lineLimit(1)
                     .truncationMode(.middle)
+
+                if status.isBroken {
+                    Text("The recorded binary is missing — reinstall to repair the record.")
+                        .font(.caption)
+                        .foregroundStyle(Color.orange)
+                } else if let completion = status.completionFile, !completion.isEmpty {
+                    Text("completion: \(completion)")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Text("record: \(status.recordPath)")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
         } else {
             HStack {
-                Text("orzmc CLI is not installed on this Mac.")
+                Text("orzmc CLI is not installed for this user.")
                     .foregroundStyle(.secondary)
                 Spacer()
             }
-            .font(.footnote)
         }
     }
-}
 
-#Preview {
-    CommandLineSettingsSection()
-        .padding()
-        .frame(width: 560)
+    // MARK: 动作
+
+    @ViewBuilder
+    private var actionRow: some View {
+        HStack(spacing: 8) {
+            if let status = model.status, status.canUpdateInPlace {
+                // 有真身：默认动作是**升级**（保留 surface/source），不是重装。
+                Button("Update") {
+                    Task { await model.update() }
+                }
+                .buttonStyle(.borderedProminent)
+                .help("Runs `orzmc update --yes` — keeps the recorded origin (surface/source)")
+
+                Menu("Reinstall…") {
+                    ForEach(CommandLineToolModel.Channel.allCases) { channel in
+                        Button(channel.title) { pendingChannel = channel }
+                    }
+                }
+                .fixedSize()
+                .help("Re-runs the official installer; the record will say installed by this app")
+
+                Button("Uninstall", role: .destructive) { pendingUninstall = true }
+            } else {
+                ForEach(CommandLineToolModel.Channel.allCases) { channel in
+                    Button("Install \(channel.title)") { pendingChannel = channel }
+                }
+                if model.status != nil {
+                    Text("(record exists but the binary is missing)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Button {
+                model.refresh()
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+            }
+            .help("Re-read install.conf")
+        }
+        .disabled(model.isBusy)
+    }
 }
