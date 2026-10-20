@@ -8,17 +8,23 @@
 import SwiftUI
 import Game
 import MojangAPI
+import OrzMCLauncher
 
+/// 版本列表：**纯展示**。装了什么由 `VersionCatalogModel` 一次算好并传进来，
+/// 视图 body 里不再做文件 IO（以前每行 3 次 stat、每次重绘都跑）。
 struct GameList: View {
-    @Binding var versions: [Version]
+    let versions: [Version]
     @Binding var selectedVersion: Version?
+    let installStates: [String: VersionInstallState]
     let isOnlyRelease: Bool
     let canUseShortcut: Bool
+
     var body: some View {
         ScrollViewReader { proxy in
             List(versions, selection: $selectedVersion) { version in
+                let state = installStates[version.id] ?? .none
                 HStack(spacing: 10) {
-                    Image(systemName: installState(for: version).icon)
+                    Image(systemName: state.symbolName)
                         .foregroundStyle(.secondary)
                         .frame(width: 16)
 
@@ -26,7 +32,7 @@ struct GameList: View {
                         Text(version.id)
                             .lineLimit(1)
 
-                        if let detail = rowDetail(for: version) {
+                        if let detail = rowDetail(for: version, state: state) {
                             Text(detail)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -35,15 +41,12 @@ struct GameList: View {
                     }
                 }
                 .tag(version)
-                .help(rowHelp(for: version))
+                .help(rowHelp(for: version, state: state))
             }
             .listStyle(.sidebar)
             .disabled(!canUseShortcut)
             .onChange(of: selectedVersion) {
-                guard let selectedVersionId = selectedVersion?.id
-                else {
-                    return
-                }
+                guard let selectedVersionId = selectedVersion?.id else { return }
                 proxy.scrollTo(selectedVersionId)
             }
         }
@@ -51,29 +54,8 @@ struct GameList: View {
 }
 
 private extension GameList {
-    func installState(for version: Version) -> (icon: String, labels: [String]) {
-        var labels = [String]()
-        if GamePlan.clientDir(version: version.id).isExist() {
-            labels.append("Client")
-        }
-        if GamePlan.serverDir(version: version.id, type: .paper).isExist() {
-            labels.append("Paper server")
-        }
-        if GamePlan.serverDir(version: version.id, type: .vanilla).isExist() {
-            labels.append("Vanilla server")
-        }
-
-        if labels.contains("Client") {
-            return ("macbook", labels)
-        }
-        if labels.contains("Paper server") || labels.contains("Vanilla server") {
-            return ("xserve", labels)
-        }
-        return ("cube", labels)
-    }
-
-    func rowDetail(for version: Version) -> String? {
-        let installed = installState(for: version).labels.joined(separator: ", ")
+    func rowDetail(for version: Version, state: VersionInstallState) -> String? {
+        let installed = state.labels.joined(separator: ", ")
         if isOnlyRelease {
             return installed.isEmpty ? nil : installed
         }
@@ -81,8 +63,8 @@ private extension GameList {
         return installed.isEmpty ? buildType : "\(buildType) - \(installed)"
     }
 
-    func rowHelp(for version: Version) -> String {
-        rowDetail(for: version).map { "\(version.id), \($0)" } ?? version.id
+    func rowHelp(for version: Version, state: VersionInstallState) -> String {
+        rowDetail(for: version, state: state).map { "\(version.id), \($0)" } ?? version.id
     }
 }
 
@@ -90,8 +72,9 @@ private extension GameList {
     @Previewable @State var versions = GameList.mockVersions
     @Previewable @State var selectedVersion: Version? = GameList.mockVersions.first
     GameList(
-        versions: $versions,
+        versions: versions,
         selectedVersion: $selectedVersion,
+        installStates: [:],
         isOnlyRelease: true,
         canUseShortcut: true
     )
@@ -99,7 +82,6 @@ private extension GameList {
 
 extension GameList {
     static var mockVersions: [Version] = {
-        // https://launchermeta.mojang.com/mc/game/version_manifest.json
         let jsonData = """
         [
           {
@@ -115,42 +97,9 @@ extension GameList {
             "time" : "2025-03-25T11:02:08+00:00",
             "type" : "snapshot",
             "url" : "https://piston-meta.mojang.com/v1/packages/fc4da084369428c8dda5f4fc0dcac6ce9c260505/1.21.5-rc2.json"
-          },
-          {
-            "id" : "1.21.5-rc1",
-            "releaseTime" : "2025-03-20T13:45:48+00:00",
-            "time" : "2025-03-25T11:02:08+00:00",
-            "type" : "snapshot",
-            "url" : "https://piston-meta.mojang.com/v1/packages/d5033f8da815671aafa4dd470becd452f856396c/1.21.5-rc1.json"
-          },
-          {
-            "id" : "1.21.5-pre3",
-            "releaseTime" : "2025-03-18T13:58:30+00:00",
-            "time" : "2025-03-25T11:02:08+00:00",
-            "type" : "snapshot",
-            "url" : "https://piston-meta.mojang.com/v1/packages/fab86082576017501e5540baab3dcea93a82c153/1.21.5-pre3.json"
-          },
-          {
-            "id" : "1.21.5-pre2",
-            "releaseTime" : "2025-03-12T12:36:02+00:00",
-            "time" : "2025-03-25T11:02:08+00:00",
-            "type" : "snapshot",
-            "url" : "https://piston-meta.mojang.com/v1/packages/743d9e145aaa4dc164a4fa0106b9f7e94c887cd0/1.21.5-pre2.json"
-          },
-          {
-            "id" : "1.21.5-pre1",
-            "releaseTime" : "2025-03-11T12:49:44+00:00",
-            "time" : "2025-03-25T11:02:08+00:00",
-            "type" : "snapshot",
-            "url" : "https://piston-meta.mojang.com/v1/packages/bf48fdf5e407c9ebf6274ad7ebc01dab43208d6d/1.21.5-pre1.json"
           }
         ]
-        """.data(using: .utf8)
-        let jsonDecoder = JSONDecoder()
-        guard let jsonData, let versions = try? jsonDecoder.decode([Version].self, from: jsonData)
-        else {
-            return []
-        }
-        return versions
+        """.data(using: .utf8)!
+        return (try? JSONDecoder().decode([Version].self, from: jsonData)) ?? []
     }()
 }

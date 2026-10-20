@@ -9,13 +9,13 @@ import Game
 import MojangAPI
 
 struct GameCatalogService {
-    func fetchVersions() async throws -> [Version] {
-        await MojangCache.configure(root: GamePlan.defaultRoot)
+    func fetchVersions(root: String = GamePlan.defaultRoot) async throws -> [Version] {
+        await MojangCache.configure(root: root)
         return try await Mojang.manifest().versions
     }
 
-    func fetchGameInfo(for version: Version) async throws -> GameVersion? {
-        await MojangCache.configure(root: GamePlan.defaultRoot)
+    func fetchGameInfo(for version: Version, root: String = GamePlan.defaultRoot) async throws -> GameVersion? {
+        await MojangCache.configure(root: root)
         return try await version.gameVersion
     }
 }

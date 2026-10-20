@@ -8,244 +8,232 @@
 import SwiftUI
 import MojangAPI
 import Game
+import OrzMCLauncher
 
+/// 侧边栏：版本列表 + 运行参数表单 + 启动按钮。
+///
+/// **只做布局与绑定**：过滤/加载/启动/进度全在 `AppModel` 的各个模型里
+/// （以前这里有 `reloadList`/`refreshList`/`filteredVersions` 三份自管状态）。
 struct GameView: View {
-    
-    @State private var searchContent: String = ""
-    
-    @State private var filteredVersions = [Version]()
-    
-    @State private var showOnlyRelease: Bool = true
-    
-    @FocusState private var usernameTextFieldFocused: Bool
-    
-    @Environment(GameModel.self) private var model
 
-    private let versionFilterService = VersionFilterService()
-    
+    @Environment(AppModel.self) private var app
+
+    @State private var showOnlyRelease = true
+    @FocusState private var usernameTextFieldFocused: Bool
+
     var body: some View {
-        @Bindable var model = model
-        @Bindable var settings = model.settingsModel
+        @Bindable var catalog = app.catalog
+        @Bindable var settings = app.settings
+
         VStack(alignment: .leading) {
             GameList(
-                versions: $filteredVersions,
-                selectedVersion: $model.selectedVersion,
-                isOnlyRelease: showOnlyRelease,
-                canUseShortcut: !model.isLaunchingGame
+                versions: catalog.filtered,
+                selectedVersion: $catalog.selected,
+                installStates: catalog.installStates,
+                isOnlyRelease: catalog.releaseOnly,
+                canUseShortcut: !app.launch.isLaunching
             )
             .sideBarTool(
-                showOnlyRelease: $showOnlyRelease,
-                isFetchingGameVersions: $model.isFetchingGameVersions
+                showOnlyRelease: $catalog.releaseOnly,
+                isFetchingGameVersions: Binding(
+                    get: { catalog.isLoading },
+                    set: { _ in }
+                )
             ) {
-                reloadList()
+                Task { await app.loadVersions() }
             }
-            .searchable(text: $searchContent, placement: .toolbar, prompt: "Filter a version")
-            .onChange(of: searchContent) {
-                refreshList()
+            .searchable(text: $catalog.searchText, placement: .toolbar, prompt: "Filter a version")
+            .onChange(of: catalog.selected) {
+                guard !app.launch.isLaunching else { return }
+                usernameTextFieldFocused = app.gameMode == .client
             }
-            .onChange(of: showOnlyRelease) {
-                refreshList()
+            .task {
+                guard catalog.versions.isEmpty else { return }
+                await app.loadVersions()
             }
-            .onChange(of: model.selectedVersion, {
-                guard !model.isLaunchingGame else { return }
-                usernameTextFieldFocused = model.isClient
-            })
-            .onAppear {
-                guard model.versions.isEmpty
-                else {
-                    return
+
+            if let selectedVersion = catalog.selected {
+                parameters(selectedVersion: selectedVersion, settings: settings)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func parameters(
+        selectedVersion: Version,
+        settings: SettingsModel
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+
+            if app.java.isVisible {
+                Divider()
+                javaSection
+            }
+
+            Divider()
+
+            HStack {
+                Text("Game Version:")
+                    .font(.headline)
+                Text(selectedVersion.id)
+                    .foregroundStyle(Color.accentColor)
+                Spacer()
+                Picker("", selection: Binding(
+                    get: { app.gameMode },
+                    set: { app.gameMode = $0 }
+                )) {
+                    ForEach(GameMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
                 }
-                reloadList()
+                .pickerStyle(.menu)
+                .onChange(of: app.gameMode) {
+                    usernameTextFieldFocused = app.gameMode == .client
+                }
+                .disabled(app.launch.isLaunching)
             }
-            
-            if let selectedVersion = model.selectedVersion {
-                VStack(alignment: .leading, spacing: 10) {
-                    
-                    if model.showJavaVersionArea {
-                        Divider()
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Spacer()
-                                Text("Java Runtime (managed)")
-                                    .foregroundStyle(model.javaVersionTextColor)
-                                Spacer()
-                            }
+            .bold()
 
-                            HStack {
-                                Text("Installed:")
-                                Text(model.installedJavaVersionsText)
-                                Spacer()
-                                Button {
-                                    model.refreshJavaRuntimes()
-                                } label: {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                }
-                                .help("Rescan the managed Java runtimes under the game folder")
-                            }
-                            .foregroundStyle(Color.orange)
-
-                            HStack {
-                                Text("Required:")
-                                if let requiredJavaMajorVersion = model.selectedGameJavaMajorVersionRequired {
-                                    Text("\(requiredJavaMajorVersion)")
-                                }
-                                Spacer()
-                                switch model.javaRuntimeStatus {
-                                case .valid:
-                                    Label("Ready", systemImage: "checkmark.circle")
-                                        .foregroundStyle(Color.green)
-                                case .missing:
-                                    Label("Will be installed on launch", systemImage: "arrow.down.circle")
-                                        .foregroundStyle(Color.secondary)
-                                case .unknown:
-                                    EmptyView()
-                                }
-                            }
-                            .foregroundStyle(Color.teal)
+            if app.gameMode == .server {
+                HStack {
+                    Text("Server Core:")
+                        .font(.headline)
+                    Spacer()
+                    Picker("", selection: Binding(
+                        get: { settings.serverSoftware },
+                        set: { settings.serverSoftware = $0 }
+                    )) {
+                        ForEach(SettingsModel.ServerSoftware.allCases) { software in
+                            Text(software.rawValue).tag(software)
                         }
+                    }
+                    .pickerStyle(.menu)
+                }
+                .bold()
+            }
+
+            if app.gameMode == .client {
+                HStack {
+                    Text("User Name:")
                         .font(.headline)
                         .bold()
-                    }
-                    
-                    Divider()
-                    HStack() {
-                        Text("Game Version:")
-                            .font(.headline)
-                        
-                        Text(selectedVersion.id)
-                            .foregroundStyle(Color.accentColor)
-                        
-                        Spacer()
-                        
-                        Picker("", selection: $model.gameType) {
-                            ForEach(GameModel.GameType.allCases, id: \.self.rawValue) { type in
-                                Text(type.rawValue)
-                                    .tag(type)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .onChange(of: model.gameType) {
-                            usernameTextFieldFocused = model.isClient
-                        }
-                        .disabled(model.isLaunchingGame)
-                    }
+                    TextField("Input User Name", text: Binding(
+                        get: { app.username },
+                        set: { app.username = $0 }
+                    ))
+                    .foregroundStyle(Color.accentColor)
                     .bold()
-                    
-                    if model.isServer {
-                        HStack {
-                            Text("Server Core:")
-                                .font(.headline)
-                            Spacer()
-                            Picker("", selection: $settings.serverSoftware) {
-                                ForEach(SettingsModel.ServerSoftware.allCases) { software in
-                                    Text(software.rawValue).tag(software)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
+                    .textFieldStyle(.plain)
+                    .textContentType(.username)
+                    .autocorrectionDisabled()
+                    .textSelection(.disabled)
+                    .focused($usernameTextFieldFocused)
+                    .onSubmit { app.start() }
+                    .disabled(app.launch.isLaunching)
+                }
+            }
+
+            if let message = settings.memoryValidationMessage {
+                Text("Invalid memory setting: \(message)")
+                    .font(.caption)
+                    .foregroundStyle(Color.red)
+            }
+
+            startButton
+        }
+        .padding([.horizontal], 10)
+        .padding([.bottom], 20)
+    }
+
+    @ViewBuilder
+    private var javaSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Spacer()
+                Text("Java Runtime (managed)")
+                    .foregroundStyle(javaStatusColor)
+                Spacer()
+            }
+
+            HStack {
+                Text("Installed:")
+                Text(app.java.installedText)
+                Spacer()
+                Button {
+                    app.java.refresh()
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+                .help("Rescan the managed Java runtimes under the game folder")
+            }
+            .foregroundStyle(Color.orange)
+
+            HStack {
+                Text("Required:")
+                if let required = app.java.requiredMajor {
+                    Text("\(required)")
+                }
+                Spacer()
+                switch app.java.status {
+                case .valid:
+                    Label("Ready", systemImage: "checkmark.circle")
+                        .foregroundStyle(Color.green)
+                case .missing:
+                    Label("Will be installed on launch", systemImage: "arrow.down.circle")
+                        .foregroundStyle(Color.secondary)
+                case .unknown:
+                    EmptyView()
+                }
+            }
+            .foregroundStyle(Color.teal)
+        }
+        .font(.headline)
+        .bold()
+    }
+
+    /// 未安装不等于错误：启动时会按 B5 自动安装托管 JRE。
+    private var javaStatusColor: Color {
+        switch app.java.status {
+        case .unknown: return .primary
+        case .valid: return .green
+        case .missing: return .orange
+        }
+    }
+
+    @ViewBuilder
+    private var startButton: some View {
+        HStack {
+            Spacer()
+            Button {
+                usernameTextFieldFocused = false
+                app.start()
+            } label: {
+                HStack {
+                    Text("Start \(app.gameMode.title)")
+                        .font(.headline)
                         .bold()
-                    }
-                    
-                    if model.isClient {
-                        HStack() {
-                            Text("User Name:")
-                                .font(.headline)
-                                .bold()
-                            TextField("Input User Name", text: $model.username)
-                                .foregroundStyle(Color.accentColor)
-                                .bold()
-                                .textFieldStyle(.plain)
-                                .textContentType(.username)
-                                .autocorrectionDisabled()
-                                .textSelection(.disabled)
-                                .focused($usernameTextFieldFocused)
-                                .onSubmit {
-                                    startGame()
-                                }
-                                .disabled(model.isLaunchingGame)
-                        }
-                    }
-                    
-                    HStack() {
-                        Spacer()
-                        Button {
-                            startGame()
-                        } label: {
-                            HStack {
-                                Text("Start \(model.gameType.rawValue.capitalized)")
-                                    .font(.headline)
-                                    .bold()
-                                
-                                if (model.progress > 0 && model.progress < 1) || model.progressIsIndefinite {
-                                    if model.progressIsIndefinite {
-                                        ProgressView()
-                                            .progressViewStyle(.circular)
-                                            .controlSize(.small)
-                                    } else {
-                                        ProgressView(value: model.progress, total: 1)
-                                            .progressViewStyle(.circular)
-                                            .controlSize(.small)
-                                    }
-                                    Text(model.progressDesc)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                } else if model.progress >= 1 {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .controlSize(.regular)
-                                }
-                            }
-                        }
-                        .tint(model.canStartGame ? Color.accentColor : .gray)
-                        .controlSize(.regular)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!model.canStartGame)
-                        .help(model.canStartGame ? "Start \(model.gameType.rawValue)" : "Select a version and enter a user name to start")
-                        Spacer()
+
+                    if app.launch.progress.isRunning {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                        Text(app.launch.progress.summary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } else if app.launch.progress.isFinished {
+                        Image(systemName: "checkmark.seal.fill")
+                            .controlSize(.regular)
                     }
                 }
-                .padding([.horizontal], 10)
-                .padding([.bottom], 20)
             }
-        }
-    }
-}
-
-extension GameView {
-    
-    func startGame() {
-        guard model.canStartGame
-        else {
-            return
-        }
-        usernameTextFieldFocused = false
-        model.startGame()
-    }
-    
-    func reloadList() {
-        Task {
-            model.isFetchingGameVersions = true
-            defer {
-                model.isFetchingGameVersions = false
-            }
-            do {
-                try await model.fetchGameVersions()
-            } catch {
-                model.errorMessage = "Failed to fetch game versions: \(error.localizedDescription)"
-            }
-            refreshList()
-        }
-    }
-    
-    @MainActor
-    func refreshList() {
-        filteredVersions = versionFilterService.filter(
-            versions: model.versions,
-            searchText: searchContent,
-            releaseOnly: showOnlyRelease
-        )
-        
-        if model.selectedVersion == nil {
-            model.selectedVersion = filteredVersions.first
+            .tint(app.canStart ? Color.accentColor : .gray)
+            .controlSize(.regular)
+            .buttonStyle(.borderedProminent)
+            .disabled(!app.canStart)
+            .help(app.canStart
+                  ? "Start \(app.gameMode.title)"
+                  : "Select a version, enter a user name, and check the memory settings")
+            Spacer()
         }
     }
 }
@@ -253,5 +241,5 @@ extension GameView {
 #Preview {
     GameView()
         .frame(width: Constants.sidebarWidth, height: Constants.minHeight)
-        .environment(GameModel())
+        .environment(AppModel())
 }

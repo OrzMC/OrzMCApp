@@ -10,30 +10,32 @@ import Game
 import SwiftUI
 
 struct MacOSScene: Scene {
-    
-    @State private var model = GameModel()
-    
+
+    @State private var app = AppModel()
+
     var body: some Scene {
         WindowGroup("OrzMC", id: "macos") {
             LauncherUI()
                 .frame(minWidth: Constants.minWidth, minHeight: Constants.minHeight)
-                .environment(model)
+                .environment(app)
+                // 周期探活（2s，`kill(pid, 0)`；只探自己登记过的服务端）。
+                .task { await app.servers.monitor() }
         }
         .defaultSize(width: Constants.minWidth, height: Constants.minHeight)
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Game") {
-                Button("Start \(model.gameType.rawValue.capitalized)") {
-                    model.startGame()
+                Button("Start \(app.gameMode.title)") {
+                    app.start()
                 }
                 .keyboardShortcut("b", modifiers: .command)
-                .disabled(!model.canStartGame)
+                .disabled(!app.canStart)
 
                 Button("Stop All Servers") {
-                    model.stopAllRunningServer()
+                    app.stopAllServers()
                 }
                 .keyboardShortcut("k", modifiers: .command)
-                .disabled(!model.isShowKillAllServerButton)
+                .disabled(!app.servers.hasRunning)
             }
 
             CommandGroup(after: .help) {
@@ -44,10 +46,10 @@ struct MacOSScene: Scene {
                 }
             }
         }
-        
+
         Settings {
             SettingsView()
-                .environment(model.settingsModel)
+                .environment(app.settings)
         }
     }
 }
