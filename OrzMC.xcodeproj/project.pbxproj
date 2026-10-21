@@ -7,8 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D5A6C35273FAC95FBF8E4FE7 /* ServerConsoleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635D8C5A17D7F5B322AFD271 /* ServerConsoleModel.swift */; platformFilters = (macos, ); };
 		887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */; platformFilters = (macos, ); };
+		8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */; platformFilters = (macos, ); };
+
 		AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA2147088C52325F0BF4AC6 /* AppModel.swift */; platformFilters = (macos, ); };
 		923207ADA0B3AFAD49358A14 /* VersionCatalogModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C18ADADBDB6DD7422DCEF85 /* VersionCatalogModel.swift */; platformFilters = (macos, ); };
 		8B8961864A9E1ECC16ACECD5 /* LaunchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */; platformFilters = (macos, ); };
@@ -91,8 +92,7 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXFileReference section */
-		635D8C5A17D7F5B322AFD271 /* ServerConsoleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerConsoleModel.swift"; sourceTree = "<group>"; };
+		E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerConsoleModel+ManagedProcess.swift"; sourceTree = "<group>"; };
 		1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerConsoleView.swift"; sourceTree = "<group>"; };
 		0EA2147088C52325F0BF4AC6 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
 		9C18ADADBDB6DD7422DCEF85 /* VersionCatalogModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionCatalogModel.swift"; sourceTree = "<group>"; };
@@ -341,7 +341,7 @@
 		2B62C97A2BF7202200387498 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				635D8C5A17D7F5B322AFD271 /* ServerConsoleModel.swift */,
+				E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */,
 				0EA2147088C52325F0BF4AC6 /* AppModel.swift */,
 				9C18ADADBDB6DD7422DCEF85 /* VersionCatalogModel.swift */,
 				CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */,
@@ -650,7 +650,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D5A6C35273FAC95FBF8E4FE7 /* ServerConsoleModel.swift in Sources */,
+				8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */,
 				887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */,
 				AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */,
 				923207ADA0B3AFAD49358A14 /* VersionCatalogModel.swift in Sources */,
