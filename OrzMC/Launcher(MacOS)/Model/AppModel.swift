@@ -255,6 +255,16 @@ final class AppModel {
                 case .terminate:
                     await stopServer(versionId: versionId, software: software, force: true)
                 case .restart:
+                    // 没有句柄 = 上个会话启动的实例：送不进 `stop`，先停也停不下来，
+                    // 直接起会撞端口。明确报错，让用户先「终止」。
+                    guard serverProcesses[key] != nil else {
+                        self.error = LauncherError(
+                            code: "E_RUNTIME",
+                            message: "This server was started by a previous app session, so it cannot be restarted from here. "
+                                + "Terminate it first, then press Start."
+                        )
+                        return
+                    }
                     await stopServer(versionId: versionId, software: software, force: false)
                     try await launchServer(version: version, software: software)
                 }
