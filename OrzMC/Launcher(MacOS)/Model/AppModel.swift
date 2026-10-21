@@ -358,7 +358,7 @@ final class AppModel {
     /// 停止全部：有句柄的走优雅停止（并行），没句柄的直接按 PID 杀。
     func stopAllServers() {
         Task { @MainActor in
-            let keys = serverProcesses.keys
+            let keys = Array(serverProcesses.keys)   // 先拷贝：循环里会改字典
             for key in keys {
                 guard case let .some(software) = SettingsModel.ServerSoftware(rawValue: key.instanceId) else { continue }
                 await stopServer(versionId: key.versionId, software: software, force: false)
