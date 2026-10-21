@@ -24,6 +24,13 @@ struct LaunchedServer {
     let pid: String
 }
 
+/// 已启动的客户端会话：**进程句柄**（控制台要它送命令/等退出）。
+struct LaunchedClientSession {
+    let versionId: String
+    let clientType: SettingsModel.ClientKind
+    let process: ManagedProcess
+}
+
 /// 已启动的服务端会话：登记信息 + **进程句柄**（控制台要它送命令/等退出）。
 struct LaunchedServerSession {
     let launched: LaunchedServer

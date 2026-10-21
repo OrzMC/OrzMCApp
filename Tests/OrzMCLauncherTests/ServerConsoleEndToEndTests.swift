@@ -149,3 +149,57 @@ final class CallbackBox: @unchecked Sendable {
     var sink: (@Sendable (String) -> Void)?
 }
 #endif
+
+#if !os(Windows)
+/// **客户端**实例的控制台：同样能收日志、送命令、退出解绑（与 `版本#Client` 绑定）。
+final class ClientConsoleEndToEndTests: XCTestCase {
+    /// 假客户端：读一行命令（客户端也接受命令，如 `quit`）、回日志。
+    private static let fakeClient = """
+    printf '[Client] Starting fake client\\n'
+    while IFS= read -r line; do
+      printf '[Client] got: %s\\n' "$line"
+      case "$line" in quit) exit 0 ;; esac
+    done
+    """
+
+    func testClientConsoleStreamsAndSends() async throws {
+        let key = ConsoleInstanceKey.client(versionId: "1.21.5")
+        let registry = await ServerConsoleRegistry()
+        let console = await MainActor.run { registry.model(for: key) }
+        let process = await MainActor.run { () -> FakeServerProcess in
+            let process = FakeServerProcess(script: Self.fakeClient)
+            registry.attach(process, to: key)
+            return process
+        }
+        await MainActor.run { process.onLine = { chunk in console.append(chunk) } }
+
+        try await waitFor { await console.lines.contains { $0.text.contains("Starting fake client") } }
+
+        let sent = await MainActor.run { console.send("chat hello") }
+        XCTAssertTrue(sent)
+        try await waitFor { await console.lines.contains { $0.text.contains("[Client] got: chat hello") } }
+
+        _ = await MainActor.run { console.send("quit") }
+        let code = await process.waitForExit()
+        XCTAssertEqual(code, 0)
+
+        await MainActor.run { registry.detach(key, reason: "Client exited") }
+        let attached = await MainActor.run { registry.isAttached(key) }
+        XCTAssertFalse(attached)
+    }
+
+    private func waitFor(
+        timeout: TimeInterval = 5,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        _ condition: @escaping () async -> Bool
+    ) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if await condition() { return }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTFail("等待超时", file: file, line: line)
+    }
+}
+#endif

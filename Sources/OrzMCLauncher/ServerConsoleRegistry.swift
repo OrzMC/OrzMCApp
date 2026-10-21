@@ -6,12 +6,21 @@ import Observation
 /// 例：`1.21.5#Paper`。**控制台按实例隔离**——四种核心、多个版本可以同时跑，
 /// 日志与命令必须各归各位，不能"全局一个控制台"。
 public struct ConsoleInstanceKey: Hashable, Sendable, CustomStringConvertible {
-    public let versionId: String
-    public let softwareId: String
+    /// 客户端实例的固定标识（服务端用核心名：Paper/Vanilla/Fabric/Forge）。
+    public static let clientInstanceId = "Client"
 
-    public init(versionId: String, softwareId: String) {
+    public let versionId: String
+    /// 实例标识：服务端 = 核心名，客户端 = `Client`。
+    public let instanceId: String
+
+    public init(versionId: String, instanceId: String) {
         self.versionId = versionId
-        self.softwareId = softwareId
+        self.instanceId = instanceId
+    }
+
+    /// 客户端实例（`版本#Client`）。
+    public static func client(versionId: String) -> ConsoleInstanceKey {
+        ConsoleInstanceKey(versionId: versionId, instanceId: clientInstanceId)
     }
 
     /// 与 `ManagedServerKey` 的 `rawValue` 同构（`版本#核心`），便于两个登记表对齐。
@@ -19,10 +28,10 @@ public struct ConsoleInstanceKey: Hashable, Sendable, CustomStringConvertible {
         let parts = rawValue.split(separator: "#", maxSplits: 1)
         guard parts.count == 2 else { return nil }
         self.versionId = String(parts[0])
-        self.softwareId = String(parts[1])
+        self.instanceId = String(parts[1])
     }
 
-    public var rawValue: String { "\(versionId)#\(softwareId)" }
+    public var rawValue: String { "\(versionId)#\(instanceId)" }
     public var description: String { rawValue }
 }
 

@@ -32,8 +32,9 @@ final class LaunchModel {
         clientType: SettingsModel.ClientKind,
         rootDir: String,
         minMem: String,
-        maxMem: String
-    ) async throws {
+        maxMem: String,
+        onClientLog: (@Sendable (String) -> Void)? = nil
+    ) async throws -> LaunchedClientSession? {
         try await service.startClient(
             version: version,
             username: username,
@@ -41,7 +42,8 @@ final class LaunchModel {
             rootDir: rootDir,
             minMem: minMem,
             maxMem: maxMem,
-            progressHandler: progressHandler
+            progressHandler: progressHandler,
+            onClientLog: onClientLog
         )
     }
 

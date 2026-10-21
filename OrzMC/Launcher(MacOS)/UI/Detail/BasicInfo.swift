@@ -10,6 +10,7 @@ import MojangAPI
 import Game
 import JokerKits
 import OrzMCDesignSystem
+import OrzMCLauncher
 
 struct FormSectionHeader: View {
     let title: String
@@ -116,10 +117,7 @@ struct BasicInfo: View {
         }
         .navigationTitle(app.detailTitle)
         .navigationDestination(item: $consoleTarget) { target in
-            ServerConsoleView(
-                versionId: target.versionId,
-                software: target.software
-            )
+            consoleView(for: target)
         }
         .toolbar {
             if app.servers.hasRunning {
@@ -145,9 +143,13 @@ struct BasicInfo: View {
             Button("Delete", role: .destructive) {
                 try? target.path.remove()
                 // 该实例的文件没了 → 它的控制台日志/历史也一并清掉。
-                if case let .server(software, _) = target,
-                   let versionId = app.catalog.selected?.id {
-                    app.removeConsole(versionId: versionId, software: software)
+                if let versionId = app.catalog.selected?.id {
+                    switch target {
+                    case let .server(software, _):
+                        app.removeConsole(versionId: versionId, software: software)
+                    case .client:
+                        app.removeClientConsole(versionId: versionId)
+                    }
                 }
                 app.catalog.refreshInstallStates()
                 deleteTarget = nil
@@ -158,6 +160,13 @@ struct BasicInfo: View {
         } message: { target in
             Text("This removes files at \(target.path). This action cannot be undone.")
         }
+    }
+
+    /// 打开某实例的控制台（客户端 / 某个服务端核心）。
+    private func consoleView(for target: ConsoleTarget) -> some View {
+        let console: ServerConsoleModel = app.console(for: target)
+        let title: String = target.title
+        return ServerConsoleView(title: title, console: console)
     }
 
     private var detailsForm: some View {
@@ -234,9 +243,23 @@ struct BasicInfo: View {
                         path: clientDirPath
                     )
                 } header: {
-                    FormSectionHeader(title: "Client") {
-                        deleteTarget = .client(path: clientDirPath)
-                    }
+                    FormSectionHeader(
+                        title: "Client",
+                        deleteBtnAction: {
+                            deleteTarget = .client(path: clientDirPath)
+                        },
+                        consoleBtnAction: {
+                            if let selectedVersion = app.catalog.selected {
+                                consoleTarget = ConsoleTarget(
+                                    versionId: selectedVersion.id,
+                                    software: nil
+                                )
+                            }
+                        },
+                        consoleIsLive: app.isClientConsoleAttached(
+                            versionId: app.catalog.selected?.id ?? ""
+                        )
+                    )
                 }
             }
         }
@@ -245,10 +268,19 @@ struct BasicInfo: View {
 }
 
 /// 控制台要打开的实例（`Identifiable` 供 `navigationDestination(item:)` 用）。
+///
+/// `software == nil` 表示**客户端实例**（`版本#Client`）；否则是对应的服务端核心。
 struct ConsoleTarget: Identifiable, Hashable {
     let versionId: String
-    let software: SettingsModel.ServerSoftware
-    var id: String { "\(versionId)#\(software.rawValue)" }
+    let software: SettingsModel.ServerSoftware?
+
+    var id: String {
+        "\(versionId)#\(software?.rawValue ?? "Client")"
+    }
+
+    var title: String {
+        "\(versionId) \(software?.rawValue ?? "Client")"
+    }
 }
 
 private extension BasicInfo {

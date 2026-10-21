@@ -17,8 +17,9 @@ struct GameLaunchService {
         rootDir: String,
         minMem: String,
         maxMem: String,
-        progressHandler: @escaping LaunchProgressHandler
-    ) async throws {
+        progressHandler: @escaping LaunchProgressHandler,
+        onClientLog: (@Sendable (String) -> Void)? = nil
+    ) async throws -> LaunchedClientSession? {
         // 内存/客户端类型来自设置（校验已在 `SettingsModel` 用引擎 `MemorySpec` 做过）。
         let clientInfo = ClientInfo(
             version: version,
@@ -26,13 +27,19 @@ struct GameLaunchService {
             rootDir: rootDir,
             type: clientType.gameType,
             minMem: minMem,
-            maxMem: maxMem
+            maxMem: maxMem,
+            onClientLog: onClientLog
         )
         var launcher = GUIClient(
             clientInfo: clientInfo,
             progressHandler: progressHandler
         )
-        try await launcher.start()
+        guard let process = try await launcher.startWithProcess() else { return nil }
+        return LaunchedClientSession(
+            versionId: version.id,
+            clientType: clientType,
+            process: process
+        )
     }
 
     func startServer(

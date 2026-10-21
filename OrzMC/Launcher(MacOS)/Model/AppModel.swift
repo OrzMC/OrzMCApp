@@ -124,19 +124,27 @@ final class AppModel {
                 try await launch.withLaunching {
                     switch mode {
                     case .client:
-                        try await launch.startClient(
+                        // 客户端实例也有自己的控制台（key = `版本#Client`）。
+                        let key = ConsoleInstanceKey.client(versionId: version.id)
+                        let console = consoles.model(for: key)
+                        let logHandler: @Sendable (String) -> Void = { chunk in
+                            console.append(chunk)
+                        }
+                        if let session = try await launch.startClient(
                             version: version,
                             username: username,
                             clientType: settings.clientType,
                             rootDir: settings.rootDir,
                             minMem: settings.minMem,
-                            maxMem: settings.maxMem
-                        )
+                            maxMem: settings.maxMem,
+                            onClientLog: logHandler
+                        ) {
+                            consoles.attach(session.process, to: key)
+                            watchClientExit(session, key: key)
+                        }
                     case .server:
                         // 每个实例一个控制台：日志按 `版本#核心` 隔离。
-                        let key = ConsoleInstanceKey(
-                            versionId: version.id,
-                            softwareId: settings.serverSoftware.rawValue
+                        let key = ConsoleInstanceKey(versionId: version.id, instanceId: settings.serverSoftware.rawValue
                         )
                         let console = consoles.model(for: key)
                         let logHandler: @Sendable (String) -> Void = { chunk in
@@ -181,20 +189,49 @@ final class AppModel {
         }
     }
 
+    /// 客户端退出（玩家关掉游戏）后解绑控制台，日志保留。
+    private func watchClientExit(_ session: LaunchedClientSession, key: ConsoleInstanceKey) {
+        let consoles = self.consoles
+        Task {
+            let code = await session.process.waitForExit()
+            consoles.detach(key, reason: "Client exited (code \(code))")
+        }
+    }
+
     /// 某实例的控制台（视图按实例取；不存在时创建空控制台，便于先看后启动）。
     func console(for versionId: String, software: SettingsModel.ServerSoftware) -> ServerConsoleModel {
-        consoles.model(for: ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue))
+        consoles.model(for: ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue))
+    }
+
+    /// 按 `ConsoleTarget` 取控制台（客户端 / 某个服务端核心）。
+    func console(for target: ConsoleTarget) -> ServerConsoleModel {
+        if let software = target.software {
+            return console(for: target.versionId, software: software)
+        }
+        return clientConsole(versionId: target.versionId)
+    }
+
+    func clientConsole(versionId: String) -> ServerConsoleModel {
+        consoles.model(for: .client(versionId: versionId))
+    }
+
+    func isClientConsoleAttached(versionId: String) -> Bool {
+        consoles.isAttached(.client(versionId: versionId))
     }
 
     func isConsoleAttached(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {
         consoles.isAttached(
-            ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue)
+            ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue)
         )
     }
 
     /// 删除实例文件后清掉对应控制台（日志/历史一并清）。
     func removeConsole(versionId: String, software: SettingsModel.ServerSoftware) {
-        consoles.remove(ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue))
+        consoles.remove(ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue))
+    }
+
+    func removeClientConsole(versionId: String) {
+        consoles.remove(.client(versionId: versionId))
     }
 
     // MARK: 版本目录

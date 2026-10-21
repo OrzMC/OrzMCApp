@@ -7,6 +7,7 @@
 
 import Foundation
 import Game
+import JokerKits
 
 struct GUIClient: Client {
 
@@ -14,13 +15,17 @@ struct GUIClient: Client {
 
     let progressHandler: LaunchProgressHandler
 
+    /// 协议要求的 `start()`（与 CLI 一致的签名）。
     mutating func start() async throws {
+        _ = try await startWithProcess()
+    }
 
+    /// 下载 → 启动，返回**客户端进程句柄**（GUI 客户端控制台用它接日志/等退出）。
+    mutating func startWithProcess() async throws -> ManagedProcess? {
         // 下载启动器启动所需要的文件、资源及依赖
         try await self.download()
-
         // 分析参数并启动客户端
-        try await self.launch()
+        return try await self.launch()
     }
 
     /// 下载启动器启动需要的文件（共用引擎 `downloadClient`；Phase 4）。
@@ -35,7 +40,7 @@ struct GUIClient: Client {
     }
 
     /// 启动客户端（后台运行，不等待退出）；共用引擎 `launchClient`。
-    mutating func launch() async throws {
-        _ = try await launchClient()
+    mutating func launch() async throws -> ManagedProcess? {
+        try await launchClient()
     }
 }

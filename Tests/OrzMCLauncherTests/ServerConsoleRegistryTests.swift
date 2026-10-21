@@ -4,9 +4,9 @@ import XCTest
 
 /// 控制台**按实例隔离**：四种核心 × 多个版本可以同时跑，日志/命令不能串台。
 final class ServerConsoleRegistryTests: XCTestCase {
-    private let paper = ConsoleInstanceKey(versionId: "1.21.5", softwareId: "Paper")
-    private let vanilla = ConsoleInstanceKey(versionId: "1.21.5", softwareId: "Vanilla")
-    private let otherVersion = ConsoleInstanceKey(versionId: "1.20.6", softwareId: "Fabric")
+    private let paper = ConsoleInstanceKey(versionId: "1.21.5", instanceId: "Paper")
+    private let vanilla = ConsoleInstanceKey(versionId: "1.21.5", instanceId: "Vanilla")
+    private let otherVersion = ConsoleInstanceKey(versionId: "1.20.6", instanceId: "Fabric")
 
     func testKeyRoundTripsThroughRawValue() {
         XCTAssertEqual(paper.rawValue, "1.21.5#Paper")
@@ -73,6 +73,24 @@ final class ServerConsoleRegistryTests: XCTestCase {
         let hasFabric = await MainActor.run { registry.hasConsole(for: otherVersion) }
         XCTAssertFalse(hasPaper)
         XCTAssertTrue(hasFabric, "只清被删实例，别动别的")
+    }
+
+    func testClientInstanceHasItsOwnConsole() async {
+        // 客户端实例：`版本#Client`，与服务端同版本但互不干扰。
+        let client = ConsoleInstanceKey.client(versionId: "1.21.5")
+        XCTAssertEqual(client.rawValue, "1.21.5#Client")
+        XCTAssertEqual(ConsoleInstanceKey(rawValue: "1.21.5#Client"), client)
+
+        let registry = await ServerConsoleRegistry()
+        await MainActor.run {
+            registry.model(for: client).append("[Render thread] GL info\n")
+            registry.model(for: paper).append("[Server] Done\n")
+        }
+        let clientLines = await MainActor.run { registry.model(for: client).lines.map(\.text) }
+        let serverLines = await MainActor.run { registry.model(for: paper).lines.map(\.text) }
+        XCTAssertEqual(clientLines, ["[Render thread] GL info"])
+        XCTAssertEqual(serverLines, ["[Server] Done"], "客户端的日志不能进服务端控制台")
+        XCTAssertNotEqual(client, paper, "同版本的客户端与服务端是两个实例")
     }
 
     func testActiveKeysTrackAttachedInstances() async {
