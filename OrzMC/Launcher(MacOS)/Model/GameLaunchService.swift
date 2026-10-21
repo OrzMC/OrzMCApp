@@ -6,6 +6,7 @@
 //
 
 import Game
+import JokerKits
 import MojangAPI
 
 struct GameLaunchService {
@@ -42,8 +43,9 @@ struct GameLaunchService {
         maxMem: String,
         enableJVMDebugger: Bool,
         jvmDebuggerArgs: String,
-        progressHandler: @escaping LaunchProgressHandler
-    ) async throws -> LaunchedServer? {
+        progressHandler: @escaping LaunchProgressHandler,
+        onServerLog: (@Sendable (String) -> Void)? = nil
+    ) async throws -> LaunchedServerSession? {
         var jvmArgs = [String]()
         if enableJVMDebugger, !jvmDebuggerArgs.isEmpty {
             jvmArgs.append(jvmDebuggerArgs)
@@ -65,7 +67,8 @@ struct GameLaunchService {
             showJarHelpInfo: false,
             jarOptions: nil,
             console: nil,
-            onProgress: { event in Task { await handler(event) } }
+            onProgress: { event in Task { await handler(event) } },
+            onServerLog: onServerLog
         )
         let launcher = GUIServer(
             serverInfo: serverInfo,
@@ -75,10 +78,13 @@ struct GameLaunchService {
         else {
             return nil
         }
-        return LaunchedServer(
-            versionId: serverInfo.version,
-            software: software,
-            pid: String(process.processIdentifier)
+        return LaunchedServerSession(
+            launched: LaunchedServer(
+                versionId: serverInfo.version,
+                software: software,
+                pid: String(process.processIdentifier)
+            ),
+            process: process
         )
     }
 }

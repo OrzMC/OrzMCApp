@@ -25,6 +25,7 @@ final class AppModel {
     let servers: ServerRegistryModel
     let java: JavaRuntimeModel
     let plugins: PluginDownloadModel
+    let console: ServerConsoleModel
 
     /// 统一错误出口（保留规范错误码，UI 显示「人话 (E_XXX)」）。
     var error: LauncherError?
@@ -36,6 +37,7 @@ final class AppModel {
         self.servers = ServerRegistryModel()
         self.java = JavaRuntimeModel()
         self.plugins = PluginDownloadModel()
+        self.console = ServerConsoleModel()
 
         catalog.lastSelectedVersionId = settings.lastSelectedVersionId
         catalog.rootDir = settings.rootDir
@@ -131,16 +133,26 @@ final class AppModel {
                             maxMem: settings.maxMem
                         )
                     case .server:
-                        if let launched = try await launch.startServer(
+                        let console = self.console
+                        let logHandler: @Sendable (String) -> Void = { chunk in
+                            console.append(chunk)
+                        }
+                        if let session = try await launch.startServer(
                             version: version,
                             software: settings.serverSoftware,
                             rootDir: settings.rootDir,
                             minMem: settings.minMem,
                             maxMem: settings.maxMem,
                             enableJVMDebugger: settings.enableJVMDebugger,
-                            jvmDebuggerArgs: settings.jvmDebuggerArgs
+                            jvmDebuggerArgs: settings.jvmDebuggerArgs,
+                            onServerLog: logHandler
                         ) {
-                            servers.record(launched)
+                            servers.record(session.launched)
+                            console.attach(
+                                session.process,
+                                label: "\(version.id) \(settings.serverSoftware.rawValue)"
+                            )
+                            watchServerExit(session)
                         }
                     }
                 }
@@ -148,6 +160,18 @@ final class AppModel {
                 launch.resetProgress()
                 self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
             }
+        }
+    }
+
+    /// 服务端退出后解绑控制台并刷新进程视图（避免"日志还在、进程早没了"）。
+    private func watchServerExit(_ session: LaunchedServerSession) {
+        let console = self.console
+        let servers = self.servers
+        let launched = session.launched
+        Task {
+            let code = await session.process.waitForExit()
+            console.detach(reason: "Server exited (code \(code))")
+            servers.remove(versionId: launched.versionId, software: launched.software)
         }
     }
 

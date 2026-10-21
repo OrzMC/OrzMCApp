@@ -52,8 +52,9 @@ final class LaunchModel {
         minMem: String,
         maxMem: String,
         enableJVMDebugger: Bool,
-        jvmDebuggerArgs: String
-    ) async throws -> LaunchedServer? {
+        jvmDebuggerArgs: String,
+        onServerLog: (@Sendable (String) -> Void)? = nil
+    ) async throws -> LaunchedServerSession? {
         try await service.startServer(
             version: version,
             software: software,
@@ -62,7 +63,8 @@ final class LaunchModel {
             maxMem: maxMem,
             enableJVMDebugger: enableJVMDebugger,
             jvmDebuggerArgs: jvmDebuggerArgs,
-            progressHandler: progressHandler
+            progressHandler: progressHandler,
+            onServerLog: onServerLog
         )
     }
 

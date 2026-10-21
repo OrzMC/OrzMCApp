@@ -53,6 +53,12 @@ final class ServerRegistryModel {
         refresh()
     }
 
+    /// 进程已自己退出：只清登记（不要再去 kill 一个死进程）。
+    func remove(versionId: String, software: SettingsModel.ServerSoftware) {
+        service.remove(versionId: versionId, software: software)
+        refresh()
+    }
+
     func stopAll() throws {
         try service.stop(processIds: service.pids())
         service.removeAll()
