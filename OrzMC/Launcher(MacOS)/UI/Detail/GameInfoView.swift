@@ -39,6 +39,8 @@ struct GameInfoView: View {
     @ViewBuilder
     func handleTool(_ tool: DetailViewTool.ToolItem) -> some View {
         switch tool {
+        case .console:
+            ServerConsoleView()
         case .exaroton:
             ExarotonServerList().environment(model)
         default:

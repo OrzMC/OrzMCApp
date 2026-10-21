@@ -25,6 +25,7 @@ struct DetailToolModifier: ViewModifier {
 
 struct DetailViewTool: View {
     enum ToolItem: Int, Identifiable, CaseIterable {
+        case console
         case exaroton
         case links
         var id: Int { self.rawValue }
@@ -33,6 +34,12 @@ struct DetailViewTool: View {
     var body: some View {
         ForEach(ToolItem.allCases) { item in
             switch item {
+            case .console:
+                Button("Server Console", systemImage: "terminal") {
+                    model.path.append(ToolItem.console)
+                }
+                .keyboardShortcut(.init(.init("l")), modifiers: [.command, .shift])
+                .help("Show the server console (log + commands)")
             case .exaroton:
                 Button("Remote Server", systemImage: "gamecontroller") {
                     model.path.append(ToolItem.exaroton)
