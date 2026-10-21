@@ -78,6 +78,7 @@ final class ExarotonServerModel {
     var streamStopped: ExarotonWebSocket.StreamCategory?
     var consoleLine: String?
     var consoleLines = [String]()
+    static let maxConsoleLines = 2000
     var tickChanged: ExarotonWebSocket.Tick?
     var statsChanged: ExarotonWebSocket.Stats?
     var heapChanged: ExarotonWebSocket.Heap?

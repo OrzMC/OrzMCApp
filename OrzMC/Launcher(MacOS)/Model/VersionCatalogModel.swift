@@ -112,17 +112,30 @@ final class VersionCatalogModel {
     func refreshInstallStates() {
         var states = [String: VersionInstallState]()
         for version in versions {
-            states[version.id] = scanner.state(
-                clientDir: GamePlan.clientDir(version: version.id, root: rootDir),
-                serverDirs: SettingsModel.ServerSoftware.allCases.map {
-                    (
-                        $0.rawValue.lowercased(),
-                        GamePlan.serverDir(version: version.id, type: $0.gameType, root: rootDir)
-                    )
-                }
-            )
+            states[version.id] = computedInstallState(for: version)
         }
         installStates = states
+    }
+
+    /// 只重算**一个版本**的“装了什么”。
+    ///
+    /// 详情页可见时每 1.5s 复核一次目录；以前每次都全量扫所有版本
+    /// （几百个版本 × 5 个目录 = 数千次 stat / 1.5s）。列表徽标在加载、删除、
+    /// 换根目录时已经全量刷新，详情页只需要关心当前选中的版本。
+    func refreshInstallState(for version: Version) {
+        installStates[version.id] = computedInstallState(for: version)
+    }
+
+    private func computedInstallState(for version: Version) -> VersionInstallState {
+        scanner.state(
+            clientDir: GamePlan.clientDir(version: version.id, root: rootDir),
+            serverDirs: SettingsModel.ServerSoftware.allCases.map {
+                (
+                    $0.rawValue.lowercased(),
+                    GamePlan.serverDir(version: version.id, type: $0.gameType, root: rootDir)
+                )
+            }
+        )
     }
 
     /// 尽量复原上次选中的版本；没有就选过滤后的第一个。

@@ -7,20 +7,21 @@
 
 import SwiftUI
 
+/// 详情页工具栏的「Links」菜单。
+///
+/// 统一用系统 `Link` 打开**默认浏览器**：
+/// - 系统组件自带正确的外观、键盘可达性和辅助功能标签；
+/// - 不会把网页塞进启动器的 `NavigationStack`（以前用 SwiftUIX 的 `Web`，进网页后
+///   工具栏/返回语义都变得像浏览器，且要多维护一个 WKWebView 包装）。
 struct LinkMenu: View {
-    let items: [LinkInfo] = LinkMenu.allLinkItems
-    @Binding var path: NavigationPath
+    private let items: [LinkInfo] = LinkMenu.allLinkItems
+
     var body: some View {
         Menu {
             ForEach(items) { item in
-                switch item.type {
-                case .testServer, .onlineServer:
-                    Link(destination: URL(string: item.url)!) {
+                if let url = URL(string: item.url) {
+                    Link(destination: url) {
                         Label(item.name, systemImage: item.icon)
-                    }
-                default:
-                    Button(item.name, systemImage: item.icon) {
-                        path.append(item)
                     }
                 }
             }
@@ -28,40 +29,29 @@ struct LinkMenu: View {
         } label: {
             Label("Links", systemImage: "link")
         }
-        .help("Open related links")
+        .help("Open related links in your browser")
     }
 }
 
 extension LinkMenu {
     struct LinkInfo: Identifiable, Hashable {
         var id: String { url }
-        
+
         let url: String
         let icon: String
-        
-        enum LinkType {
-            case home
-            case papermc
-            case gameExt
-            case testServer
-            case onlineServer
-        }
-        let type: LinkType
-        
         let name: String
     }
+
     static let allLinkItems: [LinkInfo] = [
-        .init(url: "https://orzmc.jokerhub.cn", icon: "house", type: .home, name: "Home"),
-        .init(url: "https://papermc.io/", icon: "paperplane", type: .papermc, name: "PaperMC"),
-        .init(url: "https://hangar.papermc.io/", icon: "powerplug", type: .gameExt, name: "Hangar"),
-        .init(url: "https://aternos.org/server/", icon: "testtube.2", type: .testServer, name: "Aternos"),
-        .init(url: "https://exaroton.com/server", icon: "server.rack", type: .onlineServer, name: "Exaroton"),
+        .init(url: "https://orzmc.jokerhub.cn", icon: "house", name: "Home"),
+        .init(url: "https://papermc.io/", icon: "paperplane", name: "PaperMC"),
+        .init(url: "https://hangar.papermc.io/", icon: "powerplug", name: "Hangar"),
+        .init(url: "https://aternos.org/server/", icon: "testtube.2", name: "Aternos"),
+        .init(url: "https://exaroton.com/server", icon: "server.rack", name: "Exaroton"),
     ]
 }
 
 #Preview {
-    @Previewable @State var path = NavigationPath()
-    NavigationStack(path: $path) {
-        LinkMenu(path: $path)
-    }
+    LinkMenu()
+        .padding()
 }

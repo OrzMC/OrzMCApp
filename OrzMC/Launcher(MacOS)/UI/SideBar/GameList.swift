@@ -8,6 +8,7 @@
 import SwiftUI
 import Game
 import MojangAPI
+import OrzMCDesignSystem
 import OrzMCLauncher
 
 /// 版本列表：**纯展示**。装了什么由 `VersionCatalogModel` 一次算好并传进来，
@@ -39,28 +40,17 @@ struct GameList: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(version.id)
-                                .font(.body.monospacedDigit())
+                                .font(OrzMCTheme.Typography.numeric)
                                 .lineLimit(1)
                             if !isOnlyRelease {
-                                Text(version.buildType.rawValue.capitalized)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background(Color.secondary.opacity(0.12))
-                                    .clipShape(Capsule())
+                                OrzMCTag(version.localizedBuildTypeTitle)
                             }
                         }
 
                         if !state.isEmpty {
                             HStack(spacing: 4) {
                                 ForEach(state.badges, id: \.self) { badge in
-                                    Text(badge)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundStyle(.primary)
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
-                                        .background(Color.primary.opacity(0.10), in: Capsule())
+                                    OrzMCTag(badge, tint: .primary)
                                 }
                             }
                         }

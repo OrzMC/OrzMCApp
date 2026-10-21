@@ -5,6 +5,7 @@
 //  Created by wangzhizhou on 2025/4/7.
 //
 
+import OrzMCDesignSystem
 import SwiftUI
 
 extension View {
@@ -44,10 +45,9 @@ struct SideBarTool: View {
     let reloadList: () -> Void
     var body: some View {
         Toggle(isOn: $showOnlyRelease) {
-            Text("Releases")
-                .padding([.horizontal], 4)
-                .fontWeight(showOnlyRelease ? .semibold : .regular)
+            Label("Releases", systemImage: "line.3.horizontal.decrease.circle")
         }
+        .toggleStyle(.button)
         .help("Show release versions only")
         
         Button(action: {
@@ -55,7 +55,6 @@ struct SideBarTool: View {
         }, label: {
             if isFetchingGameVersions {
                 ProgressView()
-                    .progressViewStyle(.circular)
                     .controlSize(.small)
             } else {
                 Image(systemName: "arrow.triangle.2.circlepath")
@@ -63,6 +62,7 @@ struct SideBarTool: View {
         })
         .disabled(isFetchingGameVersions)
         .help("Refresh version list")
+        .accessibilityLabel("Refresh version list")
     }
 }
 

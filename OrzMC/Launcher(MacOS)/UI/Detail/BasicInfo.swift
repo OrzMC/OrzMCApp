@@ -15,11 +15,12 @@ import OrzMCLauncher
 struct FormSectionHeader: View {
     typealias ButtonAction = () -> Void
 
-    let title: String
+    let title: LocalizedStringKey
+    /// 悬停提示里的纯文本标题（`LocalizedStringKey` 不能直接拼进 String 帮助文案）。
+    var helpTitle: String = ""
     /// 运行状态（服务端/客户端都有：Running / Stopped / Starting… / Restarting…）。
     var statusText: String?
-    var statusDotColor: Color?
-    var statusTextColor: Color?
+    var statusStyle: OrzMCStatusStyle = .idle
     /// 该实例有操作在进行（启动/停止/重启中）→ **全部按钮禁用**，防连点。
     var isBusy: Bool = false
     /// 生命周期按钮的可用性（`nil` = 该实例不提供生命周期控制，例如客户端）。
@@ -41,28 +42,28 @@ struct FormSectionHeader: View {
     var deleteBtnAction: ButtonAction
 
     var body: some View {
-        HStack(spacing: 8) {
-            // 左：标题 + 状态
+        HStack(spacing: OrzMCTheme.Spacing.sm) {
+            // 左：标题 + 状态（同一套状态徽标，颜色只做辅助，文字始终可读）
             Text(title)
                 .font(.headline)
             if let statusText {
-                statusBadge(statusText)
+                OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: OrzMCTheme.Spacing.md)
 
             // 右：操作按钮（高危动作带确认，执行中全禁用）
             if isBusy {
                 ProgressView()
                     .controlSize(.small)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
                 if let consoleBtnAction {
                     iconButton(
                         "Console",
                         systemImage: consoleIsLive ? "terminal.fill" : "terminal",
-                        color: consoleIsLive ? .green : .accentColor,
-                        help: consoleIsLive ? "Open \(title) console (running)" : "Open \(title) console",
+                        color: consoleIsLive ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.accent,
+                        help: consoleIsLive ? "Open \(helpTitle) console (running)" : "Open \(helpTitle) console",
                         action: consoleBtnAction
                     )
                 }
@@ -70,8 +71,8 @@ struct FormSectionHeader: View {
                     iconButton(
                         "Plugins",
                         systemImage: "puzzlepiece.extension",
-                        color: .purple,
-                        help: "Manage \(title) plugins (install → plugins/, updates → plugins/update/)",
+                        color: OrzMCTheme.Palette.accent,
+                        help: "Manage \(helpTitle) plugins (install → plugins/, updates → plugins/update/)",
                         action: pluginsBtnAction
                     )
                 }
@@ -82,8 +83,8 @@ struct FormSectionHeader: View {
                     iconButton(
                         "Start",
                         systemImage: "play.circle",
-                        color: .green,
-                        help: "Start \(title)",
+                        color: OrzMCTheme.Palette.success,
+                        help: "Start \(helpTitle)",
                         action: startBtnAction
                     )
                     .disabled(!(availability?.canStart ?? true))
@@ -92,8 +93,8 @@ struct FormSectionHeader: View {
                     iconButton(
                         "Restart",
                         systemImage: "arrow.clockwise.circle",
-                        color: .blue,
-                        help: "Restart \(title) (stop then start — asks for confirmation)",
+                        color: OrzMCTheme.Palette.accent,
+                        help: "Restart \(helpTitle) (stop then start — asks for confirmation)",
                         action: restartBtnAction
                     )
                     .disabled(!(availability?.canRestart ?? true))
@@ -102,31 +103,40 @@ struct FormSectionHeader: View {
                     iconButton(
                         "Stop",
                         systemImage: "stop.circle",
-                        color: .orange,
-                        help: "Stop \(title) gracefully (console `stop` — asks for confirmation)",
+                        color: OrzMCTheme.Palette.warning,
+                        help: "Stop \(helpTitle) gracefully (console `stop` — asks for confirmation)",
                         action: stopBtnAction
                     )
                     .disabled(!(availability?.canStop ?? true))
                 }
-                if let terminateBtnAction {
-                    iconButton(
-                        "Terminate",
-                        systemImage: "xmark.octagon",
-                        color: .red,
-                        help: "Terminate \(title) process now (may lose unsaved world data — asks for confirmation)",
-                        action: terminateBtnAction
-                    )
-                    .disabled(!(availability?.canTerminate ?? true))
+                // 「不可逆 / 高危」动作收进溢出菜单：日常操作（Start/Restart/Stop）
+                // 留在外面，Terminate/Delete 不再和它们抢同一行。
+                if terminateBtnAction != nil || deleteBtnAction != nil {
+                    groupSeparator
+                    Menu {
+                        if let terminateBtnAction {
+                            Button(role: .destructive, action: terminateBtnAction) {
+                                Label("Terminate…", systemImage: "xmark.octagon")
+                            }
+                            .disabled(!(availability?.canTerminate ?? true))
+                        }
+                        if let terminateBtnAction, deleteBtnAction != nil {
+                            Divider()
+                        }
+                        Button(role: .destructive, action: deleteBtnAction) {
+                            Label("Delete…", systemImage: "trash")
+                        }
+                        .disabled(!(availability?.canDelete ?? true))
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .help("More destructive actions (Terminate / Delete — both ask for confirmation)")
+                    .disabled(isBusy)
                 }
-                groupSeparator
-                iconButton(
-                    "Delete",
-                    systemImage: "trash",
-                    color: .red,
-                    help: "Delete \(title) files (asks for confirmation — cannot be undone)",
-                    action: deleteBtnAction
-                )
-                .disabled(!(availability?.canDelete ?? true))
             }
             .disabled(isBusy)
         }
@@ -134,9 +144,8 @@ struct FormSectionHeader: View {
 
     /// 按钮分组之间的一道细线：把「看/管」与「生命周期」与「删除」视觉上分开。
     private var groupSeparator: some View {
-        Rectangle()
-            .fill(Color.secondary.opacity(0.25))
-            .frame(width: 1, height: 12)
+        Divider()
+            .frame(height: 12)
     }
 
     private func iconButton(
@@ -150,24 +159,10 @@ struct FormSectionHeader: View {
             Label(label, systemImage: systemImage)
                 .labelStyle(.iconOnly)
         }
-        .buttonStyle(.plain)
+        // `.borderless` 保留系统 hover/按下反馈；`.plain` 在 macOS 上几乎没有可点击感。
+        .buttonStyle(.borderless)
         .foregroundStyle(color)
         .help(help)
-    }
-
-    private func statusBadge(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(statusDotColor ?? Color.secondary)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .foregroundStyle(statusTextColor ?? Color.secondary)
-        }
-        .font(.caption)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background((statusDotColor ?? Color.secondary).opacity(0.12))
-        .cornerRadius(8)
     }
 }
 
@@ -183,21 +178,16 @@ struct DirectoryRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: symbolName)
-                .foregroundStyle(exists ? Color.accentColor : Color.secondary)
+                .foregroundStyle(exists ? AnyShapeStyle(OrzMCTheme.Palette.accent) : AnyShapeStyle(.secondary))
                 .frame(width: 18)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(entry.title)
                         .font(.body.weight(.medium))
                     if !exists {
-                        Text("not created yet")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color.secondary.opacity(0.12))
-                            .clipShape(Capsule())
+                        OrzMCTag(String(localized: "not created yet"))
                     }
                 }
                 Text(entry.detail)
@@ -215,8 +205,8 @@ struct DirectoryRow: View {
                 Label("Open", systemImage: "arrow.up.forward.app")
                     .labelStyle(.iconOnly)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(exists ? Color.accentColor : Color.secondary)
+            .buttonStyle(.borderless)
+            .foregroundStyle(exists ? AnyShapeStyle(OrzMCTheme.Palette.accent) : AnyShapeStyle(.secondary))
             .disabled(!exists)
             .help(exists ? "Open \(entry.path) in Finder" : "\(entry.path) does not exist yet")
         }
@@ -254,8 +244,6 @@ struct BasicInfo: View {
     @State private var pendingRisky: RiskyAction?
     /// 正在执行的实例（`版本#实例`）→ 该实例按钮全禁用（防连点）。
     @State private var busyInstanceId: String?
-    /// 「停止全部」的二次确认。
-    @State private var confirmStopAll = false
     /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
     @State private var consoleTarget: ConsoleTarget?
     /// 要打开的插件管理面板（绑定到某个版本）。
@@ -283,39 +271,15 @@ struct BasicInfo: View {
             if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
-                        // 会断开所有在线玩家 → 二次确认；执行中禁用（防连点）。
-                        confirmStopAll = true
+                        // 确认框只在 `LauncherUI` 维护一份（菜单和这里共用），避免 ⌘K 注册两次。
+                        app.wantsStopAllConfirmation = true
                     } label: {
                         Label("Stop All Servers", systemImage: "stop.circle")
                     }
-                    .keyboardShortcut(.init(.init("k")), modifiers: .command)
-                    .disabled(busyInstanceId != nil)
+                    .disabled(busyInstanceId != nil || app.isStoppingAll)
                     .help("Stop all running Minecraft servers (asks for confirmation)")
                 }
             }
-        }
-        .alert("Stop All Servers?", isPresented: $confirmStopAll) {
-            Button("Stop All (graceful)") {
-                busyInstanceId = "all"
-                Task { @MainActor in
-                    defer { busyInstanceId = nil }
-                    app.stopAllServers()
-                }
-            }
-            Button("Terminate All", role: .destructive) {
-                busyInstanceId = "all"
-                Task { @MainActor in
-                    defer { busyInstanceId = nil }
-                    app.terminateAllServers()
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("""
-            Stop All sends `stop` to every running server, so each one saves and exits normally.             Servers started by a previous app session have no console to talk to — those are left alone.
-
-            Terminate All kills the processes instead (SIGTERM, then SIGKILL). Recent world changes may be lost.
-            """)
         }
         .alert(
             pendingRisky?.confirmTitle ?? "",
@@ -366,16 +330,17 @@ struct BasicInfo: View {
     private func isBusy(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {
         busyInstanceId == "\(versionId)#\(software.rawValue)"
             || app.activity(versionId: versionId, software: software).isBusy
+            || app.launch.isLaunching
     }
 
     /// 客户端运行状态：以"客户端控制台是否挂着进程"为准（进程退出即解绑）。
-    private var clientRunStatus: (text: String, dotColor: Color, textColor: Color) {
+    private var clientRunStatus: (text: String, style: OrzMCStatusStyle) {
         guard let versionId = app.catalog.selected?.id else {
-            return ("Unknown", .secondary, .secondary)
+            return (String(localized: "Unknown"), .idle)
         }
         return app.isClientConsoleAttached(versionId: versionId)
-            ? ("Running", .green, .green)
-            : ("Stopped", .red, .secondary)
+            ? (String(localized: "Running"), .running)
+            : (String(localized: "Stopped"), .idle)
     }
 
     private func consoleView(for target: ConsoleTarget) -> some View {
@@ -424,6 +389,9 @@ struct BasicInfo: View {
 
     private var detailsForm: some View {
         Form {
+            // 启动配置放在最上面：侧边栏只负责“选版本”，详情页负责“启动 + 管理这个版本”。
+            LaunchControls()
+
             // 顶部实例切换器：四种核心 + 客户端全装时，一次只看一个实例（否则一屏 5 段、每段 3-6 行目录，很挤）。
             let instances = installedInstances
             if instances.count > 1 {
@@ -456,7 +424,9 @@ struct BasicInfo: View {
         // 不能只在"切换版本"时才算一遍：详情页可见期间每 1.5s 复核一次（只是几次 stat）。
         .task(id: app.catalog.selected?.id) {
             while !Task.isCancelled {
-                app.catalog.refreshInstallStates()
+                if let selected = app.catalog.selected {
+                    app.catalog.refreshInstallState(for: selected)
+                }
                 try? await Task.sleep(for: .seconds(1.5))
             }
         }
@@ -479,9 +449,9 @@ struct BasicInfo: View {
                 let status = statusFor(software: software)
                 FormSectionHeader(
                     title: "Server (\(software.rawValue))",
+                    helpTitle: "Server (\(software.rawValue))",
                     statusText: status.text,
-                    statusDotColor: status.dotColor,
-                    statusTextColor: status.textColor,
+                    statusStyle: status.style,
                     isBusy: isBusy(versionId: instance.versionId, software: software),
                     availability: availability,
                     consoleBtnAction: {
@@ -515,9 +485,9 @@ struct BasicInfo: View {
                 let clientStatus = clientRunStatus
                 FormSectionHeader(
                     title: "Client",
+                    helpTitle: "Client",
                     statusText: clientStatus.text,
-                    statusDotColor: clientStatus.dotColor,
-                    statusTextColor: clientStatus.textColor,
+                    statusStyle: clientStatus.style,
                     isBusy: busyInstanceId == instance.id,
                     consoleBtnAction: {
                         consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
@@ -558,7 +528,7 @@ struct PluginSheetTarget: Identifiable {
 /// 控制台要打开的实例（`Identifiable` 供 `navigationDestination(item:)` 用）。
 ///
 /// `software == nil` 表示**客户端实例**（`版本#Client`）；否则是对应的服务端核心。
-struct ConsoleTarget: Identifiable, Hashable {
+struct ConsoleTarget: Identifiable, Hashable, Codable {
     let versionId: String
     let software: SettingsModel.ServerSoftware?
 
@@ -573,17 +543,18 @@ struct ConsoleTarget: Identifiable, Hashable {
 
 extension BasicInfo {
 
-    func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, dotColor: Color, textColor: Color) {
-        guard let selectedVersion = app.catalog.selected
-        else {
-            return ("Unknown", .secondary, .secondary)
+    func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, style: OrzMCStatusStyle) {
+        guard let selectedVersion = app.catalog.selected else {
+            return (String(localized: "Unknown"), .idle)
         }
-        let text = app.serverStatusText(versionId: selectedVersion.id, software: software)
-        switch text {
-        case "Running": return ("Running", .green, .green)
-        case "Stopped": return ("Stopped", .red, .secondary)
-        default: return (text, .orange, .orange)   // Starting… / Stopping… / Restarting… / Terminating…
+        if let activityText = app.activity(versionId: selectedVersion.id, software: software).localizedStatusText {
+            return (activityText, .busy)   // Starting… / Stopping… / Restarting… / Terminating…
         }
+        if app.servers.isRunning(versionId: selectedVersion.id, software: software) {
+            return (String(localized: "Running"), .running)
+        }
+        // 停止不是错误：用中性色，红色只留给真正的失败/破坏性操作。
+        return (String(localized: "Stopped"), .idle)
     }
     
     func serverDirPath(for software: SettingsModel.ServerSoftware) -> String? {

@@ -5,8 +5,9 @@
 //  Created by Codex on 2026/5/22.
 //
 
-import SwiftUI
+import OrzMCDesignSystem
 import OrzMCRemoteHosting
+import SwiftUI
 
 struct ExarotonServerActionSection: View {
     @Environment(ExarotonServerModel.self) private var model
@@ -19,32 +20,63 @@ struct ExarotonServerActionSection: View {
 
     private let actionPolicy = RemoteServerListPolicy()
 
+    @State private var confirmStop = false
+    @State private var confirmRestart = false
+
     var body: some View {
         Section("Actions") {
             if serverRAM > 0 {
-                Stepper(
-                    "RAM: \(String(format: "%d", serverRAM)) GB",
-                    value: $serverRAM,
-                    in: 2...16,
-                    step: 1
-                )
+                LabeledContent("Memory") {
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
+                        Text("\(serverRAM) GB")
+                            .font(OrzMCTheme.Typography.numeric)
+                            .foregroundStyle(.secondary)
+                        Stepper("", value: $serverRAM, in: 2...16, step: 1)
+                            .labelsHidden()
+                    }
+                }
                 .disabled(isLoading || status != .OFFLINE)
             }
 
-            Button("Start Server", systemImage: "restart.circle") {
-                perform(.start)
-            }
-            .disabled(!canPerform(.start))
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Button("Start Server", systemImage: "play.fill") {
+                    perform(.start)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canPerform(.start))
 
-            Button("Stop Server", systemImage: "stop.fill") {
-                perform(.stop)
-            }
-            .disabled(!canPerform(.stop))
+                ControlGroup {
+                    Button("Stop", systemImage: "stop.fill") {
+                        confirmStop = true
+                    }
+                    .disabled(!canPerform(.stop))
 
-            Button("Restart Server", systemImage: "restart.circle.fill") {
-                perform(.restart)
+                    Button("Restart", systemImage: "arrow.clockwise") {
+                        confirmRestart = true
+                    }
+                    .disabled(!canPerform(.restart))
+                }
+                Spacer(minLength: 0)
             }
-            .disabled(!canPerform(.restart))
+            .disabled(isLoading)
+
+            OrzMCBanner(
+                "Actions run on exaroton's side. Players connected to the server are disconnected by Stop/Restart.",
+                role: .info
+            )
+        }
+        // 破坏性/会断线的远程操作先确认：与本地服务端的 Stop/Restart 保持同一套交互。
+        .confirmationDialog("Stop Server?", isPresented: $confirmStop) {
+            Button("Stop", role: .destructive) { perform(.stop) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The server saves and shuts down. Connected players are disconnected.")
+        }
+        .confirmationDialog("Restart Server?", isPresented: $confirmRestart) {
+            Button("Restart") { perform(.restart) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The server stops and starts again. Connected players are disconnected during the restart.")
         }
     }
 
@@ -55,7 +87,7 @@ struct ExarotonServerActionSection: View {
     private func perform(_ action: RemoteServerAction) {
         Task {
             guard let serverID = server.id else {
-                model.errorMessage = "Server ID is missing."
+                model.errorMessage = String(localized: "Server ID is missing.")
                 return
             }
 

@@ -5,8 +5,9 @@
 //  Created by joker on 2024/5/17.
 //
 
-import SwiftUI
 import ExarotonWebSocket
+import OrzMCDesignSystem
+import SwiftUI
 
 struct ExarotonServerDetail: View {
 
@@ -16,9 +17,10 @@ struct ExarotonServerDetail: View {
 
     @State private var wsServerReady: Bool = false
 
-    @State private var networkOpacity: Double = 1
-
     @State private var serverRAM: Int32 = 0
+    /// 服务器当前确认的 RAM（来自 GET / 变更成功后的返回值）。
+    /// 用它区分“加载时赋值”和“用户拖动 Stepper”，避免加载完又多发一次 changeRAM。
+    @State private var confirmedRAM: Int32?
 
     @State private var loading  = false
 
@@ -36,7 +38,7 @@ struct ExarotonServerDetail: View {
         Form {
 
             Section("General") {
-                ExarotonServerView(server: server, showStatus: false, showMotd: true)
+                ExarotonServerView(server: server, showStatus: true, showMotd: true)
             }
 
             if let playlist = server.players?.list, !playlist.isEmpty {
@@ -64,11 +66,13 @@ struct ExarotonServerDetail: View {
                                     }
                                 }
                             }
-                            if let tick = model.tickChanged {
-                                Text(tick.usageLabel)
-                            }
-                            if let heap = model.heapChanged {
-                                Text(heap.usageLabel)
+                            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                                if let tick = model.tickChanged {
+                                    OrzMCTag(tick.usageLabel)
+                                }
+                                if let heap = model.heapChanged {
+                                    OrzMCTag(heap.usageLabel)
+                                }
                             }
                         }
                     }
@@ -87,42 +91,46 @@ struct ExarotonServerDetail: View {
 
                         ScrollView(.vertical, showsIndicators: true) {
                             Text(consoleLog)
-                                .foregroundStyle(Color.white)
-                                .font(.system(size: 8))
+                                .font(OrzMCTheme.Typography.console)
+                                .foregroundStyle(.primary)
+                                .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(height: 100)
-                        .listRowBackground(Color.black)
+                        .frame(height: 160)
+                        .consoleSurface()
                         .defaultScrollAnchor(.bottom)
 
-                        Button {
-                            consoleLog = ""
-                        } label: {
-                            Text("Clear Console")
-                        }
+                        HStack(spacing: OrzMCTheme.Spacing.sm) {
+                            Button("Send Console Command…", systemImage: "paperplane") {
+                                showConsoleCommandInput = true
+                            }
+                            .buttonStyle(.borderedProminent)
 
-                        Button("Send Console Command") {
-                            showConsoleCommandInput = true
+                            Button("Clear Console", systemImage: "trash") {
+                                consoleLog = ""
+                            }
+                            .buttonStyle(.bordered)
+
+                            Spacer()
                         }
-                        .keyboardShortcut(.init("c"), modifiers: .command)
                     }
                 }
             }
         }
-        .formStyle(GroupedFormStyle())
-        .navigationTitle("Server Detail")
+        .formStyle(.grouped)
+        .navigationTitle(server.name ?? String(localized: "Server Detail"))
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
         .toolbar {
             ToolbarItemGroup {
-                Image(systemName: wsServerReady ? "checkmark.icloud.fill" : "icloud.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .foregroundStyle(wsServerReady ? mainColor : dangerColor)
-                    .frame(width: 30, height: 30)
-                    .opacity(networkOpacity)
-                    .animation(wsServerReady ? nil : .easeInOut(duration: 0.8).repeatForever(), value: networkOpacity)
+                Image(systemName: wsServerReady ? "checkmark.icloud.fill" : "icloud.slash")
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(wsServerReady ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.danger)
+                    .symbolEffect(.pulse, options: .repeating, isActive: !wsServerReady)
+                    .help(wsServerReady ? "Connected to the server console" : "Connecting to the server console…")
+                    .accessibilityLabel(wsServerReady ? "Connected" : "Connecting")
 
                 if let serverStatus = server.serverStatus {
                     ExarotonServerStatusView(status: serverStatus)
@@ -131,28 +139,26 @@ struct ExarotonServerDetail: View {
             }
         }
         .overlay {
-            ProgressView()
-                .controlSize(.extraLarge)
-                .progressViewStyle(.circular)
-                .opacity(loading ? 1 : 0)
+            if loading {
+                ProgressView()
+                    .controlSize(.extraLarge)
+                    .padding(OrzMCTheme.Spacing.lg)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
+            }
         }
         .sheet(isPresented: $showConsoleCommandInput) {
-            if !consoleCommand.isEmpty {
-                let validCommand = consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines)
-                model.sendConsoleCmd(.init(validCommand))
-                consoleCommand = ""
-            }
-        } content: {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Input Command")
+            // 命令只在用户点「Send」时发送；以前把发送逻辑写在 sheet 的 content builder 里，
+            // 等于“一打开就发”，而且是在 body 里改状态（SwiftUI 会报警告）。
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
+                Text("Send Console Command")
                     .font(.headline)
-                    .frame(minWidth: 300, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 TextEditor(text: $consoleCommand)
+                    .font(OrzMCTheme.Typography.consoleInput)
                     .scrollContentBackground(.hidden)
-                    .background(Color.black)
-                    .foregroundStyle(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .padding(OrzMCTheme.Spacing.xs)
+                    .consoleSurface(cornerRadius: OrzMCTheme.Radius.md)
                     .autocorrectionDisabled()
 #if os(macOS)
                     .frame(maxWidth: 400, minHeight: 100)
@@ -161,14 +167,24 @@ struct ExarotonServerDetail: View {
                     .keyboardType(.alphabet)
                     .textInputAutocapitalization(.never)
 #endif
+
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) {
+                        consoleCommand = ""
+                        showConsoleCommandInput = false
+                    }
+                    Button("Send") {
+                        sendConsoleCommand()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
-            .padding()
-            .onSubmit {
-                showConsoleCommandInput = false
-            }
+            .padding(OrzMCTheme.Spacing.lg)
             .presentationDragIndicator(.visible)
             .presentationDetents([.height(300)])
-            .presentationCornerRadius(10)
+            .presentationCornerRadius(OrzMCTheme.Radius.md)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
         .task {
@@ -178,26 +194,23 @@ struct ExarotonServerDetail: View {
             }
             model.startConnect(for: serverID)
             wsServerReady = model.readyServerID != nil
-            networkOpacity = wsServerReady ? 1 : 0
             if let ram = await model.getRAM(serverId: serverID) {
+                confirmedRAM = ram
                 serverRAM = ram
             }
         }
         .onDisappear {
             model.stopConnect()
         }
-        .onChange(of: model.readyServerID) { oldValue, newValue in
+        .onChange(of: model.readyServerID) { _, newValue in
             wsServerReady = newValue != nil
-            networkOpacity = wsServerReady ? 1 : 0
         }
-        .onChange(of: serverRAM, initial: false) { oldValue, newValue in
-            guard let serverID = server.id
-            else {
-                return
-            }
+        .onChange(of: serverRAM, initial: false) { _, newValue in
+            guard newValue != confirmedRAM, let serverID = server.id else { return }
             Task {
                 loading = true
                 if let ram = await model.changeRAM(serverId: serverID, ramGB: newValue) {
+                    confirmedRAM = ram
                     serverRAM = ram
                 }
                 loading = false
@@ -235,6 +248,14 @@ struct ExarotonServerDetail: View {
 extension ExarotonServerDetail {
 
     static let actionStreams = StreamCategory.allCases.filter { $0 != .status }
+
+    private func sendConsoleCommand() {
+        let validCommand = consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !validCommand.isEmpty else { return }
+        model.sendConsoleCmd(.init(validCommand))
+        consoleCommand = ""
+        showConsoleCommandInput = false
+    }
 
     func startStreams() {
         Self.actionStreams.forEach { model.startStream($0) }

@@ -50,15 +50,15 @@ enum RiskyAction: Identifiable {
     var confirmTitle: String {
         switch self {
         case let .deleteServer(_, software, _):
-            return "Delete \(software.rawValue) Server Files?"
+            return String(localized: "Delete \(software.rawValue) Server Files?")
         case .deleteClient:
-            return "Delete Client Files?"
+            return String(localized: "Delete Client Files?")
         case let .stopServer(_, software):
-            return "Stop \(software.rawValue) Server?"
+            return String(localized: "Stop \(software.rawValue) Server?")
         case let .restartServer(_, software):
-            return "Restart \(software.rawValue) Server?"
+            return String(localized: "Restart \(software.rawValue) Server?")
         case let .terminateServer(_, software):
-            return "Terminate \(software.rawValue) Server Process?"
+            return String(localized: "Terminate \(software.rawValue) Server Process?")
         }
     }
 
@@ -104,10 +104,10 @@ enum RiskyAction: Identifiable {
 
     var confirmButtonTitle: String {
         switch self {
-        case .deleteServer, .deleteClient: return "Delete"
-        case .stopServer: return "Stop"
-        case .restartServer: return "Restart"
-        case .terminateServer: return "Terminate"
+        case .deleteServer, .deleteClient: return String(localized: "Delete")
+        case .stopServer: return String(localized: "Stop")
+        case .restartServer: return String(localized: "Restart")
+        case .terminateServer: return String(localized: "Terminate")
         }
     }
 

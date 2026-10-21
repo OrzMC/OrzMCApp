@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Game
+import OrzMCDesignSystem
 import OrzMCLauncher
 
 /// 插件管理：从**Plugins 目录条目**进入（不再是独立目录项）。
@@ -25,80 +26,87 @@ struct PluginManagerView: View {
     @State private var showHangarCatalog = true
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            content
-            Divider()
-            footer
+        NavigationStack {
+            VStack(spacing: 0) {
+                content
+                Divider()
+                footer
+            }
+            .navigationTitle("Plugins — \(versionId)")
+            // 系统搜索框（工具栏），不再自己拼 TextField。
+            .searchable(text: $manager.searchText, placement: .toolbar, prompt: "Search plugins")
+            .toolbar {
+                ToolbarItemGroup {
+                    if manager.isLoadingCatalog || manager.isCheckingUpdates {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+
+                    Toggle(isOn: $showHangarCatalog) {
+                        Label("Catalog", systemImage: "list.bullet")
+                    }
+                    .toggleStyle(.button)
+                    .help("Show plugins from the Hangar catalog (off = installed only)")
+
+                    Button("Check Updates", systemImage: "arrow.triangle.2.circlepath") {
+                        Task {
+                            await manager.loadCatalogIfNeeded()
+                            await manager.checkUpdates()
+                        }
+                    }
+                    .disabled(manager.isLoadingCatalog || manager.isCheckingUpdates)
+                    .help("Check installed plugins for newer Hangar versions")
+
+                    Button("Update All", systemImage: "arrow.down.circle") {
+                        Task { await manager.updateAll() }
+                    }
+                    .disabled(manager.updateCount == 0 || manager.busyPlugin != nil)
+                    .help("Download updates to plugins/update/ — applied on next restart")
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
         }
-        .frame(width: 620, height: 480)
+        .frame(minWidth: 620, minHeight: 480)
         .task {
             manager.bind(versionId: versionId, rootDir: app.settings.rootDir)
             await manager.loadCatalogIfNeeded()
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Text("Plugins — \(versionId)")
-                .font(.headline)
-            if manager.updateCount > 0 {
-                Text("\(manager.updateCount) update(s)")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.orange.opacity(0.15))
-                    .foregroundStyle(Color.orange)
-                    .clipShape(Capsule())
-            }
-            Spacer()
-            if manager.isLoadingCatalog || manager.isCheckingUpdates {
-                ProgressView().controlSize(.small)
-            }
-            Button {
-                Task { await manager.loadCatalogIfNeeded(); await manager.checkUpdates() }
-            } label: {
-                Label("Check Updates", systemImage: "arrow.triangle.2.circlepath")
-            }
-            .disabled(manager.isLoadingCatalog || manager.isCheckingUpdates)
-            Button {
-                Task { await manager.updateAll() }
-            } label: {
-                Label("Update All", systemImage: "arrow.down.circle")
-            }
-            .disabled(manager.updateCount == 0 || manager.busyPlugin != nil)
-        }
-        .padding(12)
-    }
-
     private var content: some View {
-        VStack(spacing: 0) {
-            HStack {
-                TextField("Search plugins", text: $manager.searchText)
-                    .textFieldStyle(.roundedBorder)
-                Toggle("Show catalog", isOn: $showHangarCatalog)
-                    .toggleStyle(.checkbox)
-                    .help("Hangar 目录里的插件（关闭后只看本地已装）")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            List {
-                if !manager.installedJars.isEmpty {
-                    Section("Installed (\(manager.installedJars.count))") {
-                        ForEach(visibleRows.filter(\.isInstalled)) { row in
-                            rowView(row)
+        Group {
+            if visibleRows.isEmpty {
+                ContentUnavailableView(
+                    "No plugins",
+                    systemImage: "puzzlepiece.extension",
+                    description: Text("Install a plugin from Hangar, or drop a jar into plugins/ and refresh.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    let installed = visibleRows.filter(\.isInstalled)
+                    let available = visibleRows.filter { !$0.isInstalled }
+                    if !installed.isEmpty {
+                        Section("Installed (\(manager.installedJars.count))") {
+                            ForEach(installed) { row in
+                                rowView(row)
+                            }
+                        }
+                    }
+                    if !available.isEmpty {
+                        Section("Available") {
+                            ForEach(available) { row in
+                                rowView(row)
+                            }
                         }
                     }
                 }
-                Section("Available") {
-                    ForEach(visibleRows.filter { !$0.isInstalled }) { row in
-                        rowView(row)
-                    }
-                }
+                .listStyle(.inset)
             }
-            .listStyle(.inset)
         }
     }
 
@@ -113,11 +121,7 @@ struct PluginManagerView: View {
                 HStack(spacing: 6) {
                     Text(row.name).font(.body.weight(.medium))
                     if row.kind == .localOnly {
-                        Text("local")
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .background(Color.secondary.opacity(0.15))
-                            .clipShape(Capsule())
+                        OrzMCTag(String(localized: "local"))
                     }
                 }
                 if let summary = row.summary, !summary.isEmpty {
@@ -153,16 +157,14 @@ struct PluginManagerView: View {
     }
 
     private var footer: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
             if let message = manager.lastMessage {
                 Text(message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if let error = manager.error {
-                Text(error.description)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                OrzMCBanner(verbatim: error.description, role: .error)
             }
             HStack {
                 Text("New: plugins/ · Updates: plugins/update/ (applied on next restart)")
@@ -170,10 +172,8 @@ struct PluginManagerView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Refresh") { manager.refreshLocal() }
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(12)
+        .padding(OrzMCTheme.Spacing.md)
     }
 }

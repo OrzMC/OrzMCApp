@@ -103,6 +103,10 @@ extension ExarotonServerModel: @preconcurrency ExarotonServerEventHandlerProtoco
         }
         consoleLine = line
         consoleLines.append(line)
+        // 与本地控制台一致：只保留最近 2000 行，避免长时间挂机把内存/重绘拖垮。
+        if consoleLines.count > ExarotonServerModel.maxConsoleLines {
+            consoleLines.removeFirst(consoleLines.count - ExarotonServerModel.maxConsoleLines)
+        }
     }
 
     func onTick(_ tick: ExarotonWebSocket.Tick?) {

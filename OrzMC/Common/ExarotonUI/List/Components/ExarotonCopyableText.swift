@@ -5,6 +5,7 @@
 //  Created by joker on 9/6/24.
 //
 
+import OrzMCDesignSystem
 import SwiftUI
 
 struct ExarotonCopyableText: View {
@@ -27,18 +28,21 @@ struct ExarotonCopyableText: View {
             Spacer()
             
             if canCopy {
-                Image(systemName: isTapped ? "checkmark.circle" : "document.on.clipboard")
-                    .bold()
-                    .contentTransition(.symbolEffect(.replace))
-                    .foregroundStyle(copyed ? .green : .blue)
-                    .onTapGesture {
-                        isTapped = true
-                        copyed = content.copyToPasteboard()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            isTapped = false
-                            copyed = false
-                        }
+                Button {
+                    isTapped = true
+                    copyed = content.copyToPasteboard()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        isTapped = false
+                        copyed = false
                     }
+                } label: {
+                    Image(systemName: isTapped ? "checkmark.circle" : "document.on.clipboard")
+                        .contentTransition(.symbolEffect(.replace))
+                        .foregroundStyle(copyed ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.accent)
+                }
+                .buttonStyle(.borderless)
+                .help(copyed ? "Copied" : "Copy")
+                .accessibilityLabel(copyed ? "Copied" : "Copy")
             }
         }
     }

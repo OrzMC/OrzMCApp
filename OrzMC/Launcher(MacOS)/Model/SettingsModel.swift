@@ -130,7 +130,7 @@ final class SettingsModel {
 
 extension SettingsModel {
     /// 服务端核心类型。
-    enum ServerSoftware: String, CaseIterable, Identifiable {
+    enum ServerSoftware: String, CaseIterable, Identifiable, Codable {
         case paper = "Paper"
         case vanilla = "Vanilla"
         case fabric = "Fabric"

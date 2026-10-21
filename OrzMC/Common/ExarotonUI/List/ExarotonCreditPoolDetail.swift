@@ -5,6 +5,7 @@
 //  Created by joker on 2024/5/20.
 //
 
+import OrzMCDesignSystem
 import SwiftUI
 
 struct ExarotonCreditPoolDetail: View {
@@ -15,60 +16,74 @@ struct ExarotonCreditPoolDetail: View {
     @State private var isLoading = false
     var body: some View {
         List {
-            Section(creditPool.name ?? "") {
-                HStack {
-                    Spacer()
-                    ExarotonCreditView(credits: creditPool.credits)
-                        .padding([.top], 10)
-                    Spacer()
+            Section {
+                VStack(spacing: OrzMCTheme.Spacing.sm) {
+                    ExarotonCreditView(credits: creditPool.credits, style: .large)
+
+                    if let name = creditPool.name {
+                        Text(name)
+                            .font(.headline)
+                    }
+                    if let id = creditPool.id {
+                        Text(id)
+                            .font(OrzMCTheme.Typography.code)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, OrzMCTheme.Spacing.sm)
                 .listRowSeparator(.hidden)
             }
+
             if let members {
-                Section("Members") {
+                Section {
                     ForEach(members) { member in
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text(member.name ?? "")
-                                Spacer()
-                                ExarotonCreditView(credits: member.credits)
-                                    .frame(height: 20)
-                            }
+                        HStack(spacing: OrzMCTheme.Spacing.sm) {
+                            Text(member.name ?? "—")
+                                .lineLimit(1)
+                            Spacer(minLength: OrzMCTheme.Spacing.sm)
+                            ExarotonCreditView(credits: member.credits)
                         }
-                        .listRowSeparator(.hidden)
+                        .padding(.vertical, 2)
                     }
+                } header: {
+                    Label("Members", systemImage: "person.2")
                 }
             }
-            if let servers {
-                Section("Servers") {
+
+            if let servers, !servers.isEmpty {
+                Section {
                     ForEach(servers) { server in
-                        ExarotonServerView(server: server)
-                            .onTapGesture {
-                                model.path.append(server)
-                            }
+                        NavigationLink(value: server) {
+                            ExarotonServerView(server: server)
+                        }
                     }
+                } header: {
+                    Label("Servers", systemImage: "server.rack")
                 }
             }
         }
         .task {
             await fetchDataWithLoading()
         }
-        .navigationTitle("Credit Pool Detail")
+        .navigationTitle(creditPool.name ?? String(localized: "Credit Pool Detail"))
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
         .overlay {
-            ProgressView()
-                .controlSize(.extraLarge)
-                .progressViewStyle(.circular)
-                .opacity(isLoading ? 1 : 0)
+            if isLoading {
+                ProgressView()
+                    .controlSize(.large)
+                    .padding(OrzMCTheme.Spacing.lg)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
+            }
         }
         .refreshable {
             await fetchData()
         }
         .toolbar {
 #if os(macOS)
-            Button("Refresh Page", systemImage: "arrow.circlepath") {
+            Button("Refresh", systemImage: "arrow.clockwise") {
                 Task {
                     await fetchDataWithLoading()
                 }
