@@ -29,9 +29,11 @@ struct GameList: View {
             List(versions, selection: $selectedVersion) { version in
                 let state = installStates[version.id] ?? .none
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    // **别用 accentColor 画行内元素**：侧边栏选中行背景就是 accentColor，
+                    // 同样的颜色会互相覆盖（标签直接看不见）。用语义色，选中时由系统自适应。
                     Image(systemName: state.symbolName)
                         .font(.callout)
-                        .foregroundStyle(state.isEmpty ? Color.secondary.opacity(0.6) : Color.accentColor)
+                        .foregroundStyle(state.isEmpty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
                         .frame(width: 16)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -55,11 +57,10 @@ struct GameList: View {
                                 ForEach(state.badges, id: \.self) { badge in
                                     Text(badge)
                                         .font(.caption2.weight(.medium))
-                                        .foregroundStyle(Color.accentColor)
+                                        .foregroundStyle(.primary)
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 1)
-                                        .background(Color.accentColor.opacity(0.12))
-                                        .clipShape(Capsule())
+                                        .background(Color.primary.opacity(0.10), in: Capsule())
                                 }
                             }
                         }
