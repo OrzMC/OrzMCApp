@@ -16,6 +16,9 @@ struct FormSectionHeader: View {
     var deleteBtnAction: ButtonAction
     typealias ButtonAction = () -> Void
     var stopBtnAction: ButtonAction?
+    /// 打开该实例自己的控制台（四种核心各一个，入口就在自己这一栏）。
+    var consoleBtnAction: ButtonAction?
+    var consoleIsLive: Bool = false
     var statusText: String?
     var statusDotColor: Color?
     var statusTextColor: Color?
@@ -36,6 +39,15 @@ struct FormSectionHeader: View {
                 .background((statusDotColor ?? Color.secondary).opacity(0.12))
                 .cornerRadius(8)
                 .padding(.leading, 6)
+            }
+            if let consoleBtnAction {
+                Button(action: consoleBtnAction) {
+                    Label("Console", systemImage: consoleIsLive ? "terminal.fill" : "terminal")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(consoleIsLive ? Color.green : Color.accentColor)
+                .help(consoleIsLive ? "Open \(title) console (server is running)" : "Open \(title) console")
             }
             if let stopBtnAction {
                 Button(action: stopBtnAction) {
@@ -90,6 +102,8 @@ struct BasicInfo: View {
     @Environment(AppModel.self) private var app
     
     @State private var deleteTarget: DeleteTarget?
+    /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
+    @State private var consoleTarget: ConsoleTarget?
     
     var body: some View {
         Group {
@@ -101,6 +115,12 @@ struct BasicInfo: View {
             }
         }
         .navigationTitle(app.detailTitle)
+        .navigationDestination(item: $consoleTarget) { target in
+            ServerConsoleView(
+                versionId: target.versionId,
+                software: target.software
+            )
+        }
         .toolbar {
             if app.servers.hasRunning {
                 ToolbarItem {
@@ -124,6 +144,12 @@ struct BasicInfo: View {
         ) { target in
             Button("Delete", role: .destructive) {
                 try? target.path.remove()
+                // 该实例的文件没了 → 它的控制台日志/历史也一并清掉。
+                if case let .server(software, _) = target,
+                   let versionId = app.catalog.selected?.id {
+                    app.removeConsole(versionId: versionId, software: software)
+                }
+                app.catalog.refreshInstallStates()
                 deleteTarget = nil
             }
             Button("Cancel", role: .cancel) {
@@ -181,6 +207,18 @@ struct BasicInfo: View {
                                 deleteTarget = .server(software: software, path: serverDirPath)
                             },
                             stopBtnAction: stopActionFor(software: software),
+                            consoleBtnAction: {
+                                if let selectedVersion = app.catalog.selected {
+                                    consoleTarget = ConsoleTarget(
+                                        versionId: selectedVersion.id,
+                                        software: software
+                                    )
+                                }
+                            },
+                            consoleIsLive: app.isConsoleAttached(
+                                versionId: app.catalog.selected?.id ?? "",
+                                software: software
+                            ),
                             statusText: status.text,
                             statusDotColor: status.dotColor,
                             statusTextColor: status.textColor
@@ -204,6 +242,13 @@ struct BasicInfo: View {
         }
         .formStyle(.grouped)
     }
+}
+
+/// 控制台要打开的实例（`Identifiable` 供 `navigationDestination(item:)` 用）。
+struct ConsoleTarget: Identifiable, Hashable {
+    let versionId: String
+    let software: SettingsModel.ServerSoftware
+    var id: String { "\(versionId)#\(software.rawValue)" }
 }
 
 private extension BasicInfo {

@@ -10,14 +10,19 @@ import SwiftUI
 ///
 /// 日志由 `ServerConsoleModel` 处理干净（去 ANSI、按行切、限 2000 行），这里只渲染。
 struct ServerConsoleView: View {
+    /// 控制台属于**这个实例**（版本 + 核心）——四种核心各自独立。
+    let versionId: String
+    let software: SettingsModel.ServerSoftware
+
     @Environment(AppModel.self) private var app
-    @Environment(\.dismiss) private var dismiss
 
     @State private var command = ""
     @State private var historyOffset: Int?
     @FocusState private var inputFocused: Bool
 
-    private var console: ServerConsoleModel { app.console }
+    private var console: ServerConsoleModel {
+        app.console(for: versionId, software: software)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,7 +32,7 @@ struct ServerConsoleView: View {
             Divider()
             inputRow
         }
-        .navigationTitle(console.attachedLabel.map { "Console — \($0)" } ?? "Server Console")
+        .navigationTitle("Console — \(versionId) \(software.rawValue)")
         .toolbar {
             ToolbarItem {
                 Button("Clear") { console.clear() }
@@ -42,8 +47,8 @@ struct ServerConsoleView: View {
                 .fill(console.isAttached ? Color.green : Color.secondary)
                 .frame(width: 8, height: 8)
             Text(console.isAttached
-                 ? (console.attachedLabel ?? "Attached")
-                 : "No server running")
+                 ? "Running — \(versionId) \(software.rawValue)"
+                 : "Stopped — \(versionId) \(software.rawValue) (log is kept)")
                 .font(.callout)
             Spacer()
             Text("\(console.lines.count) lines")
@@ -128,7 +133,7 @@ struct ServerConsoleView: View {
 
 #Preview {
     NavigationStack {
-        ServerConsoleView()
+        ServerConsoleView(versionId: "1.21.5", software: .paper)
             .environment(AppModel())
     }
     .frame(width: 720, height: 480)

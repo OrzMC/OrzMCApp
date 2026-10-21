@@ -33,8 +33,8 @@ public final class ServerConsoleModel {
     public private(set) var buffer = ServerConsoleBuffer()
     /// 当前有没有可以收命令的服务端进程（没有时输入框禁用）。
     public private(set) var isAttached = false
-    /// 正在跑的服务端标识（版本 + 核心），用于标题显示。
-    public private(set) var attachedLabel: String?
+    /// 实例标识（版本 + 核心），用于标题显示。
+    public internal(set) var attachedLabel: String?
 
     /// 供 UI 逐条渲染。
     public var lines: [ConsoleLine] { buffer.lines }

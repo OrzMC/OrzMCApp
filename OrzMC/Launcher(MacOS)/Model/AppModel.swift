@@ -25,7 +25,7 @@ final class AppModel {
     let servers: ServerRegistryModel
     let java: JavaRuntimeModel
     let plugins: PluginDownloadModel
-    let console: ServerConsoleModel
+    let consoles: ServerConsoleRegistry
 
     /// 统一错误出口（保留规范错误码，UI 显示「人话 (E_XXX)」）。
     var error: LauncherError?
@@ -37,7 +37,7 @@ final class AppModel {
         self.servers = ServerRegistryModel()
         self.java = JavaRuntimeModel()
         self.plugins = PluginDownloadModel()
-        self.console = ServerConsoleModel()
+        self.consoles = ServerConsoleRegistry()
 
         catalog.lastSelectedVersionId = settings.lastSelectedVersionId
         catalog.rootDir = settings.rootDir
@@ -133,7 +133,12 @@ final class AppModel {
                             maxMem: settings.maxMem
                         )
                     case .server:
-                        let console = self.console
+                        // 每个实例一个控制台：日志按 `版本#核心` 隔离。
+                        let key = ConsoleInstanceKey(
+                            versionId: version.id,
+                            softwareId: settings.serverSoftware.rawValue
+                        )
+                        let console = consoles.model(for: key)
                         let logHandler: @Sendable (String) -> Void = { chunk in
                             console.append(chunk)
                         }
@@ -148,11 +153,12 @@ final class AppModel {
                             onServerLog: logHandler
                         ) {
                             servers.record(session.launched)
-                            console.attach(
+                            consoles.attach(
                                 session.process,
+                                to: key,
                                 label: "\(version.id) \(settings.serverSoftware.rawValue)"
                             )
-                            watchServerExit(session)
+                            watchServerExit(session, key: key)
                         }
                     }
                 }
@@ -164,15 +170,31 @@ final class AppModel {
     }
 
     /// 服务端退出后解绑控制台并刷新进程视图（避免"日志还在、进程早没了"）。
-    private func watchServerExit(_ session: LaunchedServerSession) {
-        let console = self.console
+    private func watchServerExit(_ session: LaunchedServerSession, key: ConsoleInstanceKey) {
+        let consoles = self.consoles
         let servers = self.servers
         let launched = session.launched
         Task {
             let code = await session.process.waitForExit()
-            console.detach(reason: "Server exited (code \(code))")
+            consoles.detach(key, reason: "Server exited (code \(code))")
             servers.remove(versionId: launched.versionId, software: launched.software)
         }
+    }
+
+    /// 某实例的控制台（视图按实例取；不存在时创建空控制台，便于先看后启动）。
+    func console(for versionId: String, software: SettingsModel.ServerSoftware) -> ServerConsoleModel {
+        consoles.model(for: ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue))
+    }
+
+    func isConsoleAttached(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {
+        consoles.isAttached(
+            ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue)
+        )
+    }
+
+    /// 删除实例文件后清掉对应控制台（日志/历史一并清）。
+    func removeConsole(versionId: String, software: SettingsModel.ServerSoftware) {
+        consoles.remove(ConsoleInstanceKey(versionId: versionId, softwareId: software.rawValue))
     }
 
     // MARK: 版本目录
