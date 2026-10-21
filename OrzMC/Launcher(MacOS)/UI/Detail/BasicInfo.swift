@@ -27,6 +27,8 @@ struct FormSectionHeader: View {
     /// 打开该实例自己的控制台（客户端 + 四种核心各一个，入口就在自己这一栏）。
     var consoleBtnAction: ButtonAction?
     var consoleIsLive: Bool = false
+    /// 插件管理（仅支持插件的核心，如 Paper）。
+    var pluginsBtnAction: ButtonAction?
     /// 启动（无确认）。
     var startBtnAction: ButtonAction?
     /// 重启（先停后起，会断开玩家 → 二次确认）。
@@ -42,6 +44,7 @@ struct FormSectionHeader: View {
         HStack(spacing: 8) {
             // 左：标题 + 状态
             Text(title)
+                .font(.headline)
             if let statusText {
                 statusBadge(statusText)
             }
@@ -53,7 +56,7 @@ struct FormSectionHeader: View {
                 ProgressView()
                     .controlSize(.small)
             }
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 if let consoleBtnAction {
                     iconButton(
                         "Console",
@@ -62,6 +65,18 @@ struct FormSectionHeader: View {
                         help: consoleIsLive ? "Open \(title) console (running)" : "Open \(title) console",
                         action: consoleBtnAction
                     )
+                }
+                if let pluginsBtnAction {
+                    iconButton(
+                        "Plugins",
+                        systemImage: "puzzlepiece.extension",
+                        color: .purple,
+                        help: "Manage \(title) plugins (install → plugins/, updates → plugins/update/)",
+                        action: pluginsBtnAction
+                    )
+                }
+                if startBtnAction != nil || restartBtnAction != nil || stopBtnAction != nil || terminateBtnAction != nil {
+                    groupSeparator
                 }
                 if let startBtnAction {
                     iconButton(
@@ -103,6 +118,7 @@ struct FormSectionHeader: View {
                     )
                     .disabled(!(availability?.canTerminate ?? true))
                 }
+                groupSeparator
                 iconButton(
                     "Delete",
                     systemImage: "trash",
@@ -114,6 +130,13 @@ struct FormSectionHeader: View {
             }
             .disabled(isBusy)
         }
+    }
+
+    /// 按钮分组之间的一道细线：把「看/管」与「生命周期」与「删除」视觉上分开。
+    private var groupSeparator: some View {
+        Rectangle()
+            .fill(Color.secondary.opacity(0.25))
+            .frame(width: 1, height: 12)
     }
 
     private func iconButton(
@@ -141,41 +164,88 @@ struct FormSectionHeader: View {
                 .foregroundStyle(statusTextColor ?? Color.secondary)
         }
         .font(.caption)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
         .background((statusDotColor ?? Color.secondary).opacity(0.12))
         .cornerRadius(8)
     }
 }
 
-struct FilePathEntry: View {
-    let name: String
-    let path: String
+/// 一条目录：**标题 + 一句说明 + 右侧「打开」按钮**。
+///
+/// 不显示完整路径：路径前缀（`~/minecraft/versions/…`）人人相同、又长又占地方，
+/// 用户真正要的是"这是干什么的" + 一键跳转。路径放在悬停提示里，需要时还能复制。
+struct DirectoryRow: View {
+    let entry: GameDirectoryEntry
+
+    private var exists: Bool { entry.path.isExist() }
+
     var body: some View {
-        HStack {
-            Text(name)
-                .bold()
-                .foregroundStyle(Color.accentColor)
-                .padding([.trailing], 5)
-            
-            Text(path)
-                .foregroundStyle(path.isExist() ? Color.primary : Color.red)
-            
-            if path.isExist() {
-                Spacer()
-                Button(action: {
-                    _ = try? Shell.runCommand(with: ["open", "\(path)"])
-                }, label: {
-                    Label("Reveal in Finder", systemImage: path.isDirPath() ? "folder" : "doc.plaintext")
-                        .labelStyle(.iconOnly)
-                })
-                .buttonStyle(.plain)
-                .help("Reveal in Finder")
+        HStack(spacing: 10) {
+            Image(systemName: symbolName)
+                .foregroundStyle(exists ? Color.accentColor : Color.secondary)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(entry.title)
+                        .font(.body.weight(.medium))
+                    if !exists {
+                        Text("not created yet")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                Text(entry.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
+
+            Spacer(minLength: 8)
+
+            Button {
+                open()
+            } label: {
+                Label("Open", systemImage: "arrow.up.forward.app")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(exists ? Color.accentColor : Color.secondary)
+            .disabled(!exists)
+            .help(exists ? "Open \(entry.path) in Finder" : "\(entry.path) does not exist yet")
         }
-        .help(path)
+        .padding(.vertical, 1)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { open() }
+        .help(entry.path)
+    }
+
+    private var symbolName: String {
+        switch entry.kind {
+        case .root: return "folder"
+        case .world: return "globe.asia.australia"
+        case .logs: return "doc.text.magnifyingglass"
+        case .plugins: return "puzzlepiece.extension"
+        case .pluginUpdates: return "arrow.triangle.2.circlepath"
+        case .mods: return "shippingbox"
+        case .config: return "slider.horizontal.3"
+        case .saves: return "bookmark"
+        case .resourcePacks: return "paintpalette"
+        }
+    }
+
+    private func open() {
+        guard exists else { return }
+        _ = try? Shell.runCommand(with: ["open", entry.path])
     }
 }
+
 struct BasicInfo: View {
 
     @Environment(AppModel.self) private var app
@@ -301,10 +371,16 @@ struct BasicInfo: View {
         return ServerConsoleView(title: title, console: console)
     }
 
+    /// 当前版本是否装了任何东西（都没装时给一句引导，而不是一片空白）。
+    private var hasAnyInstall: Bool {
+        SettingsModel.ServerSoftware.allCases.contains { software in
+            (serverDirPath(for: software)?.isExist() ?? false)
+        } || (clientDirPath?.isExist() ?? false)
+    }
+
     private var detailsForm: some View {
         Form {
-            // 四种核心（Vanilla/Paper/Fabric/Forge）同一份渲染：只显示已存在的目录，
-            // 插件管理仅 Paper 有（引擎 `GamePlan.serverPluginDir` 仅对 paper 有意义）。
+            // 四种核心同一份渲染：目录条目按核心能力给（Paper: plugins + 更新队列；Fabric/Forge: mods + config）。
             ForEach(SettingsModel.ServerSoftware.allCases) { software in
                 if let versionId = app.catalog.selected?.id,
                    let serverDirPath = serverDirPath(for: software),
@@ -312,19 +388,10 @@ struct BasicInfo: View {
                     let availability = app.availability(versionId: versionId, software: software)
                     let status = statusFor(software: software)
                     Section {
-                        FilePathEntry(name: "Game", path: serverDirPath)
-                        if software.supportsPlugins,
-                           let pluginDirPath = serverPluginDirPath(for: software) {
-                            // 插件下载/更新**不再单独占一条目录项**：它是 Plugins 目录的一部分，
-                            // 新装进 plugins/、更新进 plugins/update/（见 PluginManagerModel）。
-                            PluginDirectoryEntry(
-                                pluginsPath: pluginDirPath,
-                                updatePath: serverPluginUpdateDirPath(for: software) ?? "",
-                                versionId: versionId,
-                                onManage: {
-                                    pluginSheet = PluginSheetTarget(versionId: versionId)
-                                }
-                            )
+                        ForEach(directoryEntries(for: software), id: \.id) { entry in
+                            if entry.showsWhenMissing || entry.path.isExist() {
+                                DirectoryRow(entry: entry)
+                            }
                         }
                     } header: {
                         FormSectionHeader(
@@ -338,6 +405,9 @@ struct BasicInfo: View {
                                 consoleTarget = ConsoleTarget(versionId: versionId, software: software)
                             },
                             consoleIsLive: app.isConsoleAttached(versionId: versionId, software: software),
+                            pluginsBtnAction: software.supportsPlugins ? {
+                                pluginSheet = PluginSheetTarget(versionId: versionId)
+                            } : nil,
                             startBtnAction: {
                                 app.control(.start, versionId: versionId, software: software)
                             },
@@ -362,9 +432,21 @@ struct BasicInfo: View {
                 }
             }
 
+            if !hasAnyInstall {
+                Section {
+                    Text("Nothing installed for \(app.catalog.selected?.id ?? "this version") yet — press Start in the sidebar to install the client or a server core.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if let clientDirPath, clientDirPath.isExist() {
                 Section {
-                    FilePathEntry(name: "Game", path: clientDirPath)
+                    ForEach(clientDirectoryEntries(), id: \.id) { entry in
+                        if entry.showsWhenMissing || entry.path.isExist() {
+                            DirectoryRow(entry: entry)
+                        }
+                    }
                 } header: {
                     let clientStatus = clientRunStatus
                     FormSectionHeader(
@@ -395,68 +477,6 @@ struct BasicInfo: View {
             while !Task.isCancelled {
                 app.catalog.refreshInstallStates()
                 try? await Task.sleep(for: .seconds(1.5))
-            }
-        }
-    }
-}
-
-/// 插件目录条目：显示 `plugins/` 与 `plugins/update/`，并给出"管理插件"入口。
-///
-/// 说明（对齐 Paper 官方更新机制）：**新装 → `plugins/`；更新 → `plugins/update/`**，
-/// 后者由服务端在下次启动时自动应用。UI 上把这条规则写在每一行下面，避免用户以为"下载完立刻生效"。
-struct PluginDirectoryEntry: View {
-    let pluginsPath: String
-    let updatePath: String
-    let versionId: String
-    let onManage: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Plugins")
-                    .bold()
-                    .foregroundStyle(Color.accentColor)
-                    .padding(.trailing, 5)
-                Text(pluginsPath)
-                    .foregroundStyle(pluginsPath.isExist() ? Color.primary : Color.red)
-                Spacer()
-                Button(action: onManage) {
-                    Label("Manage Plugins", systemImage: "puzzlepiece.extension")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                if pluginsPath.isExist() {
-                    Button {
-                        _ = try? Shell.runCommand(with: ["open", pluginsPath])
-                    } label: {
-                        Label("Reveal in Finder", systemImage: "folder").labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Reveal in Finder")
-                }
-            }
-            if !updatePath.isEmpty {
-                HStack {
-                    Text("PluginsUpdate")
-                        .bold()
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.trailing, 5)
-                    Text(updatePath)
-                        .foregroundStyle(updatePath.isExist() ? Color.primary : Color.secondary)
-                    if updatePath.isExist() {
-                        Spacer()
-                        Button {
-                            _ = try? Shell.runCommand(with: ["open", updatePath])
-                        } label: {
-                            Label("Reveal in Finder", systemImage: "folder").labelStyle(.iconOnly)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Reveal in Finder")
-                    }
-                }
-                Text("Plugin updates are downloaded here and applied by the server on next restart.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -507,21 +527,40 @@ extension BasicInfo {
         return GamePlan.serverDir(version: selectedVersion.id, type: software.gameType)
     }
 
-    func serverPluginDirPath(for software: SettingsModel.ServerSoftware) -> String? {
-        guard let selectedVersion = app.catalog.selected
-        else {
-            return nil
-        }
-        return GamePlan.serverPluginDir(version: selectedVersion.id, type: software.gameType)
+    /// 该核心要展示的常用目录（路径来自引擎 `GamePlan`，标题/说明来自 `GameDirectoryCatalog`）。
+    func directoryEntries(for software: SettingsModel.ServerSoftware) -> [GameDirectoryEntry] {
+        guard let versionId = app.catalog.selected?.id else { return [] }
+        let root = app.settings.rootDir
+        let serverDir = GamePlan.serverDir(version: versionId, type: software.gameType, root: root)
+        let levelName = ServerProperties.levelName(atServerDir: serverDir)
+        return GameDirectoryCatalog.serverEntries(
+            softwareId: software.rawValue,
+            serverDir: serverDir,
+            worldDir: GamePlan.serverWorldDir(
+                version: versionId, type: software.gameType, levelName: levelName, root: root
+            ),
+            logsDir: GamePlan.serverLogsDir(version: versionId, type: software.gameType, root: root),
+            pluginsDir: GamePlan.serverPluginDir(version: versionId, type: software.gameType, root: root),
+            pluginUpdatesDir: GamePlan.serverPluginUpdateDir(version: versionId, type: software.gameType, root: root),
+            modsDir: GamePlan.serverModsDir(version: versionId, type: software.gameType, root: root),
+            configDir: GamePlan.serverConfigDir(version: versionId, type: software.gameType, root: root)
+        )
     }
 
-    func serverPluginUpdateDirPath(for software: SettingsModel.ServerSoftware) -> String? {
-        guard let selectedVersion = app.catalog.selected
-        else {
-            return nil
-        }
-        return GamePlan.serverPluginUpdateDir(version: selectedVersion.id, type: software.gameType)
+    /// 客户端常用目录。
+    func clientDirectoryEntries() -> [GameDirectoryEntry] {
+        guard let versionId = app.catalog.selected?.id else { return [] }
+        let root = app.settings.rootDir
+        return GameDirectoryCatalog.clientEntries(
+            clientType: app.settings.clientType.rawValue,
+            clientDir: GamePlan.clientDir(version: versionId, root: root),
+            logsDir: GamePlan.clientLogsDir(version: versionId, root: root),
+            savesDir: GamePlan.clientSavesDir(version: versionId, root: root),
+            modsDir: GamePlan.clientModsDir(version: versionId, root: root),
+            resourcePacksDir: GamePlan.clientResourcePacksDir(version: versionId, root: root)
+        )
     }
+
     
     var clientDirPath: String? {
         guard let selectedVersion = app.catalog.selected
