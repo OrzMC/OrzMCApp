@@ -11,6 +11,8 @@
 /* Begin PBXBuildFile section */
 		BEBE470FC49A862E91D4FBAE /* RiskyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96425CA405E530D0C5FC7A44 /* RiskyAction.swift */; platformFilters = (macos, ); };
 		887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */; platformFilters = (macos, ); };
+		39139FB0C40BD2231C9119E6 /* PluginManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */; platformFilters = (macos, ); };
+		5899F896557A24AEBDD59671 /* PluginManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */; platformFilters = (macos, ); };
 		8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */; platformFilters = (macos, ); };
 
 		AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA2147088C52325F0BF4AC6 /* AppModel.swift */; platformFilters = (macos, ); };
@@ -18,7 +20,6 @@
 		8B8961864A9E1ECC16ACECD5 /* LaunchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */; platformFilters = (macos, ); };
 		BCB2EE4CC47951F90FC76C41 /* ServerRegistryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E092C4DB0DDC247CF4EC1F /* ServerRegistryModel.swift */; platformFilters = (macos, ); };
 		57A37407C896D001DFAA2795 /* JavaRuntimeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6459C7B331E6C8651FA987A7 /* JavaRuntimeModel.swift */; platformFilters = (macos, ); };
-		76C1A375FB01C21278F71842 /* PluginDownloadModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E94DF1940C50255CEB7B8AB /* PluginDownloadModel.swift */; platformFilters = (macos, ); };
 		46228BE703D70151C1108076 /* Version+MinecraftVersionSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A9BA99C877C354C8237CC8C /* Version+MinecraftVersionSummary.swift */; platformFilters = (macos, ); };
 		2B1C799628FEAB0600D53658 /* OrzMCApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1C799528FEAB0600D53658 /* OrzMCApp.swift */; };
 		2B1C799F28FEAB0700D53658 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2B1C799E28FEAB0700D53658 /* Assets.xcassets */; };
@@ -82,7 +83,6 @@
 		C0D200010000000000000003 /* GameCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000003 /* GameCatalogService.swift */; platformFilters = (macos, ); };
 		C0D200010000000000000005 /* ServerProcessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000005 /* ServerProcessService.swift */; platformFilters = (macos, ); };
 		C0D200010000000000000006 /* GameLaunchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000006 /* GameLaunchService.swift */; platformFilters = (macos, ); };
-		C0D200010000000000000007 /* ServerPluginDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000007 /* ServerPluginDownloadService.swift */; platformFilters = (macos, ); };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,8 +101,9 @@
 		9C18ADADBDB6DD7422DCEF85 /* VersionCatalogModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionCatalogModel.swift"; sourceTree = "<group>"; };
 		CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchModel.swift"; sourceTree = "<group>"; };
 		E6E092C4DB0DDC247CF4EC1F /* ServerRegistryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerRegistryModel.swift"; sourceTree = "<group>"; };
+		CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManagerModel.swift; sourceTree = "<group>"; };
+		3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManagerView.swift; sourceTree = "<group>"; };
 		6459C7B331E6C8651FA987A7 /* JavaRuntimeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JavaRuntimeModel.swift"; sourceTree = "<group>"; };
-		4E94DF1940C50255CEB7B8AB /* PluginDownloadModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PluginDownloadModel.swift"; sourceTree = "<group>"; };
 		4A9BA99C877C354C8237CC8C /* Version+MinecraftVersionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Version+MinecraftVersionSummary.swift"; sourceTree = "<group>"; };
 		2B1C799228FEAB0600D53658 /* OrzMC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OrzMC.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0D000020000000000000004 /* OrzMCTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrzMCTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -158,7 +159,6 @@
 		C0D200020000000000000003 /* GameCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCatalogService.swift; sourceTree = "<group>"; };
 		C0D200020000000000000005 /* ServerProcessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerProcessService.swift; sourceTree = "<group>"; };
 		C0D200020000000000000006 /* GameLaunchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLaunchService.swift; sourceTree = "<group>"; };
-		C0D200020000000000000007 /* ServerPluginDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPluginDownloadService.swift; sourceTree = "<group>"; };
 		F3B4D0BB2A1A776A0095B108 /* Int32+littleEndianBytes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Int32+littleEndianBytes.swift"; sourceTree = "<group>"; };
 		F3B4D0BC2A1A776A0095B108 /* MCRCON.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCRCON.swift; sourceTree = "<group>"; };
 		F3B4D0BD2A1A776A0095B108 /* RCONPacket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RCONPacket.swift; sourceTree = "<group>"; };
@@ -334,6 +334,7 @@
 			children = (
 				96425CA405E530D0C5FC7A44 /* RiskyAction.swift */,
 				1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */,
+				3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */,
 				2B54E08B2BDE0ACA001B6877 /* BasicInfo.swift */,
 				2B54E0892BDE0945001B6877 /* GameInfoView.swift */,
 				2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */,
@@ -350,8 +351,8 @@
 				9C18ADADBDB6DD7422DCEF85 /* VersionCatalogModel.swift */,
 				CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */,
 				E6E092C4DB0DDC247CF4EC1F /* ServerRegistryModel.swift */,
+				CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */,
 				6459C7B331E6C8651FA987A7 /* JavaRuntimeModel.swift */,
-				4E94DF1940C50255CEB7B8AB /* PluginDownloadModel.swift */,
 				4A9BA99C877C354C8237CC8C /* Version+MinecraftVersionSummary.swift */,
 				2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */,
 				C0D200020000000000000001 /* LauncherTypes.swift */,
@@ -359,7 +360,6 @@
 				C0D200020000000000000003 /* GameCatalogService.swift */,
 				C0D200020000000000000005 /* ServerProcessService.swift */,
 				C0D200020000000000000006 /* GameLaunchService.swift */,
-				C0D200020000000000000007 /* ServerPluginDownloadService.swift */,
 				2B54E0862BDDFB16001B6877 /* Version+.swift */,
 				F3B18FAB2BE242A2002C7851 /* Constants.swift */,
 				C0D300020000000000000001 /* CommandLineToolModel.swift */,
@@ -657,12 +657,13 @@
 				BEBE470FC49A862E91D4FBAE /* RiskyAction.swift in Sources */,
 				8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */,
 				887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */,
+				39139FB0C40BD2231C9119E6 /* PluginManagerModel.swift in Sources */,
+				5899F896557A24AEBDD59671 /* PluginManagerView.swift in Sources */,
 				AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */,
 				923207ADA0B3AFAD49358A14 /* VersionCatalogModel.swift in Sources */,
 				8B8961864A9E1ECC16ACECD5 /* LaunchModel.swift in Sources */,
 				BCB2EE4CC47951F90FC76C41 /* ServerRegistryModel.swift in Sources */,
 				57A37407C896D001DFAA2795 /* JavaRuntimeModel.swift in Sources */,
-				76C1A375FB01C21278F71842 /* PluginDownloadModel.swift in Sources */,
 				46228BE703D70151C1108076 /* Version+MinecraftVersionSummary.swift in Sources */,
 				2B5BC3D72BFC527E00348C00 /* ExarotonServerPlayList.swift in Sources */,
 				2B5BC3D92BFC527E00348C00 /* ExarotonServerActionSection.swift in Sources */,
@@ -698,7 +699,6 @@
 				C0D200010000000000000003 /* GameCatalogService.swift in Sources */,
 				C0D200010000000000000005 /* ServerProcessService.swift in Sources */,
 				C0D200010000000000000006 /* GameLaunchService.swift in Sources */,
-				C0D200010000000000000007 /* ServerPluginDownloadService.swift in Sources */,
 				F30F00ED2BDBDF7000CAA802 /* GameView.swift in Sources */,
 				2B8AB1CE2DA0CDF700DA6605 /* LinkMenu.swift in Sources */,
 				2B5ACA632BFB2A8300397BFC /* Config.swift in Sources */,

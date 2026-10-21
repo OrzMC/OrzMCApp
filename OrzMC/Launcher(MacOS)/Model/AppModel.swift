@@ -5,6 +5,7 @@
 
 import Foundation
 import Game
+import JokerKits
 import MojangAPI
 import Observation
 import OrzMCLauncher
@@ -24,11 +25,21 @@ final class AppModel {
     let launch: LaunchModel
     let servers: ServerRegistryModel
     let java: JavaRuntimeModel
-    let plugins: PluginDownloadModel
+    let pluginManager: PluginManagerModel
     let consoles: ServerConsoleRegistry
 
     /// 统一错误出口（保留规范错误码，UI 显示「人话 (E_XXX)」）。
     var error: LauncherError?
+
+    /// **本次运行**启动的服务端进程句柄（`版本#核心` → 进程）。
+    ///
+    /// 为什么单独存：`servers`（登记表）只有 PID，够探活/杀进程；
+    /// 但「**优雅停止**」要往 stdin 送 `stop`、重启要等它真的退出 —— 都需要句柄。
+    /// App 重启后接管以前启的进程时句柄已经没了，此时只能「终止」，不能「停止」。
+    private var serverProcesses: [ConsoleInstanceKey: ManagedProcess] = [:]
+
+    /// 各实例正在进行的生命周期操作（驱动按钮禁用 + 防连点）。
+    private(set) var activities: [ConsoleInstanceKey: InstanceActivity] = [:]
 
     /// 菜单「停止全部」请求确认（由 `LauncherUI` 弹出同一条确认）。
     var wantsStopAllConfirmation = false
@@ -39,7 +50,7 @@ final class AppModel {
         self.launch = LaunchModel()
         self.servers = ServerRegistryModel()
         self.java = JavaRuntimeModel()
-        self.plugins = PluginDownloadModel()
+        self.pluginManager = PluginManagerModel()
         self.consoles = ServerConsoleRegistry()
 
         catalog.lastSelectedVersionId = settings.lastSelectedVersionId
@@ -146,31 +157,7 @@ final class AppModel {
                             watchClientExit(session, key: key)
                         }
                     case .server:
-                        // 每个实例一个控制台：日志按 `版本#核心` 隔离。
-                        let key = ConsoleInstanceKey(versionId: version.id, instanceId: settings.serverSoftware.rawValue
-                        )
-                        let console = consoles.model(for: key)
-                        let logHandler: @Sendable (String) -> Void = { chunk in
-                            console.append(chunk)
-                        }
-                        if let session = try await launch.startServer(
-                            version: version,
-                            software: settings.serverSoftware,
-                            rootDir: settings.rootDir,
-                            minMem: settings.minMem,
-                            maxMem: settings.maxMem,
-                            enableJVMDebugger: settings.enableJVMDebugger,
-                            jvmDebuggerArgs: settings.jvmDebuggerArgs,
-                            onServerLog: logHandler
-                        ) {
-                            servers.record(session.launched)
-                            consoles.attach(
-                                session.process,
-                                to: key,
-                                label: "\(version.id) \(settings.serverSoftware.rawValue)"
-                            )
-                            watchServerExit(session, key: key)
-                        }
+                        try await launchServer(version: version, software: settings.serverSoftware)
                     }
                 }
             } catch {
@@ -180,15 +167,134 @@ final class AppModel {
         }
     }
 
+    // MARK: 服务端生命周期（启动 / 重启 / 停止 / 终止）
+
+    private func key(_ versionId: String, _ software: SettingsModel.ServerSoftware) -> ConsoleInstanceKey {
+        ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue)
+    }
+
+    /// 实例当前活动（`idle` = 没在忙）。
+    func activity(versionId: String, software: SettingsModel.ServerSoftware) -> InstanceActivity {
+        activities[key(versionId, software)] ?? .idle
+    }
+
+    /// 按钮可用性：结合"是否在跑 / 是否在忙 / 有没有句柄"。
+    func availability(versionId: String, software: SettingsModel.ServerSoftware) -> InstanceActionAvailability {
+        InstanceActionAvailability.make(
+            isRunning: servers.isRunning(versionId: versionId, software: software),
+            activity: activity(versionId: versionId, software: software),
+            canControlGracefully: serverProcesses[key(versionId, software)] != nil
+        )
+    }
+
+    /// 服务端实例运行状态文案（启动/停止过程中给出"正在…"）。
+    func serverStatusText(versionId: String, software: SettingsModel.ServerSoftware) -> String {
+        if let override = activity(versionId: versionId, software: software).statusOverride {
+            return override
+        }
+        return servers.isRunning(versionId: versionId, software: software) ? "Running" : "Stopped"
+    }
+
+    /// 启动某个服务端实例（按当前设置的内存/JVM 参数）。
+    private func launchServer(version: Version, software: SettingsModel.ServerSoftware) async throws {
+        let settings = self.settings
+        let key = self.key(version.id, software)
+        let console = consoles.model(for: key)
+        let logHandler: @Sendable (String) -> Void = { chunk in
+            console.append(chunk)
+        }
+        if let session = try await launch.startServer(
+            version: version,
+            software: software,
+            rootDir: settings.rootDir,
+            minMem: settings.minMem,
+            maxMem: settings.maxMem,
+            enableJVMDebugger: settings.enableJVMDebugger,
+            jvmDebuggerArgs: settings.jvmDebuggerArgs,
+            onServerLog: logHandler
+        ) {
+            serverProcesses[key] = session.process
+            servers.record(session.launched)
+            consoles.attach(
+                session.process,
+                to: key,
+                label: "\(version.id) \(software.rawValue)"
+            )
+            watchServerExit(session, key: key)
+        }
+    }
+
+    /// 执行一个生命周期操作（UI 已经做过二次确认）。
+    func control(
+        _ action: ServerLifecycleAction,
+        versionId: String,
+        software: SettingsModel.ServerSoftware
+    ) {
+        guard case .idle = activity(versionId: versionId, software: software) else { return }
+        guard let version = catalog.versions.first(where: { $0.id == versionId }) else { return }
+        let key = self.key(versionId, software)
+
+        Task { @MainActor in
+            switch action {
+            case .start:
+                activities[key] = .starting
+            case .stop:
+                activities[key] = .stopping
+            case .terminate:
+                activities[key] = .terminating
+            case .restart:
+                activities[key] = .restarting
+            }
+            defer { activities[key] = nil }
+            do {
+                switch action {
+                case .start:
+                    try await launchServer(version: version, software: software)
+                case .stop:
+                    await stopServer(versionId: versionId, software: software, force: false)
+                case .terminate:
+                    await stopServer(versionId: versionId, software: software, force: true)
+                case .restart:
+                    await stopServer(versionId: versionId, software: software, force: false)
+                    try await launchServer(version: version, software: software)
+                }
+            } catch {
+                self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
+            }
+        }
+    }
+
+    /// 停止/终止：有句柄 → 优雅停止或强制终止；没句柄（App 重启后接管）→ 只能按 PID 杀。
+    private func stopServer(
+        versionId: String,
+        software: SettingsModel.ServerSoftware,
+        force: Bool
+    ) async {
+        let key = self.key(versionId, software)
+        if let process = serverProcesses[key] {
+            if force {
+                await process.terminate()
+            } else {
+                await process.stop()   // 送 `stop` → 60s → SIGTERM → 5s → SIGKILL
+            }
+            _ = await process.waitForExit(timeout: 5)
+            serverProcesses[key] = nil
+        } else {
+            // 只有 PID：送不进 `stop`，只能发信号（等价于"终止"）。
+            try? servers.stop(versionId: versionId, software: software)
+        }
+        servers.remove(versionId: versionId, software: software)
+    }
+
     /// 服务端退出后解绑控制台并刷新进程视图（避免"日志还在、进程早没了"）。
     private func watchServerExit(_ session: LaunchedServerSession, key: ConsoleInstanceKey) {
-        let consoles = self.consoles
-        let servers = self.servers
         let launched = session.launched
-        Task {
+        Task { @MainActor [weak self] in
             let code = await session.process.waitForExit()
-            consoles.detach(key, reason: "Server exited (code \(code))")
-            servers.remove(versionId: launched.versionId, software: launched.software)
+            guard let self else { return }
+            self.consoles.detach(key, reason: "Server exited (code \(code))")
+            self.serverProcesses[key] = nil
+            self.servers.remove(versionId: launched.versionId, software: launched.software)
         }
     }
 
@@ -249,33 +355,15 @@ final class AppModel {
 
     // MARK: 服务端进程
 
+    /// 停止全部：有句柄的走优雅停止（并行），没句柄的直接按 PID 杀。
     func stopAllServers() {
-        do {
-            try servers.stopAll()
-        } catch {
-            self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
-        }
-    }
-
-    /// 停止某版本下的某个服务端核心（高危操作：由 UI 二次确认后调用）。
-    func stopServer(versionId: String, software: SettingsModel.ServerSoftware) {
-        do {
-            try servers.stop(versionId: versionId, software: software)
-        } catch {
-            self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
-        }
-    }
-
-    // MARK: 插件下载
-
-    func downloadAllServerPlugins() {
-        guard let version = catalog.selected else { return }
-        Task {
-            do {
-                try await plugins.downloadAll(versionId: version.id)
-            } catch {
-                self.error = LauncherError.wrap(error, fallbackCode: "E_NETWORK")
+        Task { @MainActor in
+            let keys = serverProcesses.keys
+            for key in keys {
+                guard case let .some(software) = SettingsModel.ServerSoftware(rawValue: key.instanceId) else { continue }
+                await stopServer(versionId: key.versionId, software: software, force: false)
             }
+            try? servers.stopAll()
         }
     }
 }
