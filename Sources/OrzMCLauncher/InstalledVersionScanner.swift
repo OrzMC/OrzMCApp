@@ -30,6 +30,14 @@ public struct VersionInstallState: Equatable, Sendable {
         return result
     }
 
+    /// 列表行里的**紧凑徽标**（`Client` / `Paper` / `Fabric`…）：比 "Paper server" 好扫。
+    public var badges: [String] {
+        var result = [String]()
+        if hasClient { result.append("Client") }
+        for server in servers { result.append(server.capitalized) }
+        return result
+    }
+
     /// 行首图标（SF Symbol）。
     public var symbolName: String {
         if hasClient { return "macbook" }
