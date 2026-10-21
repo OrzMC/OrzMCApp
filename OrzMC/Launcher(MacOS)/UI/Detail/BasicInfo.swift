@@ -260,6 +260,8 @@ struct BasicInfo: View {
     @State private var consoleTarget: ConsoleTarget?
     /// 要打开的插件管理面板（绑定到某个版本）。
     @State private var pluginSheet: PluginSheetTarget?
+    /// 详情页当前查看的实例（`版本#核心` / `版本#Client`）—— 四核心+客户端全装时不再一屏铺 5 段。
+    @State private var focusedInstance: String?
     
     var body: some View {
         Group {
@@ -293,16 +295,27 @@ struct BasicInfo: View {
             }
         }
         .alert("Stop All Servers?", isPresented: $confirmStopAll) {
-            Button("Stop All", role: .destructive) {
+            Button("Stop All (graceful)") {
                 busyInstanceId = "all"
                 Task { @MainActor in
                     defer { busyInstanceId = nil }
                     app.stopAllServers()
                 }
             }
+            Button("Terminate All", role: .destructive) {
+                busyInstanceId = "all"
+                Task { @MainActor in
+                    defer { busyInstanceId = nil }
+                    app.terminateAllServers()
+                }
+            }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("All running servers receive `stop` and shut down. Players on them will be disconnected.")
+            Text("""
+            Stop All sends `stop` to every running server, so each one saves and exits normally.             Servers started by a previous app session have no console to talk to — those are left alone.
+
+            Terminate All kills the processes instead (SIGTERM, then SIGKILL). Recent world changes may be lost.
+            """)
         }
         .alert(
             pendingRisky?.confirmTitle ?? "",
@@ -368,7 +381,7 @@ struct BasicInfo: View {
     private func consoleView(for target: ConsoleTarget) -> some View {
         let console: ServerConsoleModel = app.console(for: target)
         let title: String = target.title
-        return ServerConsoleView(title: title, console: console)
+        return ServerConsoleView(title: title, console: console, target: target)
     }
 
     /// 当前版本是否装了任何东西（都没装时给一句引导，而不是一片空白）。
@@ -378,95 +391,63 @@ struct BasicInfo: View {
         } || (clientDirPath?.isExist() ?? false)
     }
 
+    /// 已安装的实例（用于顶部切换器；只有 1 个时不显示切换器）。
+    private var installedInstances: [DetailInstance] {
+        var result: [DetailInstance] = []
+        for software in SettingsModel.ServerSoftware.allCases {
+            if serverDirPath(for: software)?.isExist() ?? false {
+                result.append(DetailInstance(id: "\(app.catalog.selected?.id ?? "")#\(software.rawValue)", title: software.rawValue, software: software))
+            }
+        }
+        if clientDirPath?.isExist() ?? false {
+            result.append(DetailInstance(id: "\(app.catalog.selected?.id ?? "")#Client", title: "Client", software: nil))
+        }
+        return result
+    }
+
+    /// 当前聚焦的实例：优先用户选的，其次"正在运行的"，再次第一个。
+    private var currentInstance: DetailInstance? {
+        let instances = installedInstances
+        if let focusedInstance, let match = instances.first(where: { $0.id == focusedInstance }) {
+            return match
+        }
+        return instances.first(where: { isRunning($0) }) ?? instances.first
+    }
+
+    /// 该实例是否在运行（服务端看登记表，客户端看控制台是否挂着进程）。
+    private func isRunning(_ instance: DetailInstance) -> Bool {
+        guard let software = instance.software else {
+            return app.isClientConsoleAttached(versionId: instance.versionId)
+        }
+        return app.servers.isRunning(versionId: instance.versionId, software: software)
+    }
+
     private var detailsForm: some View {
         Form {
-            // 四种核心同一份渲染：目录条目按核心能力给（Paper: plugins + 更新队列；Fabric/Forge: mods + config）。
-            ForEach(SettingsModel.ServerSoftware.allCases) { software in
-                if let versionId = app.catalog.selected?.id,
-                   let serverDirPath = serverDirPath(for: software),
-                   serverDirPath.isExist() {
-                    let availability = app.availability(versionId: versionId, software: software)
-                    let status = statusFor(software: software)
-                    Section {
-                        ForEach(directoryEntries(for: software), id: \.id) { entry in
-                            if entry.showsWhenMissing || entry.path.isExist() {
-                                DirectoryRow(entry: entry)
-                            }
+            // 顶部实例切换器：四种核心 + 客户端全装时，一次只看一个实例（否则一屏 5 段、每段 3-6 行目录，很挤）。
+            let instances = installedInstances
+            if instances.count > 1 {
+                Section {
+                    Picker("Instance", selection: Binding(
+                        get: { currentInstance?.id ?? instances[0].id },
+                        set: { focusedInstance = $0 }
+                    )) {
+                        ForEach(instances) { instance in
+                            Text(isRunning(instance) ? "\(instance.title) ●" : instance.title).tag(instance.id)
                         }
-                    } header: {
-                        FormSectionHeader(
-                            title: "Server (\(software.rawValue))",
-                            statusText: status.text,
-                            statusDotColor: status.dotColor,
-                            statusTextColor: status.textColor,
-                            isBusy: isBusy(versionId: versionId, software: software),
-                            availability: availability,
-                            consoleBtnAction: {
-                                consoleTarget = ConsoleTarget(versionId: versionId, software: software)
-                            },
-                            consoleIsLive: app.isConsoleAttached(versionId: versionId, software: software),
-                            pluginsBtnAction: software.supportsPlugins ? {
-                                pluginSheet = PluginSheetTarget(versionId: versionId)
-                            } : nil,
-                            startBtnAction: {
-                                app.control(.start, versionId: versionId, software: software)
-                            },
-                            restartBtnAction: {
-                                pendingRisky = .restartServer(versionId: versionId, software: software)
-                            },
-                            stopBtnAction: {
-                                pendingRisky = .stopServer(versionId: versionId, software: software)
-                            },
-                            terminateBtnAction: {
-                                pendingRisky = .terminateServer(versionId: versionId, software: software)
-                            },
-                            deleteBtnAction: {
-                                pendingRisky = .deleteServer(
-                                    versionId: versionId,
-                                    software: software,
-                                    path: serverDirPath
-                                )
-                            }
-                        )
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
             }
 
-            if !hasAnyInstall {
+            if let instance = currentInstance {
+                instanceSection(instance)
+            } else {
                 Section {
                     Text("Nothing installed for \(app.catalog.selected?.id ?? "this version") yet — press Start in the sidebar to install the client or a server core.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                }
-            }
-
-            if let clientDirPath, clientDirPath.isExist() {
-                Section {
-                    ForEach(clientDirectoryEntries(), id: \.id) { entry in
-                        if entry.showsWhenMissing || entry.path.isExist() {
-                            DirectoryRow(entry: entry)
-                        }
-                    }
-                } header: {
-                    let clientStatus = clientRunStatus
-                    FormSectionHeader(
-                        title: "Client",
-                        statusText: clientStatus.text,
-                        statusDotColor: clientStatus.dotColor,
-                        statusTextColor: clientStatus.textColor,
-                        isBusy: busyInstanceId == "\(app.catalog.selected?.id ?? "")#Client",
-                        consoleBtnAction: {
-                            guard let versionId = app.catalog.selected?.id else { return }
-                            consoleTarget = ConsoleTarget(versionId: versionId, software: nil)
-                        },
-                        consoleIsLive: app.isClientConsoleAttached(
-                            versionId: app.catalog.selected?.id ?? ""
-                        ),
-                        deleteBtnAction: {
-                            guard let versionId = app.catalog.selected?.id else { return }
-                            pendingRisky = .deleteClient(versionId: versionId, path: clientDirPath)
-                        }
-                    )
                 }
             }
         }
@@ -479,6 +460,92 @@ struct BasicInfo: View {
                 try? await Task.sleep(for: .seconds(1.5))
             }
         }
+    }
+
+    /// 一个实例的目录清单 + 表头（客户端与服务端同一套渲染，客户端只是没有生命周期按钮）。
+    @ViewBuilder
+    private func instanceSection(_ instance: DetailInstance) -> some View {
+        let entries = instance.software.map { directoryEntries(for: $0) } ?? clientDirectoryEntries()
+
+        Section {
+            ForEach(entries, id: \.id) { entry in
+                if entry.showsWhenMissing || entry.path.isExist() {
+                    DirectoryRow(entry: entry)
+                }
+            }
+        } header: {
+            if let software = instance.software {
+                let availability = app.availability(versionId: instance.versionId, software: software)
+                let status = statusFor(software: software)
+                FormSectionHeader(
+                    title: "Server (\(software.rawValue))",
+                    statusText: status.text,
+                    statusDotColor: status.dotColor,
+                    statusTextColor: status.textColor,
+                    isBusy: isBusy(versionId: instance.versionId, software: software),
+                    availability: availability,
+                    consoleBtnAction: {
+                        consoleTarget = ConsoleTarget(versionId: instance.versionId, software: software)
+                    },
+                    consoleIsLive: app.isConsoleAttached(versionId: instance.versionId, software: software),
+                    pluginsBtnAction: software.supportsPlugins ? {
+                        pluginSheet = PluginSheetTarget(versionId: instance.versionId)
+                    } : nil,
+                    startBtnAction: {
+                        app.control(.start, versionId: instance.versionId, software: software)
+                    },
+                    restartBtnAction: {
+                        pendingRisky = .restartServer(versionId: instance.versionId, software: software)
+                    },
+                    stopBtnAction: {
+                        pendingRisky = .stopServer(versionId: instance.versionId, software: software)
+                    },
+                    terminateBtnAction: {
+                        pendingRisky = .terminateServer(versionId: instance.versionId, software: software)
+                    },
+                    deleteBtnAction: {
+                        pendingRisky = .deleteServer(
+                            versionId: instance.versionId,
+                            software: software,
+                            path: entryPath(of: entries)
+                        )
+                    }
+                )
+            } else {
+                let clientStatus = clientRunStatus
+                FormSectionHeader(
+                    title: "Client",
+                    statusText: clientStatus.text,
+                    statusDotColor: clientStatus.dotColor,
+                    statusTextColor: clientStatus.textColor,
+                    isBusy: busyInstanceId == instance.id,
+                    consoleBtnAction: {
+                        consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
+                    },
+                    consoleIsLive: app.isClientConsoleAttached(versionId: instance.versionId),
+                    deleteBtnAction: {
+                        pendingRisky = .deleteClient(versionId: instance.versionId, path: entryPath(of: entries))
+                    }
+                )
+            }
+        }
+    }
+
+    /// 删除用的路径：取该实例的根目录（`entries` 的第一条恒为根目录）。
+    private func entryPath(of entries: [GameDirectoryEntry]) -> String {
+        entries.first(where: { $0.kind == .root })?.path ?? entries.first?.path ?? ""
+    }
+}
+
+/// 详情页里"一个可查看的实例"（某个服务端核心，或客户端）。
+struct DetailInstance: Identifiable {
+    let id: String
+    let title: String
+    /// `nil` = 客户端。
+    let software: SettingsModel.ServerSoftware?
+
+    var versionId: String {
+        String(id.split(separator: "#").first ?? "")
     }
 }
 

@@ -6,7 +6,11 @@
 import OrzMCLauncher
 import SwiftUI
 
-/// 服务端控制台：滚动日志 + 命令输入（支持上/下方向键翻历史）。
+/// 控制台：滚动日志 +（服务端）命令输入，支持上/下方向键翻历史。
+///
+/// - **服务端**：命令输入 + 顶部四个生命周期按钮（启动 / 重启 / 停止 / 终止），
+///   在控制台里就能管，不必退回详情页；
+/// - **客户端**：**只读**日志（Minecraft 客户端不接受控制台命令），底部明确说明。
 ///
 /// 日志由 `ServerConsoleModel` 处理干净（去 ANSI、按行切、限 2000 行），这里只渲染。
 struct ServerConsoleView: View {
@@ -14,10 +18,24 @@ struct ServerConsoleView: View {
     let title: String
     /// 由 `AppModel` 按实例取好的模型（客户端与服务端走同一套）。
     let console: ServerConsoleModel
+    /// 实例身份（`versionId` + `software`）；`software == nil` 即客户端 → 只读。
+    let target: ConsoleTarget?
+
+    @Environment(AppModel.self) private var app
 
     @State private var command = ""
     @State private var historyOffset: Int?
+    @State private var pendingRisky: RiskyAction?
     @FocusState private var inputFocused: Bool
+
+    private var software: SettingsModel.ServerSoftware? { target?.software }
+    private var versionId: String { target?.versionId ?? "" }
+    /// 客户端不支持命令输入，只给日志。
+    private var supportsCommands: Bool { software != nil }
+    private var availability: InstanceActionAvailability? {
+        guard let software else { return nil }
+        return app.availability(versionId: versionId, software: software)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,10 +47,60 @@ struct ServerConsoleView: View {
         }
         .navigationTitle("Console — \(title)")
         .toolbar {
+            if let software, let availability {
+                ToolbarItemGroup {
+                    Button {
+                        app.control(.start, versionId: versionId, software: software)
+                    } label: {
+                        Label("Start", systemImage: "play.circle.fill")
+                    }
+                    .disabled(!availability.canStart)
+                    .help("Start this server")
+
+                    Button {
+                        pendingRisky = .restartServer(versionId: versionId, software: software)
+                    } label: {
+                        Label("Restart", systemImage: "arrow.clockwise.circle")
+                    }
+                    .disabled(!availability.canRestart)
+                    .help("Restart = graceful stop, then start again")
+
+                    Button {
+                        pendingRisky = .stopServer(versionId: versionId, software: software)
+                    } label: {
+                        Label("Stop", systemImage: "stop.circle")
+                    }
+                    .disabled(!availability.canStop)
+                    .help("Send `stop` so the server saves and exits normally")
+
+                    Button {
+                        pendingRisky = .terminateServer(versionId: versionId, software: software)
+                    } label: {
+                        Label("Terminate", systemImage: "xmark.octagon")
+                    }
+                    .disabled(!availability.canTerminate)
+                    .help("Kill the process now (may lose unsaved world data)")
+                }
+            }
             ToolbarItem {
                 Button("Clear") { console.clear() }
                     .help("Clear the visible log (does not affect the server)")
             }
+        }
+        .alert(
+            pendingRisky?.confirmTitle ?? "",
+            isPresented: Binding(
+                get: { pendingRisky != nil },
+                set: { if !$0 { pendingRisky = nil } }
+            ),
+            presenting: pendingRisky
+        ) { action in
+            Button(action.confirmButtonTitle, role: action.isDestructive ? .destructive : nil) {
+                perform(action)
+            }
+            Button("Cancel", role: .cancel) { pendingRisky = nil }
+        } message: { action in
+            Text(action.message(selectedVersionId: versionId))
         }
     }
 
@@ -42,9 +110,14 @@ struct ServerConsoleView: View {
                 .fill(console.isAttached ? Color.green : Color.secondary)
                 .frame(width: 8, height: 8)
             Text(console.isAttached
-                 ? "Running — \(title)"
-                 : "Stopped — \(title) (log is kept)")
+                 ? (supportsCommands ? "Running — \(title)" : "Game running — \(title)")
+                 : (supportsCommands ? "Stopped — \(title) (log is kept)" : "Game not running — \(title) (log is kept)"))
                 .font(.callout)
+            if let software, let status = statusOverride(software: software) {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
             Spacer()
             Text("\(console.lines.count) lines")
                 .font(.caption)
@@ -81,7 +154,25 @@ struct ServerConsoleView: View {
         .frame(minHeight: 220)
     }
 
+    @ViewBuilder
     private var inputRow: some View {
+        if supportsCommands {
+            commandInputRow
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: "eye")
+                    .foregroundStyle(.secondary)
+                Text("Log only — the Minecraft client does not accept console commands.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private var commandInputRow: some View {
         HStack(spacing: 8) {
             Text(">")
                 .font(.system(.body, design: .monospaced))
@@ -104,6 +195,25 @@ struct ServerConsoleView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .onAppear { inputFocused = console.isAttached }
+    }
+
+    /// "启动中/停止中…"这类进行态（服务端自己维护的生命周期活动）。
+    private func statusOverride(software: SettingsModel.ServerSoftware) -> String? {
+        app.activity(versionId: versionId, software: software).statusOverride
+    }
+
+    private func perform(_ action: RiskyAction) {
+        pendingRisky = nil
+        switch action {
+        case let .stopServer(versionId, software):
+            app.control(.stop, versionId: versionId, software: software)
+        case let .restartServer(versionId, software):
+            app.control(.restart, versionId: versionId, software: software)
+        case let .terminateServer(versionId, software):
+            app.control(.terminate, versionId: versionId, software: software)
+        default:
+            break
+        }
     }
 
     private func sendCommand() {
@@ -130,8 +240,10 @@ struct ServerConsoleView: View {
     NavigationStack {
         ServerConsoleView(
             title: "1.21.5 Paper",
-            console: ServerConsoleModel()
+            console: ServerConsoleModel(),
+            target: ConsoleTarget(versionId: "1.21.5", software: .paper)
         )
     }
     .frame(width: 720, height: 480)
+    .environment(AppModel())
 }

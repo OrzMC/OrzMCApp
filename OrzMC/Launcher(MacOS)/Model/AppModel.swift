@@ -255,6 +255,16 @@ final class AppModel {
                 case .terminate:
                     await stopServer(versionId: versionId, software: software, force: true)
                 case .restart:
+                    // 没有句柄 = 上个会话启动的实例：送不进 `stop`，先停也停不下来，
+                    // 直接起会撞端口。明确报错，让用户先「终止」。
+                    guard serverProcesses[key] != nil else {
+                        self.error = LauncherError(
+                            code: "E_RUNTIME",
+                            message: "This server was started by a previous app session, so it cannot be restarted from here. "
+                                + "Terminate it first, then press Start."
+                        )
+                        return
+                    }
                     await stopServer(versionId: versionId, software: software, force: false)
                     try await launchServer(version: version, software: software)
                 }
@@ -279,9 +289,12 @@ final class AppModel {
             }
             _ = await process.waitForExit(timeout: 5)
             serverProcesses[key] = nil
+        } else if force {
+            // 只有 PID：送不进 `stop` → SIGTERM 给 JVM 存档机会，超时再 SIGKILL。
+            try? servers.terminate(versionId: versionId, software: software)
         } else {
-            // 只有 PID：送不进 `stop`，只能发信号（等价于"终止"）。
-            try? servers.stop(versionId: versionId, software: software)
+            // 想优雅停但没有句柄：不动它（静默硬杀更危险）。
+            return
         }
         servers.remove(versionId: versionId, software: software)
     }
@@ -355,15 +368,51 @@ final class AppModel {
 
     // MARK: 服务端进程
 
-    /// 停止全部：有句柄的走优雅停止（并行），没句柄的直接按 PID 杀。
+    /// 停止全部：**只做优雅停止**（送控制台 `stop`），不再逐个 `kill`。
+    ///
+    /// 边界：App 重启后接管的上个会话实例**没有句柄**，送不进 `stop`。对它们不做任何事，
+    /// 而是把名字回报给用户 —— 由用户自己决定要不要「终止」（`SIGTERM`→`SIGKILL`）。
+    /// 静默硬杀别人的世界比"停下来问一句"危险得多。
     func stopAllServers() {
         Task { @MainActor in
-            let keys = Array(serverProcesses.keys)   // 先拷贝：循环里会改字典
-            for key in keys {
-                guard case let .some(software) = SettingsModel.ServerSoftware(rawValue: key.instanceId) else { continue }
-                await stopServer(versionId: key.versionId, software: software, force: false)
+            let running = servers.runningInstances()
+            var gracefullyStopped = 0
+            var unmanaged: [String] = []
+            for instance in running {
+                let key = self.key(instance.versionId, instance.software)
+                if serverProcesses[key] != nil {
+                    await stopServer(versionId: instance.versionId, software: instance.software, force: false)
+                    gracefullyStopped += 1
+                } else {
+                    unmanaged.append("\(instance.versionId) \(instance.software.rawValue)")
+                }
             }
-            try? servers.stopAll()
+            if !unmanaged.isEmpty {
+                self.error = LauncherError(
+                    code: "E_RUNTIME",
+                    message: "Stopped \(gracefullyStopped) server(s) gracefully. "
+                        + "These were started by a previous app session, so there is no console to send `stop` to: "
+                        + unmanaged.joined(separator: ", ")
+                        + ". Use Terminate on them if you need them gone."
+                )
+            }
+        }
+    }
+
+    /// 「终止全部」：明确由用户触发时才硬杀（`SIGTERM` → 超时 `SIGKILL`）。
+    func terminateAllServers() {
+        Task { @MainActor in
+            for instance in servers.runningInstances() {
+                let key = self.key(instance.versionId, instance.software)
+                if let process = serverProcesses[key] {
+                    await process.terminate()
+                    _ = await process.waitForExit(timeout: 5)
+                    serverProcesses[key] = nil
+                } else {
+                    try? servers.terminate(versionId: instance.versionId, software: instance.software)
+                }
+                servers.remove(versionId: instance.versionId, software: instance.software)
+            }
         }
     }
 }

@@ -59,6 +59,25 @@ final class ServerRegistryModel {
         refresh()
     }
 
+    /// 当前活着的实例：`[(versionId, software)]`，供「停止全部」逐个走优雅停止。
+    func runningInstances() -> [(versionId: String, software: SettingsModel.ServerSoftware)] {
+        service.aliveRegistrations().compactMap { registration in
+            let parts = registration.key.split(separator: "#", maxSplits: 1)
+            guard parts.count == 2,
+                  let software = SettingsModel.ServerSoftware(rawValue: String(parts[1]))
+            else { return nil }
+            return (String(parts[0]), software)
+        }
+    }
+
+    /// 无句柄的「终止」：`SIGTERM` → 超时 `SIGKILL`。
+    func terminate(versionId: String, software: SettingsModel.ServerSoftware) throws {
+        guard let pid = pid(versionId: versionId, software: software) else { return }
+        try service.terminate(processId: pid)
+        service.remove(versionId: versionId, software: software)
+        refresh()
+    }
+
     func stopAll() throws {
         try service.stop(processIds: service.pids())
         service.removeAll()
