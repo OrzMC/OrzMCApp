@@ -14,7 +14,8 @@ AppModel（组合根，只做编排）
 ├── launch        LaunchModel          启动（client/server）+ 进度
 ├── servers       ServerRegistryModel  自己启动过的服务端：登记/探活/停止
 ├── java          JavaRuntimeModel     托管 JRE 状态
-└── plugins       PluginDownloadModel  Paper 插件批量下载
+├── plugins       PluginDownloadModel  Paper 插件批量下载
+└── console       ServerConsoleModel   服务端控制台（日志 + 命令）
 ```
 
 **规则**：`AppModel` 不写业务，只转发（选择变化 → 刷 JRE/进程视图、启动按模式分流、错误收进 `error`）。
@@ -31,6 +32,7 @@ AppModel（组合根，只做编排）
 | JRE 判定 | `JavaRuntimePolicy` | `LauncherPolicyTests` |
 | `install.conf` 的 surface/source 语义 | `InstallRecordView` / `InstallSurfacePolicy` | `InstallRecordViewTests` |
 | 错误码保留 | `CodedError` / `LauncherError` | `LauncherErrorTests` |
+| 控制台缓冲（ANSI/分行/历史） | `ServerConsoleBuffer` | `ServerConsoleBufferTests` |
 
 **判据**：能写成"输入→输出"的，一律进 `Sources/`；剩下不可测的只该是"调引擎 + 赋值状态"。
 
@@ -42,5 +44,8 @@ AppModel（组合根，只做编排）
 3. **错误必须带码**：`LauncherError.wrap(_:fallbackCode:)`，UI 显示「人话 (E_XXX)」。
 4. **视图不做 IO、不管状态**：装了什么由模型算好传进来（列表滚动时不再逐行 stat）。
 5. **参数校验共用引擎规则**：内存走 `MemorySpec`，别在 GUI 重写一份正则。
-6. **多实例 = 换游戏根目录**：`settings.rootDir` 会透传到 `ClientInfo`/`ServerInfo`/`GamePlan.*(root:)`/JRE 扫描；
+6. **控制台是"字节块 → 行"的问题**：服务端输出带 ANSI、可能半行、进度条用 `\r` 自刷新。
+   这些统统在 `ServerConsoleBuffer` 里处理（有单测），视图只渲染成品；**不要**在视图里拼字符串。
+   送命令走 `ManagedProcess.send`（自动补 `\n`），进程退出后 `detach` 并清登记。
+7. **多实例 = 换游戏根目录**：`settings.rootDir` 会透传到 `ClientInfo`/`ServerInfo`/`GamePlan.*(root:)`/JRE 扫描；
    改根会重算"装了什么"、重置 JRE 与进程视图。
