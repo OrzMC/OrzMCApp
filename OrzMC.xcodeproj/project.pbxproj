@@ -6,7 +6,10 @@
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXFileReference section */
+		96425CA405E530D0C5FC7A44 /* RiskyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RiskyAction.swift"; sourceTree = "<group>"; };
 /* Begin PBXBuildFile section */
+		BEBE470FC49A862E91D4FBAE /* RiskyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96425CA405E530D0C5FC7A44 /* RiskyAction.swift */; platformFilters = (macos, ); };
 		887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */; platformFilters = (macos, ); };
 		8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */; platformFilters = (macos, ); };
 
@@ -329,6 +332,7 @@
 		2B62C9782BF71FDF00387498 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				96425CA405E530D0C5FC7A44 /* RiskyAction.swift */,
 				1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */,
 				2B54E08B2BDE0ACA001B6877 /* BasicInfo.swift */,
 				2B54E0892BDE0945001B6877 /* GameInfoView.swift */,
@@ -650,6 +654,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BEBE470FC49A862E91D4FBAE /* RiskyAction.swift in Sources */,
 				8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */,
 				887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */,
 				AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */,

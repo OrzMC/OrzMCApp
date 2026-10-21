@@ -31,6 +31,18 @@ struct LauncherUI: View {
             // 文案 + 规范错误码（`E_VERIFY` 之类），便于用户搜索/上报。
             Text(app.error?.description ?? "")
         }
+        .alert(
+            "Stop All Servers?",
+            isPresented: Binding(
+                get: { app.wantsStopAllConfirmation },
+                set: { app.wantsStopAllConfirmation = $0 }
+            )
+        ) {
+            Button("Stop All", role: .destructive) { app.stopAllServers() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("All running servers receive `stop` and shut down. Players will be disconnected.")
+        }
     }
 }
 

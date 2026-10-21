@@ -13,60 +13,82 @@ import OrzMCDesignSystem
 import OrzMCLauncher
 
 struct FormSectionHeader: View {
-    let title: String
-    var deleteBtnAction: ButtonAction
     typealias ButtonAction = () -> Void
-    var stopBtnAction: ButtonAction?
-    /// 打开该实例自己的控制台（四种核心各一个，入口就在自己这一栏）。
-    var consoleBtnAction: ButtonAction?
-    var consoleIsLive: Bool = false
+
+    let title: String
+    /// 运行状态（服务端/客户端都有：Running / Stopped / Unknown）。
     var statusText: String?
     var statusDotColor: Color?
     var statusTextColor: Color?
+    /// 该实例有操作在进行（删除/停止/启动中）→ **全部按钮禁用**，防连点。
+    var isBusy: Bool = false
+    /// 打开该实例自己的控制台（客户端 + 四种核心各一个，入口就在自己这一栏）。
+    var consoleBtnAction: ButtonAction?
+    var consoleIsLive: Bool = false
+    /// 停止（高危：会杀进程）——点击后需二次确认。
+    var stopBtnAction: ButtonAction?
+    /// 删除（**高危**：删文件，不可恢复）——点击后需二次确认。
+    var deleteBtnAction: ButtonAction
+
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
+            // 左：标题 + 状态
             Text(title)
             if let statusText {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(statusDotColor ?? Color.secondary)
-                        .frame(width: 6, height: 6)
-                    Text(statusText)
-                        .foregroundStyle(statusTextColor ?? Color.secondary)
-                }
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background((statusDotColor ?? Color.secondary).opacity(0.12))
-                .cornerRadius(8)
-                .padding(.leading, 6)
+                statusBadge(statusText)
             }
-            if let consoleBtnAction {
-                Button(action: consoleBtnAction) {
-                    Label("Console", systemImage: consoleIsLive ? "terminal.fill" : "terminal")
+
+            Spacer(minLength: 12)
+
+            // 右：操作按钮（高危动作带确认，执行中全禁用）
+            if isBusy {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            HStack(spacing: 10) {
+                if let consoleBtnAction {
+                    Button(action: consoleBtnAction) {
+                        Label("Console", systemImage: consoleIsLive ? "terminal.fill" : "terminal")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(consoleIsLive ? Color.green : Color.accentColor)
+                    .help(consoleIsLive ? "Open \(title) console (running)" : "Open \(title) console")
+                }
+                if let stopBtnAction {
+                    Button(action: stopBtnAction) {
+                        Label("Stop", systemImage: "stop.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.orange)
+                    .help("Stop \(title) (asks for confirmation)")
+                }
+                Button(action: deleteBtnAction) {
+                    Label("Delete", systemImage: "trash")
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(consoleIsLive ? Color.green : Color.accentColor)
-                .help(consoleIsLive ? "Open \(title) console (server is running)" : "Open \(title) console")
+                .foregroundStyle(.red)
+                .help("Delete \(title) files (asks for confirmation — cannot be undone)")
             }
-            if let stopBtnAction {
-                Button(action: stopBtnAction) {
-                    Label("Stop", systemImage: "stop.circle")
-                        .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .help("Stop \(title)")
-            }
-            Button(action: deleteBtnAction) {
-                Label("Delete", systemImage: "trash")
-                    .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.red)
-            .help("Delete \(title) files")
+            .disabled(isBusy)
         }
+    }
+
+    private func statusBadge(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(statusDotColor ?? Color.secondary)
+                .frame(width: 6, height: 6)
+            Text(text)
+                .foregroundStyle(statusTextColor ?? Color.secondary)
+        }
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background((statusDotColor ?? Color.secondary).opacity(0.12))
+        .cornerRadius(8)
     }
 }
 
@@ -102,7 +124,12 @@ struct BasicInfo: View {
 
     @Environment(AppModel.self) private var app
     
-    @State private var deleteTarget: DeleteTarget?
+    /// 待确认的高危操作（删除/停止）——统一入口，点按钮只"排队"，确认后才执行。
+    @State private var pendingRisky: RiskyAction?
+    /// 正在执行的实例（`版本#实例`）→ 该实例按钮全禁用（防连点）。
+    @State private var busyInstanceId: String?
+    /// 「停止全部」的二次确认。
+    @State private var confirmStopAll = false
     /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
     @State private var consoleTarget: ConsoleTarget?
     
@@ -123,46 +150,86 @@ struct BasicInfo: View {
             if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
-                        app.stopAllServers()
+                        // 会断开所有在线玩家 → 二次确认；执行中禁用（防连点）。
+                        confirmStopAll = true
                     } label: {
                         Label("Stop All Servers", systemImage: "stop.circle")
                     }
                     .keyboardShortcut(.init(.init("k")), modifiers: .command)
-                    .help("Stop all running Minecraft servers")
+                    .disabled(busyInstanceId != nil)
+                    .help("Stop all running Minecraft servers (asks for confirmation)")
                 }
             }
         }
-        .confirmationDialog(
-            deleteTarget?.confirmationTitle ?? "Delete Files?",
-            isPresented: Binding(
-                get: { deleteTarget != nil },
-                set: { if !$0 { deleteTarget = nil } }
-            ),
-            presenting: deleteTarget
-        ) { target in
-            Button("Delete", role: .destructive) {
-                try? target.path.remove()
-                // 该实例的文件没了 → 它的控制台日志/历史也一并清掉。
-                if let versionId = app.catalog.selected?.id {
-                    switch target {
-                    case let .server(software, _):
-                        app.removeConsole(versionId: versionId, software: software)
-                    case .client:
-                        app.removeClientConsole(versionId: versionId)
-                    }
+        .alert("Stop All Servers?", isPresented: $confirmStopAll) {
+            Button("Stop All", role: .destructive) {
+                busyInstanceId = "all"
+                Task { @MainActor in
+                    defer { busyInstanceId = nil }
+                    app.stopAllServers()
                 }
-                app.catalog.refreshInstallStates()
-                deleteTarget = nil
             }
-            Button("Cancel", role: .cancel) {
-                deleteTarget = nil
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("All running servers receive `stop` and shut down. Players on them will be disconnected.")
+        }
+        .alert(
+            pendingRisky?.confirmTitle ?? "",
+            isPresented: Binding(
+                get: { pendingRisky != nil },
+                set: { if !$0 { pendingRisky = nil } }
+            ),
+            presenting: pendingRisky
+        ) { action in
+            Button(action.confirmButtonTitle, role: action.isDestructive ? .destructive : nil) {
+                perform(action)
             }
-        } message: { target in
-            Text("This removes files at \(target.path). This action cannot be undone.")
+            Button("Cancel", role: .cancel) { pendingRisky = nil }
+        } message: { action in
+            Text(action.message(selectedVersionId: app.catalog.selected?.id))
         }
     }
 
-    /// 打开某实例的控制台（客户端 / 某个服务端核心）。
+    /// 执行已确认的高危操作：期间该实例按钮全禁用（防连点），完成后复位。
+    private func perform(_ action: RiskyAction) {
+        let instanceId = action.instanceId
+        guard busyInstanceId == nil else { return }
+        busyInstanceId = instanceId
+        pendingRisky = nil
+
+        Task { @MainActor in
+            defer { busyInstanceId = nil }
+            switch action {
+            case let .deleteServer(versionId, software, path):
+                try? path.remove()
+                app.removeConsole(versionId: versionId, software: software)
+                app.catalog.refreshInstallStates()
+            case let .deleteClient(versionId, path):
+                try? path.remove()
+                app.removeClientConsole(versionId: versionId)
+                app.catalog.refreshInstallStates()
+            case let .stopServer(versionId, software):
+                app.stopServer(versionId: versionId, software: software)
+            }
+        }
+    }
+
+    /// 该服务端实例是否有操作在进行。
+    private func isBusy(software: SettingsModel.ServerSoftware) -> Bool {
+        let key = "\(app.catalog.selected?.id ?? "")#\(software.rawValue)"
+        return busyInstanceId == key
+    }
+
+    /// 客户端运行状态：以"客户端控制台是否挂着进程"为准（进程退出即解绑）。
+    private var clientRunStatus: (text: String, dotColor: Color, textColor: Color) {
+        guard let versionId = app.catalog.selected?.id else {
+            return ("Unknown", .secondary, .secondary)
+        }
+        return app.isClientConsoleAttached(versionId: versionId)
+            ? ("Running", .green, .green)
+            : ("Stopped", .red, .secondary)
+    }
+
     private func consoleView(for target: ConsoleTarget) -> some View {
         let console: ServerConsoleModel = app.console(for: target)
         let title: String = target.title
@@ -212,25 +279,27 @@ struct BasicInfo: View {
                     } header: {
                         FormSectionHeader(
                             title: "Server (\(software.rawValue))",
-                            deleteBtnAction: {
-                                deleteTarget = .server(software: software, path: serverDirPath)
-                            },
-                            stopBtnAction: stopActionFor(software: software),
+                            statusText: status.text,
+                            statusDotColor: status.dotColor,
+                            statusTextColor: status.textColor,
+                            isBusy: isBusy(software: software),
                             consoleBtnAction: {
-                                if let selectedVersion = app.catalog.selected {
-                                    consoleTarget = ConsoleTarget(
-                                        versionId: selectedVersion.id,
-                                        software: software
-                                    )
-                                }
+                                guard let versionId = app.catalog.selected?.id else { return }
+                                consoleTarget = ConsoleTarget(versionId: versionId, software: software)
                             },
                             consoleIsLive: app.isConsoleAttached(
                                 versionId: app.catalog.selected?.id ?? "",
                                 software: software
                             ),
-                            statusText: status.text,
-                            statusDotColor: status.dotColor,
-                            statusTextColor: status.textColor
+                            stopBtnAction: stopActionFor(software: software),
+                            deleteBtnAction: {
+                                guard let versionId = app.catalog.selected?.id else { return }
+                                pendingRisky = .deleteServer(
+                                    versionId: versionId,
+                                    software: software,
+                                    path: serverDirPath
+                                )
+                            }
                         )
                     }
                 }
@@ -243,22 +312,24 @@ struct BasicInfo: View {
                         path: clientDirPath
                     )
                 } header: {
+                    let clientStatus = clientRunStatus
                     FormSectionHeader(
                         title: "Client",
-                        deleteBtnAction: {
-                            deleteTarget = .client(path: clientDirPath)
-                        },
+                        statusText: clientStatus.text,
+                        statusDotColor: clientStatus.dotColor,
+                        statusTextColor: clientStatus.textColor,
+                        isBusy: busyInstanceId == "\(app.catalog.selected?.id ?? "")#Client",
                         consoleBtnAction: {
-                            if let selectedVersion = app.catalog.selected {
-                                consoleTarget = ConsoleTarget(
-                                    versionId: selectedVersion.id,
-                                    software: nil
-                                )
-                            }
+                            guard let versionId = app.catalog.selected?.id else { return }
+                            consoleTarget = ConsoleTarget(versionId: versionId, software: nil)
                         },
                         consoleIsLive: app.isClientConsoleAttached(
                             versionId: app.catalog.selected?.id ?? ""
-                        )
+                        ),
+                        deleteBtnAction: {
+                            guard let versionId = app.catalog.selected?.id else { return }
+                            pendingRisky = .deleteClient(versionId: versionId, path: clientDirPath)
+                        }
                     )
                 }
             }
@@ -283,31 +354,6 @@ struct ConsoleTarget: Identifiable, Hashable {
     }
 }
 
-private extension BasicInfo {
-    enum DeleteTarget: Identifiable {
-        case server(software: SettingsModel.ServerSoftware, path: String)
-        case client(path: String)
-
-        var id: String { path }
-
-        var path: String {
-            switch self {
-            case let .server(_, path), let .client(path):
-                path
-            }
-        }
-
-        var confirmationTitle: String {
-            switch self {
-            case let .server(software, _):
-                "Delete \(software.rawValue) Server Files?"
-            case .client:
-                "Delete Client Files?"
-            }
-        }
-    }
-}
-
 extension BasicInfo {
 
     func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, dotColor: Color, textColor: Color) {
@@ -329,7 +375,8 @@ extension BasicInfo {
             return nil
         }
         return {
-            app.stopServer(software: software)
+            // 停止会断开在线玩家 → 也要二次确认。
+            pendingRisky = .stopServer(versionId: selectedVersion.id, software: software)
         }
     }
     

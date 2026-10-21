@@ -32,7 +32,7 @@ struct MacOSScene: Scene {
                 .disabled(!app.canStart)
 
                 Button("Stop All Servers") {
-                    app.stopAllServers()
+                    app.wantsStopAllConfirmation = true
                 }
                 .keyboardShortcut("k", modifiers: .command)
                 .disabled(!app.servers.hasRunning)

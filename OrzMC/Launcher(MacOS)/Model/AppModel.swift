@@ -30,6 +30,9 @@ final class AppModel {
     /// 统一错误出口（保留规范错误码，UI 显示「人话 (E_XXX)」）。
     var error: LauncherError?
 
+    /// 菜单「停止全部」请求确认（由 `LauncherUI` 弹出同一条确认）。
+    var wantsStopAllConfirmation = false
+
     init(settings: SettingsModel = SettingsModel()) {
         self.settings = settings
         self.catalog = VersionCatalogModel()
@@ -254,10 +257,10 @@ final class AppModel {
         }
     }
 
-    func stopServer(software: SettingsModel.ServerSoftware) {
-        guard let version = catalog.selected else { return }
+    /// 停止某版本下的某个服务端核心（高危操作：由 UI 二次确认后调用）。
+    func stopServer(versionId: String, software: SettingsModel.ServerSoftware) {
         do {
-            try servers.stop(versionId: version.id, software: software)
+            try servers.stop(versionId: versionId, software: software)
         } catch {
             self.error = LauncherError.wrap(error, fallbackCode: "E_RUNTIME")
         }
