@@ -88,7 +88,6 @@
 		C0D100030000000000000005 /* OrzMCProtocol in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = C0D100020000000000000005 /* OrzMCProtocol */; };
 		C0D100030000000000000006 /* OrzMCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = C0D100020000000000000005 /* OrzMCProtocol */; };
 		2B8AB1CE2DA0CDF700DA6605 /* LinkMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */; };
-		2B8AB1D02DA0D22200DA6605 /* DetailViewTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8AB1CF2DA0D22200DA6605 /* DetailViewTool.swift */; };
 		2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA06D732DA2E6500043C0CE /* GameList.swift */; platformFilters = (macos, ); };
 		2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9932CA5848200ED2684 /* SettingsView.swift */; platformFilters = (macos, ); };
 		2BA7F9962CA58DFD00ED2684 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */; platformFilters = (macos, ); };
@@ -166,7 +165,6 @@
 		2B79DCF529066BBC000C21A1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2B8442F82E17D38800CB0EA0 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMenu.swift; sourceTree = "<group>"; };
-		2B8AB1CF2DA0D22200DA6605 /* DetailViewTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViewTool.swift; sourceTree = "<group>"; };
 		2BA06D732DA2E6500043C0CE /* GameList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameList.swift; sourceTree = "<group>"; };
 		2BA7F9932CA5848200ED2684 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
@@ -362,6 +360,7 @@
 				CD2026102200000000000015 /* VersionListScrollProbe.swift */,
 				CD2026102200000000000014 /* VersionListKeyboardNavigation.swift */,
 				CD2026102200000000000012 /* SidebarSearchBar.swift */,
+				2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */,
 				F30F00EC2BDBDF7000CAA802 /* GameView.swift */,
 				2BA06D732DA2E6500043C0CE /* GameList.swift */,
 			);
@@ -387,8 +386,6 @@
 				3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */,
 				2B54E08B2BDE0ACA001B6877 /* BasicInfo.swift */,
 				2B54E0892BDE0945001B6877 /* GameInfoView.swift */,
-				2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */,
-				2B8AB1CF2DA0D22200DA6605 /* DetailViewTool.swift */,
 			);
 			path = Detail;
 			sourceTree = "<group>";
@@ -745,7 +742,6 @@
 				2B5ACA562BFB136200397BFC /* ExarotonCreditPoolView.swift in Sources */,
 				F30F00F32BDCCBD300CAA802 /* GUIServer.swift in Sources */,
 				F3FE52132BF7B4FC006E79AA /* ExarotonServerView.swift in Sources */,
-				2B8AB1D02DA0D22200DA6605 /* DetailViewTool.swift in Sources */,
 				2BA7F9962CA58DFD00ED2684 /* SettingsModel.swift in Sources */,
 				2B54E08C2BDE0ACA001B6877 /* BasicInfo.swift in Sources */,
 				2B54E08E2BDE21A4001B6877 /* MacOSScene.swift in Sources */,

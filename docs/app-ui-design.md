@@ -35,9 +35,12 @@
    第二行固定最小高度（空内容也占位），行高不随“是否安装”跳动；
    侧边栏里不用胶囊标签，已装内容用次要文本。
 8. **作用于列表的过滤/刷新放在列表自己的顶部**，与搜索框同一行、用单图标按钮（2026-10-22 起）：
-   `SidebarSearchBar`（放大镜搜索 + 只看正式版 + 刷新）。不要挂到窗口工具栏，也不用 `.searchable`
-   （系统搜索框右侧插不进自定义按钮）。
-   不要挂到窗口工具栏；开关用 `.switch`（有明确开/关语义），加载中不要替换图标（宽度会跳）。
+   `SidebarSearchBar`（放大镜搜索 + 只看正式版 + 刷新）。不要挂到窗口工具栏，
+   也不用 `.searchable`（系统搜索框右侧插不进自定义按钮）。
+   开关用 `.switch`（有明确开/关语义），加载中不要替换图标（宽度会跳）。
+11. **窗口级入口放窗口工具栏**（顶部一排，与系统侧边栏开关同排）：外部链接菜单、远程服务器窗口。
+   它们与"当前版本"无关，**不要挂在版本详情页的工具栏上**——详情页只放启动配置、实例目录与控制台。
+   工具栏菜单按钮用 `.menuIndicator(.hidden)`，与相邻图标按钮保持同样的圆形/胶囊轮廓。
 9. **工具栏只留当前主动作**；低频/破坏性动作进 `Menu`（控制台：生命周期常驻，
    打开新窗口/导出/清空进溢出菜单）。
 10. **焦点成组**：每个表单/面板加 `.focusSection()`，避免 Tab 在侧边栏、表单、工具栏之间乱跳。
@@ -50,20 +53,19 @@
 ```
 主窗口「OrzMC」（Window，单实例，⌘, 打开 Settings）
 └── NavigationSplitView
-    ├── Sidebar（320pt，可拉宽到 480pt）
-    │   ├── 版本列表 List(selection:)
-    │   ├── 工具栏：Releases 过滤 / 刷新 / Remote Servers
-    │   └── .searchable(.sidebar)
-    └── Detail：GameInfoView
+    ├── 窗口工具栏（顶部一排）：外部链接 · 远程服务器 · 系统侧边栏开关
+    ├── Sidebar（260–520pt，可拖拽）
+    │   ├── 顶部一行：搜索 + 只看正式版 + 刷新
+    │   ├── 清单更新时间（今天 HH:mm）
+    │   └── 版本列表 List(selection:)：版本号 + [最新] + 「发布日期 · 已装内容」，↑/↓ 与 ⌘↑/⌘↓
+    └── Detail：GameInfoView（无工具栏；只处理“当前版本”相关）
         └── NavigationStack
-            └── BasicInfo（Form）
-                ├── Launch（启动配置：Java 状态 / 版本 / 模式 / 核心 / 用户名 / 内存 / Start）
-                ├── 实例切换器（Client / Paper / Vanilla / Fabric / Forge）
-                ├── 实例表头：状态 + Console / Plugins / Start / Restart / Stop / ⋯(Terminate/Delete)
-                └── 常用目录行 → Finder
+            └── BasicInfo（ScrollView + 玻璃面板）
+                ├── 启动面板（标题栏右侧主按钮；模式 / 客户端类型或服务端核心 / 用户名 / Java）
+                └── 实例面板（表头：状态 + 控制台 + ⋯菜单；目录行 → Finder）
                     └── ServerConsoleView
                         ├── 日志（等宽、可选中、Follow、搜索、导出）
-                        ├── 工具栏：Open in New Window / Export / Clear / Start / Restart / Stop / Terminate
+                        ├── 工具栏：生命周期常驻 + ⋯(Open in New Window / Export / Clear)
                         └── 命令输入（仅服务端；↑/↓ 历史）
 
 独立窗口「Console」（WindowGroup(for: ConsoleTarget.self)，共享同一个 AppModel）
@@ -99,8 +101,8 @@ iOS 与 macOS **共用** `Common/ExarotonUI`；平台差异只在 `#if os(...)` 
 | 控制台工具栏 | 独立控制台窗口 | `openWindow(value: ConsoleTarget)` | 关闭窗口 |
 | 实例表头 | 插件管理 | `.sheet` + `NavigationStack` | Done / 关闭 |
 | 侧边栏 | 远程服务器 | 独立 `Window(id:"remote")` | 关闭窗口 |
-| Links 菜单 | 外部网站 | `Link` → 默认浏览器 | 不占用应用内导航 |
-| 菜单 / 详情工具栏 | 停止全部 | 同一个 `wantsStopAllConfirmation` alert | Cancel |
+| 工具栏「链接」菜单 | 外部网站 | `Link` → 默认浏览器 | 不占用应用内导航 |
+| 菜单 / 实例面板 ⋯ | 停止全部 | 同一个 `wantsStopAllConfirmation` alert | Cancel |
 
 ---
 

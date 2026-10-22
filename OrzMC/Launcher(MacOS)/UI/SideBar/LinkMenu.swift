@@ -7,7 +7,11 @@
 
 import SwiftUI
 
-/// 详情页工具栏的「Links」菜单。
+/// 窗口工具栏的「外部链接」菜单（与“远程服务器”入口、侧边栏开关同一排）。
+///
+/// 这些链接（官网 / PaperMC / Hangar / Aternos / Exaroton）**与具体版本无关**，
+/// 所以放在窗口级工具栏随应用常驻，而不是挂在某个版本的详情页工具栏上 ——
+/// 详情页只负责“当前版本”的启动与实例管理。
 ///
 /// 统一用系统 `Link` 打开**默认浏览器**：
 /// - 系统组件自带正确的外观、键盘可达性和辅助功能标签；
@@ -28,8 +32,12 @@ struct LinkMenu: View {
             .labelStyle(.titleAndIcon)
         } label: {
             Label("Links", systemImage: "link")
+                .labelStyle(.iconOnly)
         }
+        // 不显示下拉箭头：与相邻的“远程服务器”“侧边栏开关”保持同样的圆形按钮轮廓。
+        .menuIndicator(.hidden)
         .help("Open related links in your browser")
+        .accessibilityLabel("Links")
     }
 }
 

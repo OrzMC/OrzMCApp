@@ -165,7 +165,7 @@ swift/app/
 │   ├── UI/Detail/BasicInfo.swift         LaunchControls + 实例目录/操作 + 控制台跳转
 │   ├── UI/Detail/ServerConsoleView.swift 控制台 + 搜索/导出/独立窗口 + ConsoleWindowView
 │   ├── UI/Detail/PluginManagerView.swift 插件管理 sheet
-│   ├── UI/Detail/LinkMenu.swift          外链菜单
+│   ├── UI/SideBar/LinkMenu.swift         外链菜单（窗口工具栏，随侧边栏内容声明）
 │   ├── UI/Detail/RiskyAction.swift       高危操作确认（标题/按钮已本地化）
 │   ├── UI/Settings/SettingsView.swift    四页 TabView：General/Server/Tools/About
 │   ├── Model/AppModel.swift              组合根；isStoppingAll / isCurrentInstanceRunning

@@ -48,6 +48,11 @@ struct GameView: View {
             await app.loadVersions()
         }
         .toolbar {
+            // 窗口级入口：外部链接 + 远程服务器，与系统的侧边栏开关同一排。
+            ToolbarItem {
+                LinkMenu()
+            }
+
             ToolbarItem {
                 Button {
                     // 远程托管是独立的管理面，用独立窗口承载，不混进"本机实例"的导航栈。

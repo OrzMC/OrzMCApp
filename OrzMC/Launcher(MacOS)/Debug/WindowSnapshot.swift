@@ -28,7 +28,7 @@ enum WindowSnapshot {
     static func runIfRequested() -> Bool {
         let args = ProcessInfo.processInfo.arguments
 
-        if args.contains("--test-keys") || args.contains("--test-keys-top") {
+        if args.contains("--test-keys") || args.contains("--test-keys-top") || args.contains("--test-keys-sidebar") {
             postArrowKeys()
         }
         if let directory = value(after: "--snapshot-watch", in: args) {
@@ -68,11 +68,14 @@ enum WindowSnapshot {
             mainWindow()?.makeKeyAndOrderFront(nil)
             try? await Task.sleep(for: .seconds(1.5))
 
-            func post(_ keyCode: UInt16, characters: String, command: Bool) {
+            func post(_ keyCode: UInt16, characters: String, command: Bool, control: Bool = false) {
+                var flags: NSEvent.ModifierFlags = []
+                if command { flags.insert(.command) }
+                if control { flags.insert(.control) }
                 guard let event = NSEvent.keyEvent(
                     with: .keyDown,
                     location: .zero,
-                    modifierFlags: command ? [.command] : [],
+                    modifierFlags: flags,
                     timestamp: ProcessInfo.processInfo.systemUptime,
                     windowNumber: NSApp.keyWindow?.windowNumber ?? 0,
                     context: nil,
@@ -88,7 +91,9 @@ enum WindowSnapshot {
                 FileHandle.standardError.write(Data("test-keys: posted keyCode=\(keyCode) cmd=\(command)\n".utf8))
             }
 
-            if ProcessInfo.processInfo.arguments.contains("--test-keys-top") {
+            if ProcessInfo.processInfo.arguments.contains("--test-keys-sidebar") {
+                post(1, characters: "s", command: true, control: true)   // ⌃⌘S → 显示/隐藏侧边栏
+            } else if ProcessInfo.processInfo.arguments.contains("--test-keys-top") {
                 post(126, characters: "\u{F700}", command: true)   // ⌘↑ → 跳到最新
             } else {
                 post(125, characters: "\u{F701}", command: false)  // ↓
