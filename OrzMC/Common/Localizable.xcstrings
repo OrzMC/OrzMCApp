@@ -141,16 +141,6 @@
         }
       }
     },
-    "Adds -agentlib:jdwp=… so a debugger can attach to the server JVM. Keep it off unless you need it.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加 -agentlib:jdwp=…，让调试器可以连接服务器 JVM。除非需要，否则保持关闭。"
-          }
-        }
-      }
-    },
     "Alipay QR code": {
       "localizations": {
         "zh-Hans": {
@@ -881,16 +871,6 @@
         }
       }
     },
-    "Minecraft is a trademark of Mojang Synergies AB. OrzMC is not affiliated with Mojang or Microsoft.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minecraft 是 Mojang Synergies AB 的商标。OrzMC 与 Mojang 或 Microsoft 无隶属关系。"
-          }
-        }
-      }
-    },
     "Mode": {
       "localizations": {
         "zh-Hans": {
@@ -917,16 +897,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "更多破坏性操作（终止/删除都会二次确认）"
-          }
-        }
-      }
-    },
-    "Multiple instances = one game folder each (same as the CLI's --root-dir).": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "多实例 = 每个实例一个游戏目录（与 CLI 的 --root-dir 相同）。"
           }
         }
       }
@@ -1447,16 +1417,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "运行 `orzmc update --yes` —— 保留已记录的来源（surface/source）"
-          }
-        }
-      }
-    },
-    "Same rules as the CLI (--min-mem / --max-mem).": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "规则与 CLI 相同（--min-mem / --max-mem）。"
           }
         }
       }
@@ -2107,16 +2067,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "使用文件夹"
-          }
-        }
-      }
-    },
-    "Used when the game mode is Server. The CLI's --type accepts the same four values.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅在游戏模式为服务器时使用。CLI 的 --type 接受相同的四个值。"
           }
         }
       }
@@ -3197,6 +3147,226 @@
           "stringUnit": {
             "state": "translated",
             "value": "输入玩家名称"
+          }
+        }
+      }
+    },
+    "Path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径"
+          }
+        }
+      }
+    },
+    "Type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "类型"
+          }
+        }
+      }
+    },
+    "Required": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要"
+          }
+        }
+      }
+    },
+    "Theme": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主题"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
+    "Follow System": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
+    "Installed from a terminal": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由终端安装"
+          }
+        }
+      }
+    },
+    "Installed from this app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由本应用安装"
+          }
+        }
+      }
+    },
+    "Origin unknown (legacy record)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源未知（旧记录）"
+          }
+        }
+      }
+    },
+    "Install record": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装记录"
+          }
+        }
+      }
+    },
+    "Rescan the managed runtimes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描已托管的运行时"
+          }
+        }
+      }
+    },
+    "Rescan installed Java runtimes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描 Java 运行时"
+          }
+        }
+      }
+    },
+    "Show the managed Java folder in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示 Java 目录"
+          }
+        }
+      }
+    },
+    "Managed by the engine: a missing version is downloaded on launch, so this never blocks you.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由引擎托管：缺失的版本会在启动时自动下载，不需要你手动处理。"
+          }
+        }
+      }
+    },
+    "One folder per instance — switching the folder switches every instance.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个实例一个游戏目录——换目录等于换一整套实例。"
+          }
+        }
+      }
+    },
+    "Same as the CLI's --root-dir.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与 CLI 的 --root-dir 相同。"
+          }
+        }
+      }
+    },
+    "Same rules as the CLI's --min-mem / --max-mem.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "规则与 CLI 的 --min-mem / --max-mem 相同。"
+          }
+        }
+      }
+    },
+    "Same four values as the CLI's --type.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与 CLI 的 --type 取值相同。"
+          }
+        }
+      }
+    },
+    "Only used when the game mode is Server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在游戏模式为服务器时使用。"
+          }
+        }
+      }
+    },
+    "Adds -agentlib:jdwp=… to the server JVM so a debugger can attach. Keep it off unless you need it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "给服务端 JVM 加 -agentlib:jdwp=…，供调试器连接。不需要就别开。"
           }
         }
       }

@@ -29,6 +29,7 @@ struct MacOSScene: Scene {
             LauncherUI()
                 .frame(minWidth: Constants.minWidth, minHeight: Constants.minHeight)
                 .environment(app)
+                .syncAppearance(app.settings.appearance)
                 // 单窗口 → 探活循环只有一个。周期 2s（`kill(pid, 0)`，只探自己登记过的服务端）。
                 .task { await app.servers.monitor() }
         }
@@ -119,6 +120,7 @@ struct MacOSScene: Scene {
             // `@Environment(AppModel.self)` 找不到对象 → SIGTRAP（见 2026-10-21 崩溃报告）。
             SettingsView()
                 .environment(app)
+                .syncAppearance(app.settings.appearance)
         }
     }
 }

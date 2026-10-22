@@ -12,11 +12,16 @@ import SwiftUI
 
 /// 设置窗口。
 ///
-/// 设计约定（macOS HIG）：
+/// 设计约定（macOS HIG + 本项目补充）：
 /// - 用**系统 `Form` + `Section` + `.formStyle(.grouped)`**，而不是自己用 `GroupBox` +
 ///   `Label.font(.title)` 拼“卡片”；这样行高、内边距、深色模式、提高对比度都由系统决定。
-/// - 设置项用**分页**（General / Server / Tools / About），避免一个 620pt 的长滚动页。
+/// - 设置项用**分页**（通用 / 服务器 / 命令行 / 关于），避免一个长滚动页。
 /// - 每一行用 `LabeledContent`：标题在左、控件在右，标签与控件基线对齐。
+/// - **section 标题已经说明“这一块是什么”，行标签就不要再说一遍**：曾经「游戏目录」既是
+///   section 标题、又是行标签；「服务器核心」同样重复，看起来像没写完的界面。
+/// - **CLI 参数说明放 `.help()`**，正文只留“用户为什么要关心”的一句话。设置页不是手册，
+///   `--root-dir` / `--min-mem` / `--type` 这类开关留在悬停提示里就够了。
+/// - **低频项渐进披露**：JVM 调试参数只在开关打开后才出现，关着的时候不占一行。
 /// - 路径/参数用等宽字体；错误用统一 `OrzMCBanner`，不再各处 `foregroundStyle(.red)`。
 struct SettingsView: View {
 
@@ -36,29 +41,40 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            GeneralSettingsView(settings: app.settings, rootDir: rootDir)
+            GeneralSettingsView(settings: app.settings, rootDir: rootDir, java: app.java)
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
+
+            ClientSettingsView(settings: app.settings)
+                .tabItem { Label("Client", systemImage: "gamecontroller") }
+                .tag(SettingsTab.client)
 
             ServerSettingsView(settings: app.settings)
                 .tabItem { Label("Server", systemImage: "xserve") }
                 .tag(SettingsTab.server)
 
             ToolsSettingsView()
-                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label("Command Line", systemImage: "terminal") }
                 .tag(SettingsTab.tools)
 
             AboutSettingsView()
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(SettingsTab.about)
         }
-        .frame(minWidth: 600, idealWidth: 640, minHeight: 480, idealHeight: 560)
+        .frame(minWidth: 600, idealWidth: 640, minHeight: 440, idealHeight: 520)
+        // 打开设置时不要抢焦点：SwiftUI 会把光标自动放进第一个输入框，绿色焦点环
+        // 在第一眼看上去像“这条校验没通过”。让窗口自己成为第一响应者即可。
+        .task {
+            try? await Task.sleep(for: .milliseconds(250))
+            NSApp.keyWindow?.makeFirstResponder(nil)
+        }
     }
 }
 
 /// 设置页的四个分页（`@AppStorage` 需要 `String` 原始值）。
 enum SettingsTab: String, CaseIterable, Hashable {
     case general
+    case client
     case server
     case tools
     case about
@@ -70,6 +86,7 @@ private struct GeneralSettingsView: View {
 
     @Bindable var settings: SettingsModel
     @Binding var rootDir: String
+    let java: JavaRuntimeModel
 
     @State private var draftRootDir = ""
     @State private var pathError: String?
@@ -94,78 +111,96 @@ private struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("Game folder") {
+                Picker("Theme", selection: $settings.appearance) {
+                    ForEach(SettingsModel.Appearance.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Appearance")
+            }
+
+            Section {
+                LabeledContent("Path") {
                     // 输入框吃掉剩余宽度，按钮保持固有宽度：位置可预测，不再靠 ViewThatFits 猜。
                     HStack(spacing: OrzMCTheme.Spacing.sm) {
                         gameFolderField
                         gameFolderButtons
                     }
                 }
+                .help("Same as the CLI's --root-dir. One folder per instance — switching it switches every instance.")
 
                 if let pathError {
                     OrzMCBanner(verbatim: pathError, role: .error)
-                } else {
-                    OrzMCBanner(
-                        "Multiple instances = one game folder each (same as the CLI's --root-dir).",
-                        role: .info
-                    )
                 }
             } header: {
                 Text("Game Folder")
             }
 
             Section {
-                Picker("Client type", selection: $settings.clientType) {
-                    ForEach(SettingsModel.ClientKind.allCases) { kind in
-                        Text(kind.rawValue).tag(kind)
+                LabeledContent("Installed") {
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
+                        Text(installedJavaText)
+                            .font(.body.monospaced())
+                            .foregroundStyle(java.installedMajors.isEmpty
+                                ? AnyShapeStyle(.secondary)
+                                : AnyShapeStyle(.primary))
+                        Spacer()
+                        Button {
+                            java.refresh()
+                        } label: {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                        }
+                        .help("Rescan the managed runtimes")
+                        .accessibilityLabel("Rescan installed Java runtimes")
+
+                        Button {
+                            revealInFinder(javaDir)
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .help("Show the managed Java folder in Finder")
+                        .accessibilityLabel("Show the managed Java folder in Finder")
                     }
                 }
-                .pickerStyle(.segmented)
+                .help("Runtimes are managed by the engine under <game folder>/java/<major>. A missing version is downloaded on launch, so this never blocks you.")
 
-                LabeledContent("Username") {
-                    TextField("", text: $settings.username, prompt: Text("Offline player name"))
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
-                        .multilineTextAlignment(.leading)
-                        .autocorrectionDisabled()
-                }
-
-                LabeledContent("JVM memory") {
-                    // 基线对齐：分隔符是文字，输入框是控件，默认 `.center` 会让「–」比字段内文字偏高/偏低。
-                    HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.xs) {
-                        TextField("", text: $settings.minMem, prompt: Text("512M"))
-                            .textFieldStyle(.roundedBorder)
-                            .labelsHidden()
-                            .multilineTextAlignment(.trailing)   // 数值惯用右对齐
-                            .frame(width: 84)
-                        Text("–")
-                            .foregroundStyle(.tertiary)
-                        TextField("", text: $settings.maxMem, prompt: Text("2G"))
-                            .textFieldStyle(.roundedBorder)
-                            .labelsHidden()
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 84)
-                    }
-                }
-
-                if let message = settings.memoryValidationMessage {
-                    OrzMCBanner("Invalid memory setting: \(message) (expected e.g. 512M / 2G)", role: .error)
-                } else {
-                    OrzMCBanner("Same rules as the CLI (--min-mem / --max-mem).", role: .info)
+                // 缺版本时才多说一句：平时这一行是噪音。
+                if let required = java.requiredMajor, java.status == .missing {
+                    OrzMCBanner("This version needs Java \(required); it will be installed automatically on launch.", role: .info)
                 }
             } header: {
-                Text("Client")
+                Text("Java")
             }
         }
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow)
         .focusSection()
-        .onAppear { draftRootDir = rootDir }
+        .onAppear {
+            draftRootDir = rootDir
+            java.refresh()
+        }
         .onChange(of: rootDir) { oldValue, newValue in
             if draftRootDir == oldValue { draftRootDir = newValue }
+            java.refresh()
         }
         // 用户重新编辑就清掉上一次的路径错误，别让旧红条挂在新输入旁边。
         .onChange(of: draftRootDir) { pathError = nil }
+    }
+
+    private var installedJavaText: String {
+        java.installedMajors.isEmpty
+            ? String(localized: "None")
+            : java.installedMajors.map(String.init).formatted(.list(type: .and))
+    }
+
+    private var javaDir: URL {
+        URL(fileURLWithPath: GamePlan.layout(root: rootDir, version: "").javaDir)
+    }
+
+    private func revealInFinder(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     private var gameFolderField: some View {
@@ -212,6 +247,63 @@ private struct GeneralSettingsView: View {
     }
 }
 
+// MARK: - Client
+
+private struct ClientSettingsView: View {
+
+    @Bindable var settings: SettingsModel
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Client type", selection: $settings.clientType) {
+                    ForEach(SettingsModel.ClientKind.allCases) { kind in
+                        Text(kind.rawValue).tag(kind)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                LabeledContent("Username") {
+                    TextField("", text: $settings.username, prompt: Text("Offline player name"))
+                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                        .multilineTextAlignment(.leading)
+                        .autocorrectionDisabled()
+                }
+                .help("Prefilled on every client launch; required before starting a client.")
+
+                LabeledContent("JVM memory") {
+                    // 基线对齐：分隔符是文字，输入框是控件，默认 `.center` 会让「–」比字段内文字偏高/偏低。
+                    HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.xs) {
+                        TextField("", text: $settings.minMem, prompt: Text("512M"))
+                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)   // 数值惯用右对齐
+                            .frame(width: 84)
+                        Text("–")
+                            .foregroundStyle(.tertiary)
+                        TextField("", text: $settings.maxMem, prompt: Text("2G"))
+                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 84)
+                    }
+                }
+                .help("Same rules as the CLI's --min-mem / --max-mem.")
+
+                if let message = settings.memoryValidationMessage {
+                    OrzMCBanner("Invalid memory setting: \(message) (expected e.g. 512M / 2G)", role: .error)
+                }
+            } header: {
+                Text("Client")
+            }
+        }
+        .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .focusSection()
+    }
+}
+
 // MARK: - Server
 
 private struct ServerSettingsView: View {
@@ -221,17 +313,15 @@ private struct ServerSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Server core", selection: $settings.serverSoftware) {
+                Picker("Type", selection: $settings.serverSoftware) {
                     ForEach(SettingsModel.ServerSoftware.allCases) { software in
                         Text(software.rawValue).tag(software)
                     }
                 }
                 .pickerStyle(.segmented)
+                .help("Same four values as the CLI's --type.")
 
-                OrzMCBanner(
-                    "Used when the game mode is Server. The CLI's --type accepts the same four values.",
-                    role: .info
-                )
+                OrzMCBanner("Only used when the game mode is Server.", role: .info)
             } header: {
                 Text("Server Core")
             }
@@ -244,23 +334,23 @@ private struct ServerSettingsView: View {
                         }
                     }
 
-                LabeledContent("Arguments") {
-                    TextField(
-                        "",
-                        text: $settings.jvmDebuggerArgs,
-                        prompt: Text(Constants.defaultJVMDebuggerArgs)
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .labelsHidden()
-                    .multilineTextAlignment(.leading)
-                    .font(.body.monospaced())
-                    .disabled(!settings.enableJVMDebugger)
+                // 渐进披露：关掉调试时，参数这一行连出现都不出现——它此刻没有任何意义，
+                // 留着只是一个灰掉的等宽长条。
+                if settings.enableJVMDebugger {
+                    LabeledContent("Arguments") {
+                        TextField(
+                            "",
+                            text: $settings.jvmDebuggerArgs,
+                            prompt: Text(Constants.defaultJVMDebuggerArgs)
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                        .multilineTextAlignment(.leading)
+                        .font(.body.monospaced())
+                    }
                 }
 
-                OrzMCBanner(
-                    "Adds -agentlib:jdwp=… so a debugger can attach to the server JVM. Keep it off unless you need it.",
-                    role: .info
-                )
+                OrzMCBanner("Adds -agentlib:jdwp=… to the server JVM so a debugger can attach. Keep it off unless you need it.", role: .info)
             } header: {
                 Text("Debugging")
             }
@@ -271,7 +361,7 @@ private struct ServerSettingsView: View {
     }
 }
 
-// MARK: - Tools
+// MARK: - Command line
 
 private struct ToolsSettingsView: View {
     var body: some View {
@@ -340,16 +430,17 @@ private struct AboutSettingsView: View {
             }
 
             Section {
+                // 三行声明保持可见（Usage Guidelines 要求"展示"而不是"折叠"），
+                // 但降成 footnote —— 它不该比版本信息更抢眼；页脚里重复的商标句已删。
                 Text(Compliance.disclaimer)
                 Text(Compliance.disclaimerZh)
                 Text(Compliance.trademarkZh)
             } header: {
                 Text("Disclaimer")
-            } footer: {
-                Text("Minecraft is a trademark of Mojang Synergies AB. OrzMC is not affiliated with Mojang or Microsoft.")
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .textCase(nil)
         }
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow)

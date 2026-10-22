@@ -30,6 +30,7 @@ final class SettingsModel {
         static let lastSelectedVersion = "orzmc.settings.lastSelectedVersion"
         static let gameMode = "orzmc.settings.gameMode"
         static let rootDir = "orzmc.settings.rootDir"
+        static let appearance = "orzmc.settings.appearance"
     }
 
     static let defaultMinMem = "512M"
@@ -55,6 +56,7 @@ final class SettingsModel {
             rawValue: defaults.string(forKey: Keys.gameMode) ?? ""
         ) ?? .client
         self.rootDir = defaults.string(forKey: Keys.rootDir) ?? GamePlan.defaultRoot
+        self.appearance = Appearance(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .system
     }
 
     /// 远程 JVM 调试（服务端）。
@@ -107,6 +109,11 @@ final class SettingsModel {
         didSet { defaults.set(rootDir, forKey: Keys.rootDir) }
     }
 
+    /// 界面外观：跟随系统 / 始终浅色 / 始终深色（同步到 `NSApp.appearance`，对所有窗口生效）。
+    var appearance: Appearance {
+        didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
+    }
+
     var isRootDirValid: Bool { rootDir.hasPrefix("/") }
 
     func resetRootDir() {
@@ -149,6 +156,23 @@ extension SettingsModel {
 
         /// 是否支持 Bukkit/Paper 插件目录（目前仅 Paper）。
         var supportsPlugins: Bool { self == .paper }
+    }
+
+    /// 界面外观（默认跟随系统）。
+    enum Appearance: String, CaseIterable, Identifiable, Codable {
+        case system
+        case light
+        case dark
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .system: return String(localized: "Follow System")
+            case .light: return String(localized: "Light")
+            case .dark: return String(localized: "Dark")
+            }
+        }
     }
 
     /// 客户端类型：引擎只支持 vanilla / fabric。

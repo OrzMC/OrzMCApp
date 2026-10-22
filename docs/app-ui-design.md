@@ -158,7 +158,9 @@ iOS 与 macOS **共用** `Common/ExarotonUI`；平台差异只在 `#if os(...)` 
 
 已统一到系统组件的地方：
 
-- 设置页：`Form` + `Section` + `.formStyle(.grouped)` + `LabeledContent` + `TabView`。
+- 设置页：`Form` + `Section` + `.formStyle(.grouped)` + `LabeledContent` + `TabView`
+  （5 页：通用 / 客户端 / 服务器 / 命令行 / 关于；**section 标题与行标签不重复**，
+  CLI 参数说明放 `.help()`，低频项渐进披露）。
 - 侧边栏：`NavigationSplitView`、`List(selection:)`、`.searchable(.sidebar)`、`ToolbarItem`。
 - 详情页：`Form` + `Section` + `LabeledContent` + `Picker` + `TextField(.roundedBorder)`。
 - 控制台：`ScrollView` + `ContentUnavailableView.search` + `NSSavePanel` + `.searchable`。
@@ -281,7 +283,7 @@ Settings {
 | 11 | Exaroton 控制台日志无上限 | 最近 2000 行 |
 | 12 | Exaroton 加载 RAM 后又 changeRAM | `confirmedRAM` 区分加载与拖动 |
 | 13 | ⌘C 发命令覆盖 Copy、⌘S Remote Server | 移除两个快捷键 |
-| 14 | 设置固定 600×620 长滚动 | 四页 `TabView` + 系统 Form |
+| 14 | 设置固定 600×620 长滚动 | 五页 `TabView` + 系统 Form（每页不滚动） |
 | 15 | 侧边栏可重复启动 | `isCurrentInstanceRunning` |
 | 16 | 停止全部无忙碌标记 | `isStoppingAll` |
 | 17 | 侧边栏同时承担导航 + 启动配置 | 启动配置移到详情页 `LaunchControls` |

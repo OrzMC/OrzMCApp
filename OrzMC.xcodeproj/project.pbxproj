@@ -92,6 +92,7 @@
 		2B8AB1CE2DA0CDF700DA6605 /* LinkMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */; };
 		2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA06D732DA2E6500043C0CE /* GameList.swift */; platformFilters = (macos, ); };
 		2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9932CA5848200ED2684 /* SettingsView.swift */; platformFilters = (macos, ); };
+		CE2026102200000000000020 /* AppearanceSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000020 /* AppearanceSync.swift */; platformFilters = (macos, ); };
 		2BA7F9962CA58DFD00ED2684 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */; platformFilters = (macos, ); };
 		2BD03D792907F93200BE1D1F /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BD03D782907F93200BE1D1F /* Model.swift */; platformFilter = ios; };
 		2BD301EF29000B2C00993823 /* LauncherUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BD301EE29000B2C00993823 /* LauncherUI.swift */; platformFilters = (macos, ); };
@@ -169,6 +170,7 @@
 		2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMenu.swift; sourceTree = "<group>"; };
 		2BA06D732DA2E6500043C0CE /* GameList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameList.swift; sourceTree = "<group>"; };
 		2BA7F9932CA5848200ED2684 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CD2026102200000000000020 /* AppearanceSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSync.swift; sourceTree = "<group>"; };
 		2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
 		2BD03D782907F93200BE1D1F /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		2BD301EE29000B2C00993823 /* LauncherUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherUI.swift; sourceTree = "<group>"; };
@@ -455,6 +457,7 @@
 			isa = PBXGroup;
 			children = (
 				2BA7F9932CA5848200ED2684 /* SettingsView.swift */,
+				CD2026102200000000000020 /* AppearanceSync.swift */,
 				C0D300020000000000000002 /* CommandLineSettingsSection.swift */,
 			);
 			path = Settings;
@@ -771,6 +774,7 @@
 				2B62C9922BF76C6600387498 /* ExarotonServerModel.swift in Sources */,
 				2BD301EF29000B2C00993823 /* LauncherUI.swift in Sources */,
 				2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */,
+				CE2026102200000000000020 /* AppearanceSync.swift in Sources */,
 				C0D300010000000000000001 /* CommandLineToolModel.swift in Sources */,
 				C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */,
 				2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */,

@@ -123,10 +123,11 @@ struct CommandLineSettingsSection: View {
                 HStack(spacing: OrzMCTheme.Spacing.sm) {
                     Text("orzmc \(status.version)")
                         .font(.headline)
-                    Text(status.surfaceText)
+                    Text(surfaceText(for: status))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let channel = status.channel {
+                        // 通道名是专有名词（Python CLI / Swift CLI），按原文显示。
                         OrzMCTag(channel.title)
                     }
                     Spacer()
@@ -144,19 +145,29 @@ struct CommandLineSettingsSection: View {
 
                 if status.isBroken {
                     OrzMCBanner("The recorded binary is missing — reinstall to repair the record.", role: .warning)
-                } else if let completion = status.completionFile, !completion.isEmpty {
-                    Text("completion: \(completion)")
-                        .font(OrzMCTheme.Typography.code)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
                 }
 
-                Text("record: \(status.recordPath)")
-                    .font(OrzMCTheme.Typography.code)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                // 补全脚本与记录文件平时没人看，折起来；出问题时仍可展开核对。
+                DisclosureGroup("Install record") {
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let completion = status.completionFile, !completion.isEmpty {
+                            Text("completion: \(completion)")
+                                .font(OrzMCTheme.Typography.code)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Text("record: \(status.recordPath)")
+                            .font(OrzMCTheme.Typography.code)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         } else {
             HStack {
@@ -164,6 +175,16 @@ struct CommandLineSettingsSection: View {
                     .foregroundStyle(.secondary)
                 Spacer()
             }
+        }
+    }
+
+    /// `InstallSurface.displayText` 在共享库里是硬编码英文，这里按来源给界面本地化文案
+    /// （约定：依赖库的英文标题由应用侧本地化，不去改共享库的展示字符串）。
+    private func surfaceText(for status: CommandLineToolModel.Status) -> String {
+        switch status.installSurface {
+        case .cli: return String(localized: "Installed from a terminal")
+        case .gui: return String(localized: "Installed from this app")
+        case nil: return String(localized: "Origin unknown (legacy record)")
         }
     }
 
