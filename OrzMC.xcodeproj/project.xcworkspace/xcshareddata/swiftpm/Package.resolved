@@ -70,7 +70,7 @@
       "location" : "https://github.com/OrzMC/OrzMCKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "6944afb518c6830034f97d89c566089a37eed57b"
+        "revision" : "771421cceb91ce8ec995f93135dc366608d989cb"
       }
     },
     {
@@ -79,7 +79,7 @@
       "location" : "https://github.com/OrzGeeker/OrzSwiftKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "616212d0731094d22ef2148b933ed3cba3923d08"
+        "revision" : "f35e4dc38a5cfd7d10f33146f8954ff6f9897680"
       }
     },
     {

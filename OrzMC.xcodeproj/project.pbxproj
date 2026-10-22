@@ -1121,8 +1121,11 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/OrzGeeker/OrzSwiftKit.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.18;
+				// OrzMCKit 自己的 Package.swift 就是 `branch: "main"`，SwiftPM 需求合一后
+				// 分支优先——这里若写版本号只会造成"声明 0.0.18、锁文件却是分支钉"的错觉。
+				// 与依赖侧保持一致：跟随 main。
+				branch = main;
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
