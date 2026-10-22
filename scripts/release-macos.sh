@@ -75,7 +75,7 @@ developer_id_identity_line() {
         keychain_args=("$DEVELOPER_ID_KEYCHAIN")
     fi
 
-    security find-identity -v -p codesigning "${keychain_args[@]}" 2>/dev/null |
+    security find-identity -v -p codesigning ${keychain_args[@]+"${keychain_args[@]}"} 2>/dev/null |
         grep '"Developer ID Application:' |
         head -n 1 || true
 }
@@ -272,8 +272,8 @@ validate_distribution_signing_identity() {
     fi
 
     log "Validating Developer ID signing identity"
-    security find-identity -v -p codesigning "${keychain_args[@]}"
-    security find-certificate -a -c "$DEVELOPER_ID_APPLICATION" -Z "${keychain_args[@]}" >/dev/null ||
+    security find-identity -v -p codesigning ${keychain_args[@]+"${keychain_args[@]}"}
+    security find-certificate -a -c "$DEVELOPER_ID_APPLICATION" -Z ${keychain_args[@]+"${keychain_args[@]}"} >/dev/null ||
         fail "Developer ID certificate was not found in the signing keychain. Re-export DEVELOPER_ID_CERT_P12 from the Keychain Access 'My Certificates' item so the private key and certificate are included together."
 
     temp_dir="$(mktemp -d)"
@@ -577,7 +577,7 @@ ARCHIVE_COMMAND=(
     -configuration "$CONFIGURATION"
     -destination "generic/platform=macOS"
     -archivePath "$ARCHIVE_PATH"
-    "${ARCHIVE_DERIVED_DATA_ARGS[@]}"
+    ${ARCHIVE_DERIVED_DATA_ARGS[@]+"${ARCHIVE_DERIVED_DATA_ARGS[@]}"}
     -skipPackagePluginValidation
     -skipMacroValidation
     COMPILER_INDEX_STORE_ENABLE=NO
