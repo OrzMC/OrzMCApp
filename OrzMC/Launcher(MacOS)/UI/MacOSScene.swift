@@ -40,6 +40,14 @@ struct MacOSScene: Scene {
             // 这种“空白窗口”入口（会产生 nil target 的空控制台）。
             CommandGroup(replacing: .newItem) {}
 
+            // 「关于」：系统默认项是「关于 OrzMC」，这里替换成更简洁的「关于」，
+            // 仍然弹系统标准关于面板（图标 / 版本 / 版权都来自 Info.plist）。
+            CommandGroup(replacing: .appInfo) {
+                Button("About") {
+                    NSApp.orderFrontStandardAboutPanel(nil)
+                }
+            }
+
             // 标准的 View > Show/Hide Sidebar（⌃⌘S），由系统菜单提供。
             SidebarCommands()
             // 单窗口应用：关掉主窗口后仍可从 Window 菜单（⌘0）把它叫回来。
@@ -72,7 +80,13 @@ struct MacOSScene: Scene {
                 .disabled(!app.servers.hasRunning || app.isStoppingAll)
             }
 
-            CommandGroup(after: .help) {
+            // 帮助菜单：替换系统自动插入的「OrzMC 帮助」——本项目没有 Help Book，
+            // 那一项点开只会让帮助浏览器搜不到任何结果（看起来就是“不可用”）。
+            // 改成真实可用的入口：使用文档 + 联系作者。
+            CommandGroup(replacing: .help) {
+                if let url = URL(string: Compliance.website) {
+                    Link("Documentation", destination: url)
+                }
                 if let url = URL(string: Compliance.contactURL) {
                     Link("Contact Author", destination: url)
                 }

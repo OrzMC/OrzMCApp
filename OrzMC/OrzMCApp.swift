@@ -31,7 +31,12 @@ struct OrzMCApp: App {
     var body: some Scene {
 #if os(macOS)
         MacOSScene(app: app)
-            .addCheckUpdatesCommand(updaterController: updaterController)
+            // 标题由应用提供（依赖里的默认值是硬编码英文）；`String(localized:)` 走应用自己的
+            // Localizable.xcstrings，中文界面显示「检查更新…」。
+            .addCheckUpdatesCommand(
+                updaterController: updaterController,
+                title: String(localized: "Check for Updates…")
+            )
 #elseif os(iOS)
         WindowGroup {
             ContentView()

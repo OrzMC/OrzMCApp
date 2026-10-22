@@ -231,6 +231,16 @@
         }
       }
     },
+    "Check for Updates…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新…"
+          }
+        }
+      }
+    },
     "Check installed plugins for newer Hangar versions": {
       "localizations": {
         "zh-Hans": {
@@ -467,6 +477,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "免责声明"
+          }
+        }
+      }
+    },
+    "Documentation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用文档"
           }
         }
       }
@@ -1716,7 +1736,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "启动 %@"
+            "value": "启动%@"
           }
         }
       }

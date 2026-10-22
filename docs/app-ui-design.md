@@ -73,7 +73,14 @@
 Settings（TabView：General / Server / Tools / About）
 ```
 
-**菜单**：`OrzMC`（About / Check for Updates / Settings… / Quit）、`Edit`、`View`（Show Sidebar / Enter Full Screen）、`Game`（Start Client|Server ⌘B、Stop All Servers… ⇧⌘K）、`Window`（Close / Show Main Window ⌘0 / OrzMC / Remote Servers）、`Help`（Contact Author）。
+**菜单**（2026-10-22 修订）：
+- `OrzMC`：**关于**（替换系统默认的「关于 OrzMC」，仍弹系统标准关于面板）/ **检查更新…** ⌘U / 设置… ⌘, / 服务 / 隐藏 / 退出。
+  菜单文案一律走 `Localizable.xcstrings`；「检查更新」的标题由应用传入（依赖默认值是硬编码英文）。
+- `编辑` / `显示`（显示边栏 ⌃⌘S）/ `窗口`（最小化 / 缩放 / OrzMC / 远程服务器 / 显示主窗口 ⌘0）。
+- `游戏`：跳到最新版本 ⌘↑ / 跳到最旧版本 ⌘↓ / 启动客户端·服务器 ⌘B / 全部停止服务器… ⇧⌘K。
+  中文里不写空格（`"Start %@"` 的 zh-Hans 用「启动%@」，否则会出现「启动 客户端」）。
+- `帮助`：**使用文档** / 联系作者。**不再保留系统自动插入的「OrzMC 帮助」**——本项目没有 Help Book，
+  那一项点开只会让帮助浏览器搜不到结果，等同于不可用（`CommandGroup(replacing: .help)`）。
 
 > **没有 File > New Window**：主启动器使用 `Window`，控制台窗口通过 `openWindow(value:)` 按实例打开，
 > 远程服务器使用独立 `Window`。不会出现“再开一个启动器”的入口（见 §3）。

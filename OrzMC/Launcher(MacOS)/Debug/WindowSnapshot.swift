@@ -28,6 +28,22 @@ enum WindowSnapshot {
     static func runIfRequested() -> Bool {
         let args = ProcessInfo.processInfo.arguments
 
+        if args.contains("--test-about") {
+            // 验证「关于」菜单项弹的是系统标准关于面板（替换 .appInfo 后仍然有效）。
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(6))
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.orderFrontStandardAboutPanel(nil)
+            }
+        }
+        if args.contains("--dump-menus") {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(4))
+                dumpMenus()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if args.contains("--test-keys") || args.contains("--test-keys-top") || args.contains("--test-keys-sidebar") {
             postArrowKeys()
         }
@@ -56,6 +72,20 @@ enum WindowSnapshot {
             NSApp.terminate(nil)
         }
         return true
+    }
+
+    /// 打印主菜单结构（标题 / 是否可用 / 快捷键），用于排查菜单项灰掉或未本地化。
+    @MainActor
+    private static func dumpMenus() {
+        guard let main = NSApp.mainMenu else { return print("menu: <nil>") }
+        for top in main.items {
+            print("menu: [\(top.title)]")
+            guard let sub = top.submenu else { continue }
+            for item in sub.items {
+                let key = item.keyEquivalent.isEmpty ? "" : " \(item.keyEquivalent)/\(item.keyEquivalentModifierMask.rawValue)"
+                print("menu:   \(item.isSeparatorItem ? "-----" : item.title)  enabled=\(item.isEnabled) hidden=\(item.isHidden)\(key)")
+            }
+        }
     }
 
     /// 自测键盘导航：激活窗口后向本应用事件队列投递 ↓ / ↓ / ⌘↓。
