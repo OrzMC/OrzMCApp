@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		CD2026102200000000000016 /* LaunchToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchToolbar.swift"; sourceTree = "<group>"; };
 		CD2026102200000000000015 /* VersionListScrollProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionListScrollProbe.swift"; sourceTree = "<group>"; };
 		CD2026102200000000000014 /* VersionListKeyboardNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionListKeyboardNavigation.swift"; sourceTree = "<group>"; };
 		CD2026102200000000000012 /* SidebarSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SidebarSearchBar.swift"; sourceTree = "<group>"; };
@@ -26,6 +27,7 @@
 		CA2026102200000000000000 /* ConsoleScrollObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConsoleScrollObserver.swift"; sourceTree = "<group>"; };
 		96425CA405E530D0C5FC7A44 /* RiskyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RiskyAction.swift"; sourceTree = "<group>"; };
 /* Begin PBXBuildFile section */
+		CE2026102200000000000016 /* LaunchToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000016 /* LaunchToolbar.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000015 /* VersionListScrollProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000015 /* VersionListScrollProbe.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000014 /* VersionListKeyboardNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000014 /* VersionListKeyboardNavigation.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000012 /* SidebarSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000012 /* SidebarSearchBar.swift */; platformFilters = (macos, ); };
@@ -370,6 +372,7 @@
 		2B62C9782BF71FDF00387498 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				CD2026102200000000000016 /* LaunchToolbar.swift */,
 				CD2026102200000000000011 /* InstanceSection.swift */,
 				CD2026102200000000000010 /* FormSectionHeader.swift */,
 				CD2026102200000000000009 /* DirectoryRow.swift */,
@@ -701,6 +704,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE2026102200000000000016 /* LaunchToolbar.swift in Sources */,
 				CE2026102200000000000015 /* VersionListScrollProbe.swift in Sources */,
 				CE2026102200000000000014 /* VersionListKeyboardNavigation.swift in Sources */,
 				CE2026102200000000000012 /* SidebarSearchBar.swift in Sources */,

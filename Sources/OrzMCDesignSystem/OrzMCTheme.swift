@@ -83,5 +83,7 @@ public enum OrzMCTheme {
         public static let panelFill = Color.primary.opacity(0.045)
         /// 面板描边。
         public static let panelBorder = Color.primary.opacity(0.08)
+        /// 分段/模式按钮的选中底色（跟随系统强调色，亮暗都成立）。
+        public static let selectionFill = Color.accentColor.opacity(0.22)
     }
 }

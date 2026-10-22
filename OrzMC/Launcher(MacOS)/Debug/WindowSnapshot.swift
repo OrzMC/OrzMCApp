@@ -28,6 +28,23 @@ enum WindowSnapshot {
     static func runIfRequested() -> Bool {
         let args = ProcessInfo.processInfo.arguments
 
+        if let raw = value(after: "--test-click", in: args) {
+            // `--test-click 370,172`：在窗口内点一下（窗口坐标从左上角数，单位 pt）。
+            // 用于验证"点标题折叠/展开"这类只能靠鼠标触发的交互。
+            // 支持多次点击："460,172;890,67"（每次间隔 2s）
+            let points: [CGPoint] = raw.split(separator: ";").compactMap { chunk in
+                let parts = chunk.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+                return parts.count == 2 ? CGPoint(x: parts[0], y: parts[1]) : nil
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(7))
+                NSApp.activate(ignoringOtherApps: true)
+                for point in points {
+                    click(atTopLeft: point)
+                    try? await Task.sleep(for: .seconds(1.5))
+                }
+            }
+        }
         if args.contains("--test-about") {
             // 验证「关于」菜单项弹的是系统标准关于面板（替换 .appInfo 后仍然有效）。
             Task { @MainActor in
@@ -72,6 +89,28 @@ enum WindowSnapshot {
             NSApp.terminate(nil)
         }
         return true
+    }
+
+    /// 在窗口内容坐标里点一下（`topLeft` 以窗口左上角为原点）。
+    @MainActor
+    private static func click(atTopLeft topLeft: CGPoint) {
+        guard let window = mainWindow() else { return print("click: no window") }
+        let point = NSPoint(x: topLeft.x, y: window.frame.height - topLeft.y)
+        log("click: at \(point)")
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            guard let event = NSEvent.mouseEvent(
+                with: type,
+                location: point,
+                modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: type == .leftMouseDown ? 1 : 0
+            ) else { continue }
+            NSApp.postEvent(event, atStart: false)
+        }
     }
 
     /// 打印主菜单结构（标题 / 是否可用 / 快捷键），用于排查菜单项灰掉或未本地化。

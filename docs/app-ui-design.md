@@ -58,11 +58,18 @@
     │   ├── 顶部一行：搜索 + 只看正式版 + 刷新
     │   ├── 清单更新时间（今天 HH:mm）
     │   └── 版本列表 List(selection:)：版本号 + [最新] + 「发布日期 · 已装内容」，↑/↓ 与 ⌘↑/⌘↓
-    └── Detail：GameInfoView（无工具栏；只处理“当前版本”相关）
+    └── Detail：GameInfoView（标题栏 = 启动区；正文只放实例内容）
         └── NavigationStack
-            └── BasicInfo（ScrollView + 玻璃面板）
-                ├── 启动面板（标题栏右侧主按钮；模式 / 客户端类型或服务端核心 / 用户名 / Java）
-                └── 实例面板（表头：状态 + 控制台 + ⋯菜单；目录行 → Finder）
+            ├── 窗口工具栏：模式 · 客户端类型/服务端核心（= 启动目标）· 启动设置(popover) · 启动
+            └── BasicInfo（ScrollView + 玻璃面板，**按类型分组列出全部实例**）
+                ├── 顶部右侧：展示模式 = 两个**图标动作按钮**（compress / expand，默认折叠，
+                │   `@AppStorage` 记住选择；点击总是作用于全部卡片，不依赖当前选中态）
+                │   单栏还能点标题（或标题左侧的 ⌄/›）单独折叠/展开；改全局模式会清掉单栏覆盖
+                ├── 客户端组：客户端（Vanilla）/ 客户端（Fabric），共用 `<version>/client`
+                └── 服务端组：服务器（Paper / Vanilla / Fabric / Forge），各自独立目录与生命周期
+                    └── 实例面板：折叠 = 只留表头一行；展开 = 表头 + 目录行
+                        └── 表头动作按 `HeaderActionPlan` 尽量全部内联：
+                            控制台/插件 ｜ 启动/重启/停止 ｜ 终止/删除（放不下才收进 `⋯`）
                     └── ServerConsoleView
                         ├── 日志（等宽、可选中、Follow、搜索、导出）
                         ├── 工具栏：生命周期常驻 + ⋯(Open in New Window / Export / Clear)

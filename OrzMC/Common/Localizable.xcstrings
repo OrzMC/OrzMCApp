@@ -3010,6 +3010,166 @@
           }
         }
       }
+    },
+    "Launch Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动设置"
+          }
+        }
+      }
+    },
+    "More Settings…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多设置…"
+          }
+        }
+      }
+    },
+    "Client or server instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端或服务端实例"
+          }
+        }
+      }
+    },
+    "Vanilla or Fabric client": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanilla 或 Fabric 客户端"
+          }
+        }
+      }
+    },
+    "Which server core this instance runs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该实例使用的服务端核心"
+          }
+        }
+      }
+    },
+    "Player name and Java runtime": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家名与 Java 运行时"
+          }
+        }
+      }
+    },
+    "Player name and Java runtime — the player name is still empty": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家名与 Java 运行时 —— 玩家名还是空的"
+          }
+        }
+      }
+    },
+    "Client (%@)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端（%@）"
+          }
+        }
+      }
+    },
+    "Both client types share the same game folder; Fabric adds a mods folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两种客户端类型共用同一个游戏目录，Fabric 会多出一个 mods 目录。"
+          }
+        }
+      }
+    },
+    "Each server core has its own folder, console and lifecycle.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个服务端核心有独立的目录、控制台与生命周期。"
+          }
+        }
+      }
+    },
+    "Current": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前"
+          }
+        }
+      }
+    },
+    "Collapse All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部折叠"
+          }
+        }
+      }
+    },
+    "Expand All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部展开"
+          }
+        }
+      }
+    },
+    "Show only the instance headers, or also the folder rows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只显示实例表头，或同时显示目录行"
+          }
+        }
+      }
+    },
+    "Collapse this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起该实例"
+          }
+        }
+      }
+    },
+    "Expand this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开该实例"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

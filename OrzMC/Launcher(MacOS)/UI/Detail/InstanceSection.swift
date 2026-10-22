@@ -24,6 +24,12 @@ struct InstanceSection: View {
     let rootPath: String
     let statusText: String
     let statusStyle: OrzMCStatusStyle
+    /// 是否为工具栏"当前启动类型"对应的实例。
+    var isCurrentType: Bool = false
+    /// 是否展开（折叠时只保留表头那一行，页面可以一屏看完所有实例）。
+    var isExpanded: Bool = true
+    /// 折叠/展开这一栏（点标题或左侧箭头触发）。
+    var toggleAction: () -> Void = {}
     let isBusy: Bool
     let consoleIsLive: Bool
     let availability: InstanceActionAvailability?
@@ -36,19 +42,23 @@ struct InstanceSection: View {
         VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
+                // 展开时表头下面紧跟分隔线，底部留 10 就够；**折叠时整张卡片只有这一行**，
+                // 上下必须对称（12/12），否则看起来"文字偏上/偏下"。
+                .padding(.top, isExpanded ? 14 : 12)
+                .padding(.bottom, isExpanded ? 10 : 12)
 
-            Divider()
+            if isExpanded {
+                Divider()
 
-            ForEach(Array(visibleEntries.enumerated()), id: \.element.id) { index, entry in
+                ForEach(Array(visibleEntries.enumerated()), id: \.element.id) { index, entry in
                 let exists = entryExists[entry.path] ?? false
                 DirectoryRow(entry: entry, exists: exists)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                // 只在行**之间**画分隔线：末尾那条会贴着面板底边，看起来像多了一道边。
-                if index < visibleEntries.count - 1 {
-                    Divider().padding(.leading, 16)
+                    // 只在行**之间**画分隔线：末尾那条会贴着面板底边，看起来像多了一道边。
+                    if index < visibleEntries.count - 1 {
+                        Divider().padding(.leading, 16)
+                    }
                 }
             }
         }
@@ -70,6 +80,7 @@ struct InstanceSection: View {
                 helpTitle: "\(instance.versionId) \(software.rawValue)",
                 statusText: statusText,
                 statusStyle: statusStyle,
+                isCurrentType: isCurrentType,
                 isBusy: isBusy,
                 availability: availability,
                 consoleBtnAction: {
@@ -91,6 +102,8 @@ struct InstanceSection: View {
                 terminateBtnAction: {
                     pendingRisky = .terminateServer(versionId: instance.versionId, software: software)
                 },
+                isExpanded: isExpanded,
+                toggleAction: toggleAction,
                 deleteBtnAction: {
                     pendingRisky = .deleteServer(
                         versionId: instance.versionId,
@@ -101,15 +114,18 @@ struct InstanceSection: View {
             )
         } else {
             FormSectionHeader(
-                title: "Client",
+                title: "Client (\(instance.clientKind?.rawValue ?? ""))",
                 helpTitle: "\(instance.versionId) Client",
                 statusText: statusText,
                 statusStyle: statusStyle,
+                isCurrentType: isCurrentType,
                 isBusy: isBusy,
                 consoleBtnAction: {
                     consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
                 },
                 consoleIsLive: consoleIsLive,
+                isExpanded: isExpanded,
+                toggleAction: toggleAction,
                 deleteBtnAction: {
                     pendingRisky = .deleteClient(versionId: instance.versionId, path: rootPath)
                 }
