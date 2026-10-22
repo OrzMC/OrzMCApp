@@ -10,10 +10,15 @@ import SwiftUI
 
 struct ExarotonCreditPoolDetail: View {
     @Environment(ExarotonServerModel.self) var model
-    @State var creditPool: ExarotonCreditPool
+    @State private var creditPool: ExarotonCreditPool
     @State private var members: [ExarotonCreditMember]?
     @State private var servers: [ExarotonServer]?
     @State private var isLoading = false
+
+    init(creditPool: ExarotonCreditPool) {
+        _creditPool = State(initialValue: creditPool)
+    }
+
     var body: some View {
         List {
             Section {

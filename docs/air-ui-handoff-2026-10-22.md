@@ -4,7 +4,7 @@
 
 ## 当前任务与事实源
 
-维护者要求使用 `apple-native-product-design`、`swiftui-pro`、`swift-concurrency-pro` 审查并改善 `swift/app` 的页面和导航体验。本轮已输出建议，尚未实施审查提出的修正。先读：
+维护者要求使用 `apple-native-product-design`、`swiftui-pro`、`swift-concurrency-pro` 审查并改善 `swift/app` 的页面和导航体验。该文档已成为历史交接记录；当前自动检查在本机直接执行。先读：
 
 1. 父仓库 `AGENTS.md`、`HANDOFF.md`。
 2. app 的 `docs/ui-handoff.md`（历史实现与验收记录）。
@@ -13,7 +13,7 @@
 
 源设备工作目录 `/Users/bot/OrzMC/swift/app`；`main`，HEAD 为 `fa571e70c632ef1e514158b7deb5711001f8d111`。大量 UI 改动尚未提交，包含新文件与文件删除。没有创建 UI 分支、提交、推送或 bump 父仓库指针。不要只 git pull 就认为拿到了本轮成果。
 
-## Air 上通过 Git 接力（以本节为准）
+## 本机通过 Git 接力（以本节为准）
 
 维护者已授权提交推送，改用 Git 接力；旧 patch/tar 交接包不再需要。父仓库分支为 `feat/ui-refresh-handoff`，app 子模块分支为 `feat/ui-refresh`。两个分支均保留供审阅，不自动合并或发版。
 
@@ -40,7 +40,7 @@ git fetch origin
 git switch feat/ui-refresh
 ```
 
-app HEAD 必须与父仓库记录指针一致；如已有工作或分支前进，先比较，不要 reset/clean。构建镜像 `~/orzmc-build/app`、iOS DerivedData、macOS 可再生成缓存和旧交接包已获授权清理，不能再依赖它们恢复源码。当前 OrzMC 仍从 macOS `app-dd/Build/Products` 运行，因此该 Products 目录保留，待关闭应用后可按需删除。构建产物可以从正式工作树重新生成。
+app HEAD 必须与父仓库记录指针一致；如已有工作或分支前进，先比较，不要 reset/clean。旧远端构建镜像和交接包已退役；当前 OrzMC 仍从旧 macOS `app-dd/Build/Products` 运行，故暂时保留该目录，退出应用后即可删除。新构建使用本机专用 DerivedData。
 
 ## 技能与工具
 
@@ -78,13 +78,13 @@ Remote 必须分别记录实际 960/1200pt 宽度；已有记录显示请求 120
 每项修正说明“改了什么、为什么、如何验证”，并跑：
 
 ```bash
-# 在正式父仓库根；Air 本机执行时可用 localhost 替代 ssh air
-ORZMC_BUILD_HOST=localhost scripts/air/run.sh app
-ORZMC_BUILD_HOST=localhost scripts/air/run.sh app-ios
-ORZMC_BUILD_HOST=localhost scripts/air/run.sh app-test
+# 在正式父仓库根的当前本机工作树直接运行
+scripts/swift-check.sh app
+scripts/swift-check.sh app-ios
+scripts/swift-check.sh app-test
 (cd swift/app && ./scripts/check-platform-split.sh)
 ```
 
-localhost SSH 需要本机远程登录与认证可用；否则使用 Air 已配置可用的主机别名，或核对脚本中的原始命令在正式工作树直接执行。不要在工作树与构建镜像相同路径时运行 rsync。
+本机脚本直接使用当前工作树，不通过 SSH、rsync 或构建镜像。
 
 把新问题、实际尺寸、测试结果、未验证项继续追加到 ui-handoff.md，保留历史。

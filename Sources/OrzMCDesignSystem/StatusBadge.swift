@@ -72,7 +72,8 @@ public struct OrzMCStatusBadge: View {
             textView
                 .font(.caption)
                 .foregroundStyle(.primary)
-                .lineLimit(1)
+                // 不锁单行：中文长状态（「正在重启，请稍候…」）+ 无障碍字号会被截成省略号。
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
@@ -96,23 +97,42 @@ public struct OrzMCStatusBadge: View {
 /// 与状态徽标分开：标签表达“分类”，不表达“状态”，因此默认用次级色描边而不是填充色块，
 /// 在侧边栏选中行（系统会反色）里也不会出现“同色覆盖同色”的问题。
 public struct OrzMCTag: View {
-    private let text: String
+    /// 运行时文案（例如已装核心名）走 `String`；静态文案用 `LocalizedStringKey` 自动进本地化表。
+    private enum Content {
+        case verbatim(String)
+        case localized(LocalizedStringKey)
+    }
+
+    private let content: Content
     private let tint: Color?
 
     public init(_ text: String, tint: Color? = nil) {
-        self.text = text
+        self.content = .verbatim(text)
         self.tint = tint
+    }
+
+    public init(_ key: LocalizedStringKey, tint: Color? = nil) {
+        self.content = .localized(key)
+        self.tint = tint
+    }
+
+    private var textView: Text {
+        switch content {
+        case .verbatim(let text): return Text(verbatim: text)
+        case .localized(let key): return Text(key)
+        }
     }
 
     public var body: some View {
         let resolved = tint ?? OrzMCTheme.Palette.idle
-        Text(text)
-            .font(.caption2.weight(.medium))
+        textView
+            // `.caption2` 在 macOS 上只有 ~9pt（design 规则里明确「慎用」）：标签正文用 `.caption`。
+            .font(.caption.weight(.medium))
             .foregroundStyle(tint == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(resolved))
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .overlay(
-                Capsule().strokeBorder(resolved.opacity(0.35), lineWidth: 1)
+                Capsule().strokeBorder(resolved.opacity(0.5), lineWidth: 1)
             )
             .clipShape(Capsule())
     }
@@ -172,21 +192,23 @@ public struct OrzMCBanner: View {
                 .accessibilityHidden(true)
             textView
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                // 错误/警告要能在「提高对比度」和灰度下读清：正文用主色；
+                // 只有纯说明（info）用次要色，避免和正文抢注意力。
+                .foregroundStyle(role == .info ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(textView)
     }
 
-    @ViewBuilder
-    private var textView: some View {
+    private var textView: Text {
         switch content {
         case .localized(let key):
-            Text(key)
+            return Text(key)
         case .verbatim(let text):
-            Text(verbatim: text)
+            return Text(verbatim: text)
         }
     }
 }

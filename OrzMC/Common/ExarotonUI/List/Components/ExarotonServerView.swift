@@ -31,7 +31,7 @@ struct ExarotonServerView: View {
                             OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
                         }
                         if let players = server.players {
-                            OrzMCTag(String(localized: "\(players.count ?? 0)/\(players.max ?? 0) players"))
+                            OrzMCTag(String(localized: "\(Int(players.count ?? 0))/\(Int(players.max ?? 0)) players"))
                         }
                     }
                 }
@@ -44,7 +44,7 @@ struct ExarotonServerView: View {
             }
 
             if showMotd, let motd = server.motd, !motd.isEmpty {
-                Text(motd)
+                Text(verbatim: motd.replacingOccurrences(of: "(?i)§[0-9a-fk-orx]", with: "", options: .regularExpression))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(3)

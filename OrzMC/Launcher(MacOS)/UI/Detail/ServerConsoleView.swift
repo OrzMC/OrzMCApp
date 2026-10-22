@@ -29,12 +29,14 @@ struct ServerConsoleView: View {
 
     @State private var command = ""
     @State private var historyOffset: Int?
-    /// 是否跟随最新日志。用户向上翻日志时关掉，不会被新行“拽”回底部。
-    @State private var followOutput = true
+    /// 跟随最新日志的状态机（暂停 / 未读 / 搜索的判定都在这里，见 `ConsoleFollowState`）。
+    @State private var follow = ConsoleFollowState()
+    /// 显式「回到最新」的滚动请求：等列表按新状态重排后再滚，避免滚到被过滤的旧结果集。
+    @State private var scrollToLatestToken = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 日志过滤（不区分大小写的子串匹配）。
     @State private var searchText = ""
     @State private var pendingRisky: RiskyAction?
-    @FocusState private var inputFocused: Bool
 
     private var software: SettingsModel.ServerSoftware? { target?.software }
     private var versionId: String { target?.versionId ?? "" }
@@ -51,13 +53,36 @@ struct ServerConsoleView: View {
         return app.availability(versionId: versionId, software: software)
     }
 
+    /// 「回到最新」：退出搜索、恢复跟随，滚到当前最后一行。
+    /// 滚动要等这一轮状态生效后再做，所以走一个 token，而不是直接在这里 `scrollTo`。
+    private func requestReturnToLatest() {
+        follow.requestFollow()
+        searchText = ""
+        scrollToLatestToken &+= 1
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            header
+            ConsoleHeader(
+                title: title,
+                statusKey: statusKey,
+                isAttached: console.isAttached,
+                statusTag: software.flatMap { statusOverride(software: $0) },
+                totalLines: console.lines.count,
+                visibleLines: searchText.isEmpty ? nil : filteredLines.count,
+                follow: $follow,
+                onRequestFollow: requestReturnToLatest
+            )
             Divider()
             logList
             Divider()
-            inputRow
+            ConsoleInputRow(
+                isAttached: console.isAttached,
+                supportsCommands: supportsCommands,
+                command: $command,
+                onSend: sendCommand,
+                onRecall: recallHistory
+            )
         }
         .navigationTitle("Console — \(title)")
         .searchable(text: $searchText, placement: .toolbar, prompt: "Search log")
@@ -97,21 +122,25 @@ struct ServerConsoleView: View {
                     .help("Kill the process now (may lose unsaved world data)")
                 }
             }
-            ToolbarItemGroup {
-                if let target {
-                    Button("Open in New Window", systemImage: "macwindow.badge.plus") {
-                        openWindow(value: target)
+            // 低频与破坏性动作收进溢出菜单：生命周期（高频）+ 菜单两项，
+            // 960pt 下工具栏不再被 7 个按钮挤爆（HIG：工具栏优先保留当前主动作）。
+            ToolbarItem {
+                Menu {
+                    if let target {
+                        Button("Open in New Window", systemImage: "macwindow.badge.plus") {
+                            openWindow(value: target)
+                        }
+                        Divider()
                     }
-                    .help("Open this console in its own window")
+                    Button("Export Log…", systemImage: "square.and.arrow.down") {
+                        exportLog()
+                    }
+                    Button("Clear", systemImage: "trash") { console.clear() }
+                } label: {
+                    Label("Console Actions", systemImage: "ellipsis.circle")
+                        .labelStyle(.iconOnly)
                 }
-
-                Button("Export Log…", systemImage: "square.and.arrow.down") {
-                    exportLog()
-                }
-                .help("Save the full log to a .log/.txt file")
-
-                Button("Clear") { console.clear() }
-                    .help("Clear the visible log (does not affect the server)")
+                .help("Open in a new window, export, or clear the log")
             }
         }
         .alert(
@@ -131,43 +160,6 @@ struct ServerConsoleView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: OrzMCTheme.Spacing.sm) {
-            OrzMCStatusBadge(
-                statusKey,
-                style: console.isAttached ? .running : .idle
-            )
-
-            Text(title)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            if let software, let status = statusOverride(software: software) {
-                OrzMCTag(status, tint: OrzMCTheme.Palette.warning)
-            }
-
-            Spacer()
-
-            Toggle("Follow", isOn: $followOutput)
-                .toggleStyle(.button)
-                .controlSize(.small)
-                .help("Scroll to the newest line as output arrives")
-
-            Group {
-                if searchText.isEmpty {
-                    Text("\(console.lines.count) lines")
-                } else {
-                    Text("\(filteredLines.count) / \(console.lines.count) lines")
-                }
-            }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, OrzMCTheme.Spacing.md)
-        .padding(.vertical, OrzMCTheme.Spacing.sm)
-    }
-
     private var logList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -182,70 +174,67 @@ struct ServerConsoleView: View {
                 }
                 .padding(OrzMCTheme.Spacing.sm)
                 .textSelection(.enabled)
+                .background(
+                    ConsoleScrollObserver(
+                        onLeaveBottom: { follow.userLeftBottom() },
+                        onReachBottom: { follow.userReachedBottom() }
+                    )
+                )
             }
             .consoleSurface()
             .overlay {
                 if filteredLines.isEmpty, !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    ContentUnavailableView.search(text: searchText)
+                    // 无参版本会自动带上搜索词，无需自己传。
+                    ContentUnavailableView.search
                 }
             }
-            .onChange(of: console.lines.last?.id) {
-                guard followOutput, searchText.isEmpty, let last = console.lines.last else { return }
-                withAnimation(.linear(duration: 0.1)) {
-                    proxy.scrollTo(last.id, anchor: .bottom)
+            .overlay(alignment: .bottomTrailing) {
+                if follow.showsReturnToLatest {
+                    Button {
+                        requestReturnToLatest()
+                    } label: {
+                        Label("Back to Latest (\(follow.unreadCount))", systemImage: "arrow.down.to.line")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .help("Clear the search if needed, then follow new output again")
+                    .padding(OrzMCTheme.Spacing.sm)
                 }
             }
-            .onChange(of: followOutput) {
-                guard followOutput, searchText.isEmpty, let last = console.lines.last else { return }
-                proxy.scrollTo(last.id, anchor: .bottom)
+            .onChange(of: console.lines.last?.id) { oldValue, newValue in
+                // 日志被清空时不产生未读。
+                guard let newValue else { return }
+                let appended = max(1, newValue - (oldValue ?? (newValue - 1)))
+                follow.appended(appended)
+                guard follow.shouldScrollToLatest else { return }
+                // 连续输出不做动画；只有用户明确“回到最新”才可选短动画（并尊重减少动态效果）。
+                proxy.scrollTo(newValue, anchor: .bottom)
+            }
+            .onChange(of: scrollToLatestToken) {
+                // 搜索框已清空/状态已生效，此时滚动才是对当前行集有效的。
+                guard let last = console.lines.last?.id else { return }
+                if reduceMotion {
+                    proxy.scrollTo(last, anchor: .bottom)
+                } else {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        proxy.scrollTo(last, anchor: .bottom)
+                    }
+                }
+                // 刚从搜索结果切回全量日志时 LazyVStack 要重排；布局完再补一次，保证真的落到最新行。
+                Task { @MainActor in
+                    await Task.yield()
+                    proxy.scrollTo(last, anchor: .bottom)
+                }
+            }
+            .onChange(of: searchText) {
+                follow.searchChanged(isEmpty: searchText.isEmpty)
+            }
+            .onAppear {
+                if let last = console.lines.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }
         .frame(minHeight: 220)
         .padding(.horizontal, OrzMCTheme.Spacing.md)
         .padding(.vertical, OrzMCTheme.Spacing.sm)
-    }
-
-    @ViewBuilder
-    private var inputRow: some View {
-        if supportsCommands {
-            commandInputRow
-        } else {
-            HStack(spacing: 6) {
-                Image(systemName: "eye")
-                    .foregroundStyle(.secondary)
-                Text("Log only — the Minecraft client does not accept console commands.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, OrzMCTheme.Spacing.md)
-            .padding(.vertical, OrzMCTheme.Spacing.sm)
-        }
-    }
-
-    private var commandInputRow: some View {
-        HStack(spacing: OrzMCTheme.Spacing.sm) {
-            Text(">")
-                .font(OrzMCTheme.Typography.consoleInput)
-                .foregroundStyle(.secondary)
-            TextField(
-                console.isAttached ? "Type a command (e.g. say hi, op <player>, stop)" : "Server is not running",
-                text: $command
-            )
-            .textFieldStyle(.plain)
-            .font(OrzMCTheme.Typography.consoleInput)
-            .focused($inputFocused)
-            .disabled(!console.isAttached)
-            .onSubmit(sendCommand)
-            .onKeyPress(.upArrow) { recallHistory(offset: 1) }
-            .onKeyPress(.downArrow) { recallHistory(offset: -1) }
-
-            Button("Send", action: sendCommand)
-                .disabled(!console.isAttached || command.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding(.horizontal, OrzMCTheme.Spacing.md)
-        .padding(.vertical, OrzMCTheme.Spacing.sm)
-        .onAppear { inputFocused = console.isAttached }
     }
 
     /// "启动中/停止中…"这类进行态（服务端自己维护的生命周期活动）。
@@ -322,25 +311,4 @@ struct ServerConsoleView: View {
     }
     .frame(width: 720, height: 480)
     .environment(AppModel())
-}
-
-
-/// 独立控制台窗口的内容。
-///
-/// 共享主窗口的 `AppModel`（因此 `ServerConsoleModel` 是同一份），
-/// 只是换一个窗口展示；`WindowGroup(for: ConsoleTarget.self)` 由 `openWindow(value:)` 打开。
-struct ConsoleWindowView: View {
-    @Environment(AppModel.self) private var app
-    let target: ConsoleTarget
-
-    var body: some View {
-        NavigationStack {
-            ServerConsoleView(
-                title: target.title,
-                console: app.console(for: target),
-                target: target
-            )
-        }
-        .frame(minWidth: 720, minHeight: 420)
-    }
 }

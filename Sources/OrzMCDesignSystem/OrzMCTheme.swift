@@ -45,7 +45,8 @@ public enum OrzMCTheme {
 
     public enum Typography {
         /// 控制台正文（等宽，跟随系统字号）。
-        public static let console = Font.system(.caption, design: .monospaced)
+        /// `.caption` 在 macOS 上约 10pt——日志是主要阅读面，用 `.subheadline` 更接近终端字号。
+        public static let console = Font.system(.subheadline, design: .monospaced)
         /// 控制台输入（等宽，正文大小）。
         public static let consoleInput = Font.system(.body, design: .monospaced)
         /// 路径 / ID 等等宽文本。
@@ -78,5 +79,9 @@ public enum OrzMCTheme {
         public static let consoleBorder = Color.primary.opacity(0.10)
         /// 分割线（比系统 Divider 略明显一点，用于按钮分组）。
         public static let separator = Color.secondary.opacity(0.25)
+        /// 面板填充（macOS 26 以下作为液态玻璃的回退外观）。
+        public static let panelFill = Color.primary.opacity(0.045)
+        /// 面板描边。
+        public static let panelBorder = Color.primary.opacity(0.08)
     }
 }

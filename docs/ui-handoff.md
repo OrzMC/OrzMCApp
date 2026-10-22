@@ -48,16 +48,12 @@ macOS 启动器的 UI/交互刷新已经完成一轮，**macOS / iOS 构建、�
 
 ---
 
-## 2. 当前 `air` 运行状态
+## 2. 当前本机运行状态
 
-- 构建产物：`~/orzmc-build/app-dd/Build/Products/Debug/OrzMC.app`
-- 启动方式：`scripts/air/run.sh app-run`
-- 最近验证：窗口 `Minecraft - 26.3`，Settings 打开（标题「通用」）后关闭，进程未崩溃。
-- **限制**：SSH 会话的 `screencapture` 被 TCC 拒绝（`could not create image from display`），
-  无法截图。可用 AppleScript / System Events 读窗口、菜单、UI 元素；真正的视觉验收需要
-  维护者在 `air` 的登录桌面会话里看。
-- `air` 的 GUI 会话用户是 `joker`（uid 501）；`launchctl print gui/501` 正常。
-- **不要**动生产目录 `E:\orzmc`（Windows）或 `air` 上无关的目录。
+- 构建产物：`~/Library/Developer/Xcode/DerivedData/OrzMC-local/Build/Products/Debug/OrzMC.app`
+- 启动方式：`scripts/swift-check.sh app-run`
+- 自动构建和测试均直接使用当前本机工作树；不通过 SSH，也不复制工作树。
+- 视觉验收由维护者在本机桌面会话完成；截图由维护者操作。
 
 ---
 
@@ -236,22 +232,22 @@ swift/app/
 cd /Users/bot/OrzMC
 
 # macOS（增量 ~17s）
-scripts/air/run.sh app
+scripts/swift-check.sh app
 
 # iOS Simulator（~1m）
-scripts/air/run.sh app-ios
+scripts/swift-check.sh app-ios
 
 # 平台无关单测
-scripts/air/run.sh app-test
+scripts/swift-check.sh app-test
 
 # 平台分层（Sources/ 不得 import AppKit/UIKit）
 cd swift/app && ./scripts/check-platform-split.sh
 
 # 在 air 上打开最新产物（GUI）
-cd /Users/bot/OrzMC && scripts/air/run.sh app-run
+scripts/swift-check.sh app-run
 ```
 
-最近一次结果：
+历史验收结果：
 
 - `app`：BUILD SUCCEEDED
 - `app-ios`：BUILD SUCCEEDED
@@ -260,21 +256,9 @@ cd /Users/bot/OrzMC && scripts/air/run.sh app-run
 - `Localizable.xcstrings`：JSON 合法
 - Settings 打开/关闭：`air` 上验证无崩溃
 
-### 7.1 用 AppleScript 检查窗口/菜单（air）
+### 7.1 桌面检查
 
-```bash
-ssh air 'osascript -e "tell application \"System Events\" to tell process \"OrzMC\" to get {frontmost, count of windows, name of windows}"'
-```
-
-打开 Settings：
-
-```bash
-ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
-  -e "delay 1" \
-  -e "tell application \"System Events\" to keystroke \",\" using command down"'
-```
-
-> `air` 上 `screencapture` 被 TCC 拒绝；不要试图用 `screencapture` 做验收，改用维护者桌面会话。
+在当前桌面会话直接操作窗口和菜单；截图由维护者操作，不经 SSH。
 
 ---
 
@@ -289,7 +273,7 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
    - `feat(l10n): add zh-Hans string catalog`
    - `chore(deps): remove unused SwiftUIX / FeedbackToAuthor`
    - `docs(ui): add UI review and handoff docs`
-3. 跑 `scripts/air/run.sh app|app-ios|app-test` + `check-platform-split.sh`。
+3. 跑 `scripts/swift-check.sh app|app-ios|app-test` + `check-platform-split.sh`。
 4. 推分支 → PR（子模块自己的 CI）→ 合并。
 5. 回父仓库：
    ```bash
@@ -312,7 +296,7 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
 当前状态：
 - swift/app 在 main 分支，有约 42 个文件的未提交改动（37 个已跟踪修改 + 5 个新文件，删除 FeedbackToAuthor.swift）。
 - 主线已完成：Settings 崩溃修复、单启动器 Window + 控制台 WindowGroup + 远程 Window、侧边栏/详情信息架构、启动区压缩、文本输入框统一、设计系统、本地化（zh-Hans 220 条）、控制台搜索/导出/独立窗口、插件 searchable、Exaroton 列表/详情/额度池美化。
-- 最近验证：scripts/air/run.sh app / app-ios / app-test / check-platform-split.sh 全绿；air 上 Settings 打开/关闭无崩溃。
+- 最近验证：scripts/swift-check.sh app / app-ios / app-test / check-platform-split.sh 全绿；air 上 Settings 打开/关闭无崩溃。
 - 改动尚未提交/推送，父仓库未 bump 指针。
 
 硬约束：
@@ -334,17 +318,17 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
    - Settings 四页、停止全部、Console 生命周期是否仍正常。
 3. 只修视觉/交互问题；每改一处说明“改了什么、为什么、如何验证”。不要顺手重构无关代码。
 4. 每次修改后跑：
-   scripts/air/run.sh app
-   scripts/air/run.sh app-ios
-   scripts/air/run.sh app-test
+   scripts/swift-check.sh app
+   scripts/swift-check.sh app-ios
+   scripts/swift-check.sh app-test
    cd swift/app && ./scripts/check-platform-split.sh
 5. 把新发现与验证结果追加到 swift/app/docs/ui-handoff.md 的“待办/验收”或“会话记录”，不要覆盖历史。
 6. 维护者确认后再开 feat/ui-refresh 分支、按主题提交、推 PR；提交信息用 Conventional Commits + 中文，多行信息写文件后 git commit -F。
 
-如果 air 的 GUI 看不到窗口：
-- 用 ssh air 'osascript -e "tell application \"OrzMC\" to activate"'；
-- 用 System Events 读 {frontmost, count of windows, name of windows}；
-- 不要用 screencapture（TCC 拒绝），需要截图时请维护者在桌面会话操作。
+如果本机 GUI 看不到窗口：
+- 在本机桌面会话直接打开 `OrzMC`；
+- 由维护者在桌面会话检查窗口状态；
+- 截图由维护者在桌面会话操作，不通过 SSH。
 ```
 
 ---
@@ -382,9 +366,9 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
 5. `ExarotonContent.swift`：接回错误/操作结果 alert。旧 GameInfoView 被移除时这两类消息无人展示；现在放到共用远程入口，运行时消息用 verbatim。macOS/iOS 构建通过；未故意触发线上失败或远程动作。
 
 **本轮验证（全部修正后的工作树）**
-- `scripts/air/run.sh app`：BUILD SUCCEEDED；日志 `/tmp/orzmc-ui-verified-macos.log`。
-- `scripts/air/run.sh app-ios`：BUILD SUCCEEDED；日志 `/tmp/orzmc-ui-verified-ios.log`。
-- `scripts/air/run.sh app-test`：13 tests / 2 suites 全通过；日志 `/tmp/orzmc-ui-verified-tests.log`。
+- `scripts/swift-check.sh app`：BUILD SUCCEEDED；日志 `/tmp/orzmc-ui-verified-macos.log`。
+- `scripts/swift-check.sh app-ios`：BUILD SUCCEEDED；日志 `/tmp/orzmc-ui-verified-ios.log`。
+- `scripts/swift-check.sh app-test`：13 tests / 2 suites 全通过；日志 `/tmp/orzmc-ui-verified-tests.log`。
 - `cd swift/app && ./scripts/check-platform-split.sh`：通过。
 - `git diff --check`、字符串 JSON/占位符校验：通过。
 - 构建脚本同步时有 `.build/checkouts/BlueSocket: not empty, cannot delete` 警告，未影响本轮成功结果；未改父仓库构建脚本。
@@ -395,10 +379,10 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
 - 修正前产物 Remote 窗口：1 台服务器 + 1 个额度池；列表 → 详情、列表 → 额度池导航成功，详情地址复制按钮与 Actions 可访问。服务器离线，未启动/停止/重启或更改 RAM，也未读取或修改 Token。
 - Remote 实际尺寸：960 宽可设置；请求 1200 宽被桌面裁至 1129 宽（高度请求 700，实际 694）。不能将此记为 1200 宽验收通过。
 
-**新增发现 / 待办（未确认通过的项目）**
+**剩余验收 / 待办**
 - [ ] **视觉证据缺失**：未调用 screencapture。Launch 高度/对齐、Settings/Launch 字段宽度与焦点环、中文是否截断、Remote Actions/Console/额度池观感仍须维护者在桌面会话截图或目视确认；真正 1200 宽需更宽桌面。
-- [ ] **中文遗漏实测**：Remote 玩家标签读到 `0/20 players`（资源登记 `%lld/%lld players`，需核对 API 整数插值格式）；本地目录标题与说明（Server Folder / World / Logs / Mods 等）仍英文，来自运行时目录数据；额度 accessibility 文案仍 `280.52 credits`。不可宣称 222 条资源等于 UI 全中文。
-- [ ] **MOTD**：可访问性内容直接含 Minecraft `§` 格式码，待桌面核对显示并做独立显示层处理。
+- [x] **中文遗漏**：Remote 玩家计数和本地目录标题/说明已接入中文资源；Air AX 复核玩家计数为 `0/20 名玩家`。额度 accessibility 文案仍 `280.52 credits`，不能据此宣称 UI 全中文。
+- [x] **MOTD**：展示内容移除 Minecraft `§` 样式码；Air 最终构建 AX 值已确认不含样式码。
 - [ ] **控制台深验**：带实际日志的搜索命中/清除、实际导出写入与失败反馈、满 2000 行后的 Follow、运行中关闭/重开主窗口和控制台的探活/生命周期。
 - [ ] **停止全部**：本轮仅审查确认入口和忙碌状态；未启动受控服务端进行实际 Stop All/Terminate All 验证。
 - [ ] **窗口关闭风险（代码审查）**：monitor task 仍绑定主 LauncherUI 生命周期；仅保留控制台时是否继续探活应做真机验证，本轮未改架构。
@@ -433,3 +417,29 @@ ssh air 'osascript -e "tell application \"OrzMC\" to activate" \
 - 父仓库组合校验通过；git diff --check 通过。
 - 仅复验现有实现；三技能审查建议仍待后续实施，视觉验收边界不变。
 - 清理保留仍在运行的 macOS app-dd/Build/Products；其余本次 app 构建缓存与旧交接包已授权在推送核验后移除。
+
+
+## 会话记录：2026-10-22 Air UI 交互修正
+
+- 工作区：`feat/ui-refresh`，基线 `b13b422`，远端分支无领先/落后；父仓库 `feat/ui-refresh-handoff` 与远端一致，gitlink 仍为 `b13b422`。未提交、未推送、未合并、未发版。父工作树原有 `tools/OrzMCBackup` 修改完整保留。
+- 使用 `apple-native-product-design`、`swiftui-pro`、`swift-concurrency-pro`；复核官方 HIG Motion/Loading 与 AppKit 用户滚动通知。
+- 做了什么：Follow 用户上滚暂停/未读数/回到底部；远程动作按服务器防重入和局部“请求中/已提交”反馈；目录草稿验证后提交；远程日志稳定缓冲/清空；内嵌 Console 随版本切换退出；RAM 保存/还原；远程列表刷新与空/错状态；等待与断线状态；目录和 MOTD 视觉本地化清理；提示条补完整 AX label。
+- 桌面验证：新建 macOS 产物已在 Air 运行；Settings 四页均可到达；相对路径编辑后不提交，Escape 恢复原值；在 Console 26.3 切换侧栏 26.2 后详情显示 26.2；远程服务器与额度池列表可见，离线服务器详情显示操作和内存状态，MOTD 无 `§` 样式码。没有操作真实远程生命周期，也没有截屏。
+- 回归测试：新增远程日志缓冲 2 项测试（清空后旧行不返、满缓冲稳定 ID）；`swift test` 共 51 个 Launcher XCTest + 1 个 DesignSystem XCTest，RemoteHosting 测试另含新增用例。初次执行的客户端输出等待超时在重跑中通过。
+- 构建状态以本轮最终记录为准：macOS 与 iOS 最终增量构建均 `BUILD SUCCEEDED`。平台分层、父组合校验、字符串 JSON、`git diff --check` 已通过。
+- 尚需：有日志控制台 Follow、远程请求重入/失败和 RAM 失败的受控验证；960/1200pt 页面、亮暗模式和焦点环由维护者桌面视觉验收。PR 继续保持草稿；不自动合并或发版。
+
+### 2026-10-22 — Codex：Air 桌面部分验收
+
+- 实际操作当前桌面进程并读取 AX 树：控制台 Follow 开关与「回到最新」恢复可用；设置目录错误提示为中文，Escape 恢复已保存目录；四个设置 pane 可到达；Remote 离线详情正确禁用停止/重启并保留启动。
+- 代码审查发现 BasicInfo 的动态 Help tooltip 仍为英文（控制台入口 AX 值为 `Open Client console`）；详情见 `ui-review-2026-10-22.md`。定向并发审查未见明显竞态。
+- `scripts/swift-check.sh app` 因当前 SSH `air` 不可达而无法本轮重建；平台分层与 `git diff --check` 通过。上次 macOS/iOS 最终构建及 app-test 通过记录有效，但不是本轮构建证据。
+- 未截图、未启停远程服务器、未改变 RAM。真实日志滚动/满缓冲、远程动作失败恢复、窗口尺寸/亮暗/焦点视觉仍未验收；需维护者在桌面会话操作截图。故仅功能/AX 部分通过，视觉验收仍未完成。
+
+
+### 2026-10-22 — 本机 Swift 检查入口切换
+
+- **改动**：新增父仓库 `scripts/swift-check.sh`，直接在当前工作树运行 OrzMCKit CLI 的 build/test/accept 与 app 的 macOS/iOS/app-test；移除 `scripts/air/run.sh` 的 SSH/rsync/远端缓存逻辑，并将 pre-push 与当前操作文档切换到本机命令。
+- **原因**：后续本机迭代不再依赖 SSH alias、远端工作树或同步镜像，避免运行本地工作树时发生 `rsync --delete` 覆盖风险。
+- **验证**：本机环境探测通过；app-test 73 项通过；macOS 与 iOS Simulator 由新入口构建成功；脚本 shell 语法、平台分层检查、两仓 `git diff --check` 通过。OrzMCKit CLI build/test/release 构建与共享验收通过；133 + 1 项测试、25/25 acceptance 通过。用户追加要求清理两份运行实例并重建，现两进程与旧目录均已清除；macOS/iOS 冷构建及 app-test 73 项再次通过，产物位于默认本机 DerivedData。
+- **数据清理**：删除旧 `~/orzmc-build` 内的 CLI/依赖构建镜像及状态文件（约 7.1 GB），并移除空 `~/orzmc-handoff`。用户随后要求退出两个旧 app 并重建。已发送 TERM 并确认两个进程退出，彻底删除 `~/orzmc-build`、`/tmp/orzmc-ui-dd` 与旧 iOS DerivedData；现由默认本机 DerivedData 重建。

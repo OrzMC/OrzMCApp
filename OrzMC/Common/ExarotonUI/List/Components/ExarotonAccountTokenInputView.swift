@@ -15,6 +15,7 @@ struct ExarotonAccountTokenInputView: View {
     var onCancel: () -> Void = {}
 
     @State private var isRevealed = false
+    @FocusState private var tokenFieldFocused: Bool
 
     private var trimmedToken: String {
         token.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -31,16 +32,18 @@ struct ExarotonAccountTokenInputView: View {
             }
 
             HStack(spacing: OrzMCTheme.Spacing.sm) {
+                // 单行字段：多行 `TextField(axis: .vertical)` 在 HStack 里与右侧眼睛按钮垂直错位，
+                // 显示/隐藏时高度还会跳。令牌本来也不需要换行。
                 Group {
                     if isRevealed {
-                        TextField("TOKEN", text: $token, axis: .vertical)
+                        TextField("TOKEN", text: $token)
                     } else {
                         SecureField("TOKEN", text: $token)
                     }
                 }
                 .textFieldStyle(.roundedBorder)
-                .font(.body)
-                .lineLimit(3, reservesSpace: false)
+                .font(.body.monospaced())
+                .focused($tokenFieldFocused)
                 .autocorrectionDisabled()
 #if os(iOS)
                 .textInputAutocapitalization(.never)
@@ -48,7 +51,7 @@ struct ExarotonAccountTokenInputView: View {
 #endif
 
                 Button {
-                    isRevealed.toggle()
+                    toggleReveal()
                 } label: {
                     Image(systemName: isRevealed ? "eye.slash" : "eye")
                 }
@@ -69,6 +72,17 @@ struct ExarotonAccountTokenInputView: View {
         }
         .padding(OrzMCTheme.Spacing.lg)
         .frame(minWidth: 320, maxWidth: 460)
+        .onAppear { tokenFieldFocused = true }
+    }
+
+    /// 显示/隐藏会在 `SecureField` 与 `TextField` 之间换控件，焦点会丢；
+    /// 换完后把焦点放回输入框（已输入的内容由父级 binding 保留）。
+    private func toggleReveal() {
+        isRevealed.toggle()
+        Task { @MainActor in
+            await Task.yield()
+            tokenFieldFocused = true
+        }
     }
 }
 

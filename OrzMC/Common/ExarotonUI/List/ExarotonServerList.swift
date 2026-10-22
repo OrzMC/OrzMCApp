@@ -19,7 +19,6 @@ struct ExarotonServerList: View {
     @Environment(ExarotonServerModel.self) private var model
 
     @State private var token: String = ""
-    @State private var isLoading = false
     @State private var showTokenInput = false
 
     private var isEmpty: Bool {
@@ -28,6 +27,13 @@ struct ExarotonServerList: View {
 
     var body: some View {
         List {
+            if let message = model.listLoadError, !isEmpty {
+                Section {
+                    OrzMCBanner(verbatim: message, role: .error)
+                    Button("Retry") { Task { await model.reloadList() } }
+                        .disabled(model.isLoadingList)
+                }
+            }
             if !model.servers.isEmpty {
                 Section {
                     ForEach(model.servers, id: \.id) { server in
@@ -66,7 +72,7 @@ struct ExarotonServerList: View {
 #endif
         .navigationTitle("Exaroton")
         .overlay {
-            if isLoading {
+            if model.isLoadingList {
                 ProgressView()
                     .controlSize(.large)
                     .padding(OrzMCTheme.Spacing.lg)
@@ -75,32 +81,45 @@ struct ExarotonServerList: View {
                 ContentUnavailableView {
                     Label("No remote servers", systemImage: "server.rack")
                 } description: {
-                    Text("Sign in with your exaroton account token to manage remote servers here.")
-                } actions: {
-                    Button("Add Account Token…") {
-                        showTokenInput = true
+                    if model.token.isEmpty {
+                        Text("Sign in with your exaroton account token to manage remote servers here.")
+                    } else if let message = model.listLoadError {
+                        Text(verbatim: message)
+                    } else if model.hasLoadedList {
+                        Text("This account has no servers or credit pools.")
                     }
-                    .buttonStyle(.borderedProminent)
+                } actions: {
+                    if model.token.isEmpty {
+                        Button("Add Account Token…") { showTokenInput = true }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Retry") { Task { await model.reloadList() } }
+                    }
                 }
             }
         }
+#if os(iOS)
+        // macOS 的 List 没有下拉刷新，`.refreshable` 在这里只是个不会执行的装饰；工具栏已有刷新。
         .refreshable {
-            await fetchData()
+            await model.reloadList()
         }
+#endif
         .toolbar {
             ToolbarItemGroup {
 #if os(macOS)
                 Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await fetchDataWithLoading() }
+                    Task { await model.reloadList() }
                 }
-                .keyboardShortcut(.init(.init("r")), modifiers: .command)
+                .keyboardShortcut("r", modifiers: .command)
                 .help("Reload remote servers")
+                .disabled(model.isLoadingList)
 #endif
                 Button("Account", systemImage: "key") {
                     token = model.token
                     showTokenInput = true
                 }
                 .help("Change exaroton account token")
+                .disabled(model.isLoadingList || model.gate.isBusy)
             }
         }
         .sheet(isPresented: $showTokenInput) {
@@ -113,14 +132,12 @@ struct ExarotonServerList: View {
             .presentationDetents([.height(320)])
             .presentationCornerRadius(OrzMCTheme.Radius.lg)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
-            .interactiveDismissDisabled(isLoading)
+            .interactiveDismissDisabled(model.isLoadingList)
         }
         .task {
             token = model.token
-            if model.token.isEmpty {
-                showTokenInput = true
-            } else {
-                await fetchDataWithLoading()
+            if !model.token.isEmpty {
+                await model.reloadList()
             }
         }
         .navigationDestination(for: ExarotonServer.self) { server in
@@ -136,26 +153,23 @@ extension ExarotonServerList {
     private func saveToken() {
         let validToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !validToken.isEmpty else { return }
+        guard !model.isLoadingList else { return }
+        if validToken != model.token {
+            model.servers = []
+            model.creditPools = []
+            model.hasLoadedList = false
+            model.actionMessages = [:]
+            model.actionErrors = [:]
+            model.savedMemory = [:]
+            model.memoryRevision = [:]
+            model.memoryErrors = [:]
+            model.memoryLoadErrors = [:]
+            model.gate.reset()
+            model.path = NavigationPath()
+        }
         model.token = validToken
         showTokenInput = false
-        Task { await fetchDataWithLoading() }
-    }
-
-    func fetchDataWithLoading() async {
-        isLoading = true
-        await fetchData()
-        isLoading = false
-    }
-
-    func fetchData() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await model.fetchServers()
-            }
-            group.addTask {
-                await model.fetchCreditPools()
-            }
-        }
+        Task { await model.reloadList() }
     }
 }
 

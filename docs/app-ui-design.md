@@ -1,6 +1,6 @@
 # macOS 启动器：UI 信息架构、设计系统与改进路线
 
-> **状态**：生效中｜**最后更新**：2026-10-21
+> **状态**：生效中｜**最后更新**：2026-10-22
 > **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/ExarotonUI/**` + `Sources/OrzMCDesignSystem/**`
 > **交接**：[`ui-handoff.md`](ui-handoff.md)（给下一个 agent 的状态/待办/提示词）。
 > **关联**：[`app-launcher-architecture.md`](app-launcher-architecture.md)（模型职责）、
@@ -11,6 +11,37 @@
 > 设计令牌与状态组件的实现见 `Sources/OrzMCDesignSystem/`。
 
 ---
+
+## 字段与行布局约定（2026-10-22 视觉复审后固化）
+
+这几条来自实际踩到的观感问题，新增/修改界面时按此执行：
+
+1. **表单行一律用 `LabeledContent`**，并套 `.labeledContentStyle(.orzMCFieldRow)`（设计系统里固定 96pt 标签列）。
+   macOS 默认标签列会撑到约半行宽，1200pt 窗口下标签与控件被拉到两端；手写 `HStack` 行则会让左边缘参差
+   （详情页"启动区排布混乱"就是这两件事叠加）。
+2. **字段标签 = `LabeledContent` 的行标签**，`TextField` 自身标题留空 + 给示例 `prompt`
+   （例：`TextField("", text:, prompt: Text("Absolute path"))`）。
+   **必须同时 `.labelsHidden()`**：空标题在 `Form` 里仍会占一个标签列，输入框会被推到右边
+   （2026-10-22 截图确认，这就是"输入框文字对齐异常"的根因）。
+   再用 `.multilineTextAlignment(.leading)` 显式左对齐——表单默认把"值"右对齐（数值字段才用 `.trailing`）。
+3. **行内混排文字与控件用 `.firstTextBaseline`**（例：`0 – 2G` 内存输入）。
+   纯控件行（输入框 + 按钮）保持默认 `.center`，但要给无内边距的 `.plain` 字段补 `padding(.vertical)`。
+4. **等宽文字与相邻控件同字号**：路径/令牌用 `.font(.body.monospaced())`，
+   不要用 `.caption` 等宽（比按钮文字小一号，看着“没对齐”）。
+5. **数值输入右对齐**：`.multilineTextAlignment(.trailing)`。
+6. **主操作单独成行、跨满宽度**（`.frame(maxWidth: .infinity)` + `.borderedProminent`），
+   不塞进带输入控件的 `LabeledContent`——否则文案一变宽窄就挤压输入框。
+7. **侧边栏行**：图标与两行文字整体居中对齐（不要 `.firstTextBaseline` 装 SF Symbol，会低半格）；
+   第二行固定最小高度（空内容也占位），行高不随“是否安装”跳动；
+   侧边栏里不用胶囊标签，已装内容用次要文本。
+8. **作用于列表的过滤/刷新放在列表自己的顶部**，与搜索框同一行、用单图标按钮（2026-10-22 起）：
+   `SidebarSearchBar`（放大镜搜索 + 只看正式版 + 刷新）。不要挂到窗口工具栏，也不用 `.searchable`
+   （系统搜索框右侧插不进自定义按钮）。
+   不要挂到窗口工具栏；开关用 `.switch`（有明确开/关语义），加载中不要替换图标（宽度会跳）。
+9. **工具栏只留当前主动作**；低频/破坏性动作进 `Menu`（控制台：生命周期常驻，
+   打开新窗口/导出/清空进溢出菜单）。
+10. **焦点成组**：每个表单/面板加 `.focusSection()`，避免 Tab 在侧边栏、表单、工具栏之间乱跳。
+
 
 ## 1. 信息架构与跳转流程
 
@@ -201,9 +232,9 @@ Settings {
 
 ### 4.3 回归验证
 
-- `scripts/air/run.sh app`：macOS 构建通过。
-- `scripts/air/run.sh app-ios`：iOS 模拟器构建通过（共享 Exaroton UI 也一起编）。
-- `scripts/air/run.sh app-test`：平台无关单测通过。
+- `scripts/swift-check.sh app`：macOS 构建通过。
+- `scripts/swift-check.sh app-ios`：iOS 模拟器构建通过（共享 Exaroton UI 也一起编）。
+- `scripts/swift-check.sh app-test`：平台无关单测通过。
 - AppleScript 检查菜单（air 系统语言为中文，验证了本地化）：
   - `设置…` / `显示边栏` / `全部停止服务器…` / `显示主窗口` 均存在；
   - 没有 File 菜单 / New Window；
@@ -289,17 +320,54 @@ Settings {
 
 ```bash
 # macOS app（增量 ~17s）
-scripts/air/run.sh app
+scripts/swift-check.sh app
 
 # iOS 模拟器（~1m）
-scripts/air/run.sh app-ios
+scripts/swift-check.sh app-ios
 
 # 平台无关单测
-scripts/air/run.sh app-test
+scripts/swift-check.sh app-test
 
 # 平台分层（Sources/ 不得 import AppKit/UIKit）
 ./scripts/check-platform-split.sh
 
 # 在 air 上打开（需要登录桌面会话；SSH 会话可能没有 WindowServer）
-scripts/air/run.sh app-run
+scripts/swift-check.sh app-run
 ```
+
+
+## 8.0 面板与列表行（2026-10-22 第八轮）
+
+- **详情页 = 滚动视图 + 玻璃面板**：`.orzMCPanel()`（macOS/iOS 26+ 为 `glassEffect`，更老系统为等效填充 + 细描边）。
+  不再用 `Form(.grouped)` 承载启动/实例面板——`Form` 的标签列会让控件左右飘。
+- **版本列表行（方案 B）**：`版本号 + [最新]` / `发布日期（今天·昨天·N 天前）· 已装内容`；
+  日期判定在 `VersionDateText`（`Sources/OrzMCLauncher`，可单测），文案在视图层本地化。
+- **清单刷新时间**：侧边栏底部小字（`VersionCatalogModel.lastRefreshedAt`，持久化）。
+- **筛选行**：搜索框 `minHeight 30` + 图标按钮 30–34pt；侧边栏可拖拽 260–520pt。
+
+## 8.1 本机 UI 快照（不依赖屏幕录制权限）
+
+调试构建内置了窗口快照，用来对照 960/1200pt 与亮暗外观（应用渲染自己的窗口，无需 TCC 授权）：
+
+```bash
+# 一次性：截完自动退出
+open -n <OrzMC.app> --args --snapshot /tmp/ui --snapshot-size 1200x742
+
+# 常驻监听（推荐）：应用保持运行，写请求文件即可反复出图
+open -n <OrzMC.app> --args --snapshot-watch /tmp/shots
+echo '{"prefix":"/tmp/shots/dark-1200","size":"1200x742","appearance":"dark"}' > /tmp/shots/request.json
+echo '{"prefix":"/tmp/shots/light-set","size":"960x593","appearance":"light","settings":true,"settingsTab":"general"}' > /tmp/shots/request.json
+```
+
+输出 `<prefix>-<序号>.png`（窗口合成图）与 `<prefix>-<序号>-cached.png`（视图自绘）：
+SwiftUI 的 `List`（侧边栏）只在合成图里出现，而窗口被遮挡时合成图可能是空白 —— 两份对照看。
+仅 `DEBUG` 编译，Release 不含该代码。
+
+## 9. 2026-10-22 交互与桌面复核补充
+
+- Follow 仅在用户滚动时离开底部暂停；展示未读数与“回到最新”入口，日志追加无动画。macOS 14 通过 `NSScrollView.didLiveScrollNotification` 识别用户滚动；回到底部使用短动画，系统减少动态效果时即时定位。
+- 远程服务器动作以 MainActor 模型按服务器 ID 互斥；进行中显示请求状态，接受后显示非模态“请求已提交”，服务器最终状态仍由远端数据确认。内存步进器编辑草稿，显式保存或还原；请求期间禁用冲突操作。
+- 游戏目录输入先保存在草稿中；Return/应用执行绝对路径和文件类型校验后才更新 `AppModel.rootDir`。选择目录与恢复默认仍直接提交，Escape 恢复已提交值。
+- Exaroton 日志改为稳定 ID 的有界缓冲，清空只清当前显示缓冲，新输出不会带回旧行。连接等待显示中性进度，断线显示重连入口。
+- 切换版本会退出旧实例的内嵌控制台，独立控制台仍由固定 `ConsoleTarget` 窗口展示。Settings 最小窗口保持可滚动，并允许增大。
+- 当前工作树 macOS / iOS 构建与测试待本轮最终验证；父仓库组合校验通过。真实服务器动作与有日志控制台 Follow 尚未通过受控测试验证；960/1200pt 布局、深浅色与焦点环仍需要维护者桌面视觉检查，本轮未生成或要求截图。

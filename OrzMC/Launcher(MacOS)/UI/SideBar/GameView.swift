@@ -26,25 +26,23 @@ struct GameView: View {
     var body: some View {
         @Bindable var catalog = app.catalog
 
-        GameList(
-            versions: catalog.filtered,
-            selectedVersion: $catalog.selected,
-            installStates: catalog.installStates,
-            isOnlyRelease: catalog.releaseOnly,
-            canUseShortcut: !app.launch.isLaunching
-        )
-        .sideBarTool(
-            showOnlyRelease: $catalog.releaseOnly,
-            isFetchingGameVersions: Binding(
-                get: { catalog.isLoading },
-                set: { _ in }
+        VStack(spacing: 0) {
+            sidebarHeader
+            GameList(
+                versions: catalog.filtered,
+                selectedVersion: $catalog.selected,
+                installStates: catalog.installStates,
+                latestReleaseId: catalog.latestReleaseId,
+                latestSnapshotId: catalog.latestSnapshotId,
+                isOnlyRelease: catalog.releaseOnly,
+                canUseShortcut: !app.launch.isLaunching
             )
-        ) {
-            Task { await app.loadVersions() }
+            // 键盘导航装在**列表**上：↑/↓ 走一格、⌘↑/⌘↓ 跳首末；
+            // 正在编辑文本（搜索框等）时不拦截，方向键仍归输入框。
+            .versionListKeyboardNavigation { delta, jumpToEdge in
+                catalog.stepSelection(by: delta, jumpToEdge: jumpToEdge)
+            }
         }
-        // 侧边栏里的搜索：用 `.sidebar` 让系统把它放在列表上方（macOS 14 侧边栏样式），
-        // 而不是挤进窗口工具栏、和右侧详情的按钮抢位置。
-        .searchable(text: $catalog.searchText, placement: .sidebar, prompt: "Filter a version")
         .task {
             guard catalog.versions.isEmpty else { return }
             await app.loadVersions()
@@ -52,7 +50,7 @@ struct GameView: View {
         .toolbar {
             ToolbarItem {
                 Button {
-                    // 远程托管是独立的管理面，用独立窗口承载，不混进“本机实例”的导航栈。
+                    // 远程托管是独立的管理面，用独立窗口承载，不混进"本机实例"的导航栈。
                     openWindow(id: "remote")
                 } label: {
                     Label("Remote Servers", systemImage: "server.rack")
@@ -61,131 +59,231 @@ struct GameView: View {
             }
         }
     }
+
+    /// 侧边栏顶部：搜索行 + 清单更新时间。
+    ///
+    /// 不画分隔线、不加不透明背景：让"搜索 → 更新时间 → 列表"读起来是**一整块**，
+    /// 而不是被线切成三段。
+    private var sidebarHeader: some View {
+        @Bindable var catalog = app.catalog
+
+        return VStack(alignment: .leading, spacing: 4) {
+            SidebarSearchBar(
+                searchText: $catalog.searchText,
+                releaseOnly: $catalog.releaseOnly,
+                isLoading: catalog.isLoading
+            ) {
+                Task { await app.loadVersions() }
+            }
+
+            HStack(spacing: 5) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.caption2)
+                    .accessibilityHidden(true)
+                Text(refreshSummary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 2)
+        }
+        .padding(.bottom, 4)
+    }
+
+    private var refreshSummary: String {
+        guard let date = app.catalog.lastRefreshedAt else {
+            return String(localized: "Version info not refreshed yet")
+        }
+        let day = GameList.dayText(VersionDateText.day(for: date))
+        let time = VersionDateText.timeText(for: date)
+        return String(localized: "Version info updated \(day) \(time)")
+    }
 }
 
-/// 当前版本的启动配置（放在详情页 `Form` 的顶部）。
+/// 当前版本的启动面板（详情页 `Form` 的第一段）。
 ///
-/// 返回 `Section`，由 `BasicInfo` 的 `Form` 直接使用；所有控件用系统组件：
-/// `LabeledContent` / `Picker(.segmented/.menu)` / `TextField(.roundedBorder)` / `OrzMCBanner`。
+/// 设计（2026-10-22 第七轮）：
+/// - **主按钮放在卡片标题栏右侧**：不打游戏版本、不用滚到底，一眼能看到"要启动什么"；
+/// - 用 `Grid` 固定 96pt 标签列 + 控件列，不再依赖 `LabeledContent`（那是"总是对不齐"的根源：
+///   分段控件/菜单/输入框各自带不同的内边距）；
+/// - 行顺序即操作顺序：类型（客户端/服务端 + 二级类型）→ 玩家名 → Java；
+/// - 服务端模式下"玩家名"行不消失，而是显示一句说明，面板高度稳定、不会跳。
 struct LaunchControls: View {
-
     @Environment(AppModel.self) private var app
 
+    private let labelWidth: CGFloat = 96
+
     var body: some View {
-        Section {
-            if let version = app.catalog.selected {
-                content(for: version)
+        VStack(alignment: .leading, spacing: 10) {
+            header
+
+            Divider()
+
+            if app.catalog.selected != nil {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
+                    typeRow
+                    identityRow
+                    javaRow
+                }
             }
-        } header: {
+
+            if app.launch.progress.isRunning {
+                HStack(spacing: OrzMCTheme.Spacing.xs) {
+                    ProgressView().controlSize(.small)
+                    Text(app.launch.progress.summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+            }
+
+            if let message = app.settings.memoryValidationMessage {
+                OrzMCBanner("Invalid memory setting: \(message)", role: .error)
+            }
+        }
+        .padding(16)
+        // macOS 26 起是液态玻璃，老系统是等效的填充 + 细描边（见 `OrzMCPanel`）。
+        .orzMCPanel()
+        .focusSection()
+    }
+
+    /// 卡片标题栏 = 标题 + 主按钮（始终在同一个位置）。
+    private var header: some View {
+        HStack(alignment: .center, spacing: OrzMCTheme.Spacing.sm) {
             Label("Launch", systemImage: "play.circle")
-        }
-    }
-
-    @ViewBuilder
-    private func content(for version: Version) -> some View {
-        // 一行：版本 + 模式。避免“Game Version / Mode”两整行占高度。
-        HStack(spacing: OrzMCTheme.Spacing.sm) {
-            Text(version.id)
-                .font(OrzMCTheme.Typography.numeric.weight(.semibold))
-            OrzMCTag(version.localizedBuildTypeTitle)
-
-            Spacer(minLength: OrzMCTheme.Spacing.sm)
-
-            Picker("Mode", selection: modeBinding) {
-                ForEach(GameMode.allCases) { mode in
-                    Text(modeLabel(mode)).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
-            .frame(width: 170)
-            .disabled(app.launch.isLaunching)
-        }
-
-        // 一行：Java 状态。比原来的三行（标题 / 已装 / 需要）省一半高度。
-        if app.java.isVisible {
-            javaStatusRow
-        }
-
-        // 一行：客户端用户名 / 服务端核心 + Start。
-        if app.gameMode == .client {
-            LabeledContent("Username") {
-                HStack(spacing: OrzMCTheme.Spacing.sm) {
-                    TextField("", text: usernameBinding, prompt: Text("Offline player name"))
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
-                        .textContentType(.username)
-                        .autocorrectionDisabled()
-                        .onSubmit { app.start() }
-                        .disabled(app.launch.isLaunching)
-                    startButton
-                }
-            }
-        } else {
-            HStack(spacing: OrzMCTheme.Spacing.sm) {
-                Text("Core")
-                    .foregroundStyle(.secondary)
-                Picker("Server Core", selection: serverSoftwareBinding) {
-                    ForEach(SettingsModel.ServerSoftware.allCases) { software in
-                        Text(software.rawValue).tag(software)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .disabled(app.launch.isLaunching)
-                Spacer(minLength: 0)
-                startButton
-            }
-        }
-
-        if app.launch.progress.isRunning {
-            HStack(spacing: OrzMCTheme.Spacing.xs) {
-                ProgressView()
-                    .controlSize(.small)
-                Text(app.launch.progress.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-        } else if app.launch.progress.isFinished {
-            Label("Ready", systemImage: "checkmark.seal.fill")
-                .font(.caption)
-                .foregroundStyle(OrzMCTheme.Palette.success)
-        }
-
-        if let message = app.settings.memoryValidationMessage {
-            OrzMCBanner("Invalid memory setting: \(message)", role: .error)
-        }
-    }
-
-    private var javaStatusRow: some View {
-        HStack(spacing: OrzMCTheme.Spacing.sm) {
-            Label("Java", systemImage: "cup.and.saucer")
-                .font(.callout)
-            Text(javaSummary)
-                .font(OrzMCTheme.Typography.numeric)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Spacer(minLength: OrzMCTheme.Spacing.sm)
+            if app.launch.progress.isFinished {
+                Label("Ready", systemImage: "checkmark.seal.fill")
+                    .font(.caption)
+                    .foregroundStyle(OrzMCTheme.Palette.success)
+            }
 
-            OrzMCStatusBadge(verbatim: javaStatusText, style: javaStatusStyle)
+            Spacer(minLength: 0)
 
             Button {
-                app.java.refresh()
+                app.start()
             } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
+                Label("Start \(app.localizedGameModeTitle)", systemImage: "play.fill")
+                    .frame(minWidth: 120)
             }
-            .buttonStyle(.borderless)
-            .help("Rescan the managed Java runtimes under the game folder")
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!app.canStart)
+            .help(startHelp)
         }
+        .padding(.bottom, 2)
+    }
+
+    // MARK: - 行
+
+    /// 类型：客户端/服务端 + 该端的二级类型（客户端 Vanilla/Fabric；服务端核心）。
+    private var typeRow: some View {
+        GridRow {
+            label("Mode")
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Picker("Mode", selection: modeBinding) {
+                    ForEach(GameMode.allCases) { mode in
+                        Text(modeLabel(mode)).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .frame(minWidth: 148)
+                .disabled(app.launch.isLaunching)
+
+                if app.gameMode == .client {
+                    Picker("Client type", selection: clientTypeBinding) {
+                        ForEach(SettingsModel.ClientKind.allCases) { kind in
+                            Text(kind.rawValue).tag(kind)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .controlSize(.small)
+                    .frame(minWidth: 138)
+                    .disabled(app.launch.isLaunching)
+                } else {
+                    // 和服务端核心用同一种分段控件：一行里都是"选项片"，不再混菜单（菜单的内边距是另一种对齐）。
+                    Picker("Server Core", selection: serverSoftwareBinding) {
+                        ForEach(SettingsModel.ServerSoftware.allCases) { software in
+                            Text(software.rawValue).tag(software)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .controlSize(.small)
+                    .fixedSize()
+                    .disabled(app.launch.isLaunching)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    /// 归属：客户端填玩家名；服务端用一句说明占位（行不消失，面板不跳）。
+    private var identityRow: some View {
+        GridRow {
+            label(app.gameMode == .client ? "Username" : "Account")
+            if app.gameMode == .client {
+                TextField("", text: usernameBinding, prompt: Text("Offline player name"))
+                    .textFieldStyle(.roundedBorder)
+                    .labelsHidden()
+                    .multilineTextAlignment(.leading)
+                    .textContentType(.username)
+                    .autocorrectionDisabled()
+                    .onSubmit { app.start() }
+                    .frame(maxWidth: 360, alignment: .leading)
+                    .disabled(app.launch.isLaunching)
+            } else {
+                Text("Servers don't need a player name.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Java：已装版本 → 需要的版本 + 状态徽标 + 重新扫描。
+    private var javaRow: some View {
+        GridRow {
+            label("Java")
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Text(javaSummary)
+                    .font(OrzMCTheme.Typography.numeric)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                OrzMCStatusBadge(verbatim: javaStatusText, style: javaStatusStyle)
+
+                Button("Rescan Java", systemImage: "arrow.triangle.2.circlepath") {
+                    app.java.refresh()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .help("Rescan the managed Java runtimes under the game folder")
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func label(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .frame(width: labelWidth, alignment: .leading)
+            .foregroundStyle(.secondary)
     }
 
     private var javaSummary: String {
         let installed = app.java.installedMajors.isEmpty
             ? String(localized: "None")
-            : app.java.installedMajors.map(String.init).joined(separator: ", ")
+            : app.java.installedMajors.map(String.init).formatted(.list(type: .and))
         guard let required = app.java.requiredMajor else { return installed }
         return "\(installed) → \(required)"
     }
@@ -224,6 +322,13 @@ struct LaunchControls: View {
         )
     }
 
+    private var clientTypeBinding: Binding<SettingsModel.ClientKind> {
+        Binding(
+            get: { app.settings.clientType },
+            set: { app.settings.clientType = $0 }
+        )
+    }
+
     private var serverSoftwareBinding: Binding<SettingsModel.ServerSoftware> {
         Binding(
             get: { app.settings.serverSoftware },
@@ -240,18 +345,6 @@ struct LaunchControls: View {
             : String(localized: "Select a version, enter a user name, and check the memory settings")
     }
 
-    private var startButton: some View {
-        Button {
-            app.start()
-        } label: {
-            Label("Start \(app.localizedGameModeTitle)", systemImage: "play.fill")
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.regular)
-        .fixedSize()
-        .disabled(!app.canStart)
-        .help(startHelp)
-    }
 }
 
 #Preview {

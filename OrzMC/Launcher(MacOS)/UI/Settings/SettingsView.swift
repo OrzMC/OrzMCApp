@@ -31,22 +31,37 @@ struct SettingsView: View {
         )
     }
 
+    /// 记住上次看的那一页（也让「设置」每次打开都落在用户上次的位置）。
+    @AppStorage("settingsTab") private var selectedTab: SettingsTab = .general
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             GeneralSettingsView(settings: app.settings, rootDir: rootDir)
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
 
             ServerSettingsView(settings: app.settings)
                 .tabItem { Label("Server", systemImage: "xserve") }
+                .tag(SettingsTab.server)
 
             ToolsSettingsView()
                 .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
+                .tag(SettingsTab.tools)
 
             AboutSettingsView()
                 .tabItem { Label("About", systemImage: "info.circle") }
+                .tag(SettingsTab.about)
         }
-        .frame(width: 560, height: 480)
+        .frame(minWidth: 600, idealWidth: 640, minHeight: 480, idealHeight: 560)
     }
+}
+
+/// 设置页的四个分页（`@AppStorage` 需要 `String` 原始值）。
+enum SettingsTab: String, CaseIterable, Hashable {
+    case general
+    case server
+    case tools
+    case about
 }
 
 // MARK: - General
@@ -56,32 +71,39 @@ private struct GeneralSettingsView: View {
     @Bindable var settings: SettingsModel
     @Binding var rootDir: String
 
-    private var isRootDirValid: Bool { rootDir.hasPrefix("/") }
+    @State private var draftRootDir = ""
+    @State private var pathError: String?
+
+    private func commitRootDir() {
+        let path = draftRootDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard path.hasPrefix("/"), !path.contains("\0") else {
+            pathError = String(localized: "Path must be absolute (start with /).")
+            return
+        }
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue {
+            pathError = String(localized: "Choose a folder, not a file.")
+            return
+        }
+        let normalized = URL(fileURLWithPath: path).standardizedFileURL.path
+        if normalized != rootDir { rootDir = normalized }
+        draftRootDir = rootDir
+        pathError = nil
+    }
 
     var body: some View {
         Form {
             Section {
                 LabeledContent("Game folder") {
+                    // 输入框吃掉剩余宽度，按钮保持固有宽度：位置可预测，不再靠 ViewThatFits 猜。
                     HStack(spacing: OrzMCTheme.Spacing.sm) {
-                        TextField("", text: $rootDir, prompt: Text("Absolute path"))
-                            .textFieldStyle(.roundedBorder)
-                            .font(OrzMCTheme.Typography.code)
-                            .labelsHidden()
-
-                        Button("Choose…") { chooseRootDir() }
-
-                        Button {
-                            rootDir = GamePlan.defaultRoot
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                        }
-                        .help("Reset to \(GamePlan.defaultRoot)")
-                        .accessibilityLabel("Reset game folder to default")
+                        gameFolderField
+                        gameFolderButtons
                     }
                 }
 
-                if !isRootDirValid {
-                    OrzMCBanner("Path must be absolute (start with /).", role: .error)
+                if let pathError {
+                    OrzMCBanner(verbatim: pathError, role: .error)
                 } else {
                     OrzMCBanner(
                         "Multiple instances = one game folder each (same as the CLI's --root-dir).",
@@ -103,21 +125,25 @@ private struct GeneralSettingsView: View {
                 LabeledContent("Username") {
                     TextField("", text: $settings.username, prompt: Text("Offline player name"))
                         .textFieldStyle(.roundedBorder)
-                        .autocorrectionDisabled()
                         .labelsHidden()
+                        .multilineTextAlignment(.leading)
+                        .autocorrectionDisabled()
                 }
 
                 LabeledContent("JVM memory") {
-                    HStack(spacing: OrzMCTheme.Spacing.xs) {
+                    // 基线对齐：分隔符是文字，输入框是控件，默认 `.center` 会让「–」比字段内文字偏高/偏低。
+                    HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.xs) {
                         TextField("", text: $settings.minMem, prompt: Text("512M"))
                             .textFieldStyle(.roundedBorder)
                             .labelsHidden()
+                            .multilineTextAlignment(.trailing)   // 数值惯用右对齐
                             .frame(width: 84)
                         Text("–")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                         TextField("", text: $settings.maxMem, prompt: Text("2G"))
                             .textFieldStyle(.roundedBorder)
                             .labelsHidden()
+                            .multilineTextAlignment(.trailing)
                             .frame(width: 84)
                     }
                 }
@@ -132,6 +158,44 @@ private struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .focusSection()
+        .onAppear { draftRootDir = rootDir }
+        .onChange(of: rootDir) { oldValue, newValue in
+            if draftRootDir == oldValue { draftRootDir = newValue }
+        }
+        // 用户重新编辑就清掉上一次的路径错误，别让旧红条挂在新输入旁边。
+        .onChange(of: draftRootDir) { pathError = nil }
+    }
+
+    private var gameFolderField: some View {
+        TextField("", text: $draftRootDir, prompt: Text("Absolute path"))
+            .onSubmit(commitRootDir)
+            .onExitCommand { draftRootDir = rootDir; pathError = nil }
+            .textFieldStyle(.roundedBorder)
+            // `Form` 里 TextField 即使标签为空也会占一列 → 显式隐藏，输入框才会紧贴标签列。
+            .labelsHidden()
+            // 表单默认把「值」右对齐；路径需要从左读。
+            .multilineTextAlignment(.leading)
+            // 等宽但**与相邻按钮同字号**：`.caption` 等宽比按钮文字小一号，看起来“文字没对齐”。
+            .font(.body.monospaced())
+    }
+
+    @ViewBuilder
+    private var gameFolderButtons: some View {
+        Button("Apply", action: commitRootDir)
+            .disabled(draftRootDir == rootDir)
+
+        Button("Choose…") { chooseRootDir() }
+
+        Button {
+            draftRootDir = GamePlan.defaultRoot
+            commitRootDir()
+        } label: {
+            Image(systemName: "arrow.uturn.backward")
+        }
+        .help("Reset to \(GamePlan.defaultRoot)")
+        .accessibilityLabel("Reset game folder to default")
     }
 
     /// 选游戏根目录（多实例）：只挑目录，不创建——引擎会在下载时就地建好。
@@ -143,7 +207,8 @@ private struct GeneralSettingsView: View {
         panel.canCreateDirectories = true
         panel.prompt = "Use Folder"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        rootDir = url.path
+        draftRootDir = url.path
+        commitRootDir()
     }
 }
 
@@ -186,8 +251,9 @@ private struct ServerSettingsView: View {
                         prompt: Text(Constants.defaultJVMDebuggerArgs)
                     )
                     .textFieldStyle(.roundedBorder)
-                    .font(OrzMCTheme.Typography.code)
                     .labelsHidden()
+                    .multilineTextAlignment(.leading)
+                    .font(.body.monospaced())
                     .disabled(!settings.enableJVMDebugger)
                 }
 
@@ -200,6 +266,8 @@ private struct ServerSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .focusSection()
     }
 }
 
@@ -211,6 +279,8 @@ private struct ToolsSettingsView: View {
             CommandLineSettingsSection()
         }
         .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .focusSection()
     }
 }
 
@@ -282,6 +352,8 @@ private struct AboutSettingsView: View {
             .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .focusSection()
     }
 }
 

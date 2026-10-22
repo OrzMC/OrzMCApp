@@ -21,6 +21,13 @@ struct OrzMCApp: App {
 #if canImport(OrzAppUpdater)
     let updaterController = OrzAppUpdaterController()
 #endif
+    init() {
+#if DEBUG && os(macOS)
+        // UI 复审用：`--snapshot <前缀>` 时渲染自己的窗口并退出（不需要屏幕录制权限）。
+        WindowSnapshot.runIfRequested()
+#endif
+    }
+
     var body: some Scene {
 #if os(macOS)
         MacOSScene(app: app)

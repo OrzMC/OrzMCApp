@@ -14,11 +14,8 @@ struct LauncherUI: View {
     var body: some View {
         NavigationSplitView {
             GameView()
-                .navigationSplitViewColumnWidth(
-                    min: Constants.sidebarWidth,
-                    ideal: Constants.sidebarWidth,
-                    max: Constants.sidebarWidth * 1.5
-                )
+                // 侧边栏可自由伸缩：窄到 260 仍放得下"图标 + 版本号 + 副标题"，宽到 520 也不散。
+                .navigationSplitViewColumnWidth(min: 260, ideal: Constants.sidebarWidth, max: 520)
         } detail: {
             GameInfoView()
         }

@@ -46,6 +46,19 @@ struct MacOSScene: Scene {
             MainWindowCommands()
 
             CommandMenu("Game") {
+                // 版本列表的键盘跳转：列表聚焦时 ↑/↓ 走一格；这两个带 ⌘ 的菜单项全局可用。
+                Button("Jump to Newest Version") {
+                    app.catalog.stepSelection(by: -1, jumpToEdge: true)
+                }
+                .keyboardShortcut(.upArrow, modifiers: .command)
+
+                Button("Jump to Oldest Version") {
+                    app.catalog.stepSelection(by: 1, jumpToEdge: true)
+                }
+                .keyboardShortcut(.downArrow, modifiers: .command)
+
+                Divider()
+
                 Button("Start \(app.localizedGameModeTitle)") {
                     app.start()
                 }

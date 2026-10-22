@@ -9,35 +9,28 @@ import OrzMCDesignSystem
 import OrzMCRemoteHosting
 import SwiftUI
 
+/// 远程生命周期动作：开始 / 停止 / 重启。
+///
+/// - 互斥由模型负责（`RemoteActionGate`：首次 `await` 前占用实例），按钮 disabled 只是提示；
+/// - 成功只承诺「已提交请求」，真实运行状态等服务端状态推送；
+/// - 失败就地展示错误并可重试，不再弹必须确认的全局框。
 struct ExarotonServerActionSection: View {
     @Environment(ExarotonServerModel.self) private var model
 
     let server: ExarotonServer
     let status: ServerStatus
 
-    @Binding var serverRAM: Int32
-    @Binding var isLoading: Bool
-
     private let actionPolicy = RemoteServerListPolicy()
 
     @State private var confirmStop = false
     @State private var confirmRestart = false
+    /// 最近一次动作，失败后就地给「重试」用，不必让用户回列表再进详情。
+    @State private var lastAction: RemoteServerAction?
+
+    private var serverID: String { server.id ?? "" }
 
     var body: some View {
         Section("Actions") {
-            if serverRAM > 0 {
-                LabeledContent("Memory") {
-                    HStack(spacing: OrzMCTheme.Spacing.sm) {
-                        Text("\(serverRAM) GB")
-                            .font(OrzMCTheme.Typography.numeric)
-                            .foregroundStyle(.secondary)
-                        Stepper("", value: $serverRAM, in: 2...16, step: 1)
-                            .labelsHidden()
-                    }
-                }
-                .disabled(isLoading || status != .OFFLINE)
-            }
-
             HStack(spacing: OrzMCTheme.Spacing.sm) {
                 Button("Start Server", systemImage: "play.fill") {
                     perform(.start)
@@ -58,7 +51,9 @@ struct ExarotonServerActionSection: View {
                 }
                 Spacer(minLength: 0)
             }
-            .disabled(isLoading)
+            .disabled(model.gate.pendingActions.contains(serverID))
+
+            feedback
 
             OrzMCBanner(
                 "Actions run on exaroton's side. Players connected to the server are disconnected by Stop/Restart.",
@@ -80,17 +75,46 @@ struct ExarotonServerActionSection: View {
         }
     }
 
+    // MARK: - 请求反馈（非模态，错误就地可重试）
+
+    @ViewBuilder
+    private var feedback: some View {
+        if let message = model.actionMessages[serverID] {
+            HStack {
+                if model.gate.pendingActions.contains(serverID) {
+                    ProgressView().controlSize(.small)
+                }
+                Text(verbatim: message)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+        } else if let failure = model.actionErrors[serverID] {
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
+                OrzMCBanner(verbatim: failure, role: .error)
+                if let lastAction {
+                    Button("Retry", systemImage: "arrow.clockwise") {
+                        perform(lastAction)
+                    }
+                    .disabled(!canPerform(lastAction))
+                }
+            }
+        }
+    }
+
+    // MARK: - 动作
+
     private func canPerform(_ action: RemoteServerAction) -> Bool {
-        actionPolicy.canPerform(action, on: status.remoteHostingState)
+        !model.gate.isBusy(serverID: serverID) && actionPolicy.canPerform(action, on: status.remoteHostingState)
     }
 
     private func perform(_ action: RemoteServerAction) {
+        guard let serverID = server.id else {
+            model.errorMessage = String(localized: "Server ID is missing.")
+            return
+        }
+        lastAction = action
         Task {
-            guard let serverID = server.id else {
-                model.errorMessage = String(localized: "Server ID is missing.")
-                return
-            }
-
             switch action {
             case .start:
                 _ = await model.startServer(serverId: serverID)
