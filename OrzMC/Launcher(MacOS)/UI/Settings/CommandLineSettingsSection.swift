@@ -5,6 +5,7 @@
 //  Created by pi on 2026/10/17.
 //
 
+import OrzMCDesignSystem
 import OrzMCLauncher
 import SwiftUI
 
@@ -20,25 +21,23 @@ struct CommandLineSettingsSection: View {
     @State private var pendingUninstall = false
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
+        Section {
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
                 statusRow
 
-                Divider().padding(.vertical, 2)
+                Divider()
 
                 actionRow
 
                 if model.isBusy {
-                    HStack(spacing: 8) {
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
                         ProgressView().controlSize(.small)
                         Text("Running…").font(.footnote).foregroundStyle(.secondary)
                     }
                 }
 
                 if let errorMessage = model.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(Color.red)
+                    OrzMCBanner(verbatim: errorMessage, role: .error)
                 }
 
                 if !model.log.isEmpty {
@@ -47,16 +46,16 @@ struct CommandLineSettingsSection: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 ForEach(Array(model.log.enumerated()), id: \.offset) { index, line in
                                     Text(line)
-                                        .font(.system(.caption, design: .monospaced))
+                                        .font(OrzMCTheme.Typography.console)
                                         .foregroundStyle(.secondary)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .id(index)
                                 }
                             }
-                            .padding(6)
+                            .padding(OrzMCTheme.Spacing.xs)
                         }
                         .frame(height: 120)
-                        .background(Color.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                        .consoleSurface(cornerRadius: OrzMCTheme.Radius.sm)
                         .onChange(of: model.log.count) {
                             proxy.scrollTo(model.log.count - 1, anchor: .bottom)
                         }
@@ -64,9 +63,8 @@ struct CommandLineSettingsSection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        } label: {
+        } header: {
             Label("Command Line", systemImage: "terminal")
-                .font(.title)
         }
         .task { model.refresh() }
         .confirmationDialog(
@@ -122,18 +120,15 @@ struct CommandLineSettingsSection: View {
     private var statusRow: some View {
         if let status = model.status {
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
                     Text("orzmc \(status.version)")
                         .font(.headline)
-                    Text(status.surfaceText)
+                    Text(surfaceText(for: status))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let channel = status.channel {
-                        Text(channel.title)
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color.secondary.opacity(0.15), in: Capsule())
+                        // 通道名是专有名词（Python CLI / Swift CLI），按原文显示。
+                        OrzMCTag(channel.title)
                     }
                     Spacer()
                     if status.binaryExists {
@@ -143,28 +138,36 @@ struct CommandLineSettingsSection: View {
                 }
 
                 Text(status.binaryPath)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(status.binaryExists ? Color.secondary : Color.red)
+                    .font(OrzMCTheme.Typography.code)
+                    .foregroundStyle(status.binaryExists ? AnyShapeStyle(.secondary) : AnyShapeStyle(OrzMCTheme.Palette.danger))
                     .lineLimit(1)
                     .truncationMode(.middle)
 
                 if status.isBroken {
-                    Text("The recorded binary is missing — reinstall to repair the record.")
-                        .font(.caption)
-                        .foregroundStyle(Color.orange)
-                } else if let completion = status.completionFile, !completion.isEmpty {
-                    Text("completion: \(completion)")
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    OrzMCBanner("The recorded binary is missing — reinstall to repair the record.", role: .warning)
                 }
 
-                Text("record: \(status.recordPath)")
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                // 补全脚本与记录文件平时没人看，折起来；出问题时仍可展开核对。
+                DisclosureGroup("Install record") {
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let completion = status.completionFile, !completion.isEmpty {
+                            Text("completion: \(completion)")
+                                .font(OrzMCTheme.Typography.code)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Text("record: \(status.recordPath)")
+                            .font(OrzMCTheme.Typography.code)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         } else {
             HStack {
@@ -175,11 +178,21 @@ struct CommandLineSettingsSection: View {
         }
     }
 
+    /// `InstallSurface.displayText` 在共享库里是硬编码英文，这里按来源给界面本地化文案
+    /// （约定：依赖库的英文标题由应用侧本地化，不去改共享库的展示字符串）。
+    private func surfaceText(for status: CommandLineToolModel.Status) -> String {
+        switch status.installSurface {
+        case .cli: return String(localized: "Installed from a terminal")
+        case .gui: return String(localized: "Installed from this app")
+        case nil: return String(localized: "Origin unknown (legacy record)")
+        }
+    }
+
     // MARK: 动作
 
     @ViewBuilder
     private var actionRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: OrzMCTheme.Spacing.sm) {
             if let status = model.status, status.canUpdateInPlace {
                 // 有真身：默认动作是**升级**（保留 surface/source），不是重装。
                 Button("Update") {
@@ -216,6 +229,7 @@ struct CommandLineSettingsSection: View {
                 Image(systemName: "arrow.triangle.2.circlepath")
             }
             .help("Re-read install.conf")
+            .accessibilityLabel("Refresh command line install record")
         }
         .disabled(model.isBusy)
     }

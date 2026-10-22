@@ -10,7 +10,14 @@ import ExarotonWebSocket
 import OpenAPIRuntime
 import OpenAPIURLSession
 import Security
+import OrzMCRemoteHosting
 import SwiftUI
+
+/// HTTP 客户端构造期的错误（不依赖网络）。
+enum ExarotonClientError: Error {
+    /// `Servers.Server1.url()` 失败（配置/代码问题，而非网络问题）。
+    case invalidServerURL
+}
 
 @MainActor
 @Observable
@@ -46,11 +53,13 @@ final class ExarotonServerModel {
 
 
     // HTTP Client
-    @ObservationIgnored
-    var httpClient: Client? {
+    /// 构造 HTTP 客户端。
+    ///
+    /// 注意：这里**不再**是有副作用的 getter（旧实现会在 URL 构造失败时直接写 `errorMessage`，
+    /// 于是任何一次读取都可能触发视图更新）。需要统一报错时用 `clientOrReportError()`。
+    func makeClient() throws -> Client {
         guard let serverURL = try? Servers.Server1.url() else {
-            errorMessage = "Exaroton server URL is invalid."
-            return nil
+            throw ExarotonClientError.invalidServerURL
         }
         return Client(
             serverURL: serverURL,
@@ -59,25 +68,65 @@ final class ExarotonServerModel {
         )
     }
 
+    /// 取客户端；不可用时把原因写进 `errorMessage` 并返回 nil。
+    func clientOrReportError() -> Client? {
+        do {
+            return try makeClient()
+        } catch {
+            errorMessage = String(localized: "Exaroton server URL is invalid.")
+            return nil
+        }
+    }
+
     var servers = [ExarotonServer]()
     var creditPools = [ExarotonCreditPool]()
     var errorMessage: String?
-    var statusMessage: String?
-
+    var isLoadingList = false
+    var listLoadError: String?
+    var hasLoadedList = false
+    var savedMemory: [String: Int32] = [:]
+    var memoryRevision: [String: Int] = [:]
+    /// 实例级在途互斥（生命周期动作与内存变更互相排除，见 `RemoteActionGate`）。
+    var gate = RemoteActionGate()
+    /// 请求已经提交（非模态、不要求确认）；错误单独存放，便于在动作旁展示重试。
+    var actionMessages: [String: String] = [:]
+    var actionErrors: [String: String] = [:]
+    /// 内存保存失败（草稿保留、确认值不变 → UI 仍显示未保存）。
+    var memoryErrors: [String: String] = [:]
+    /// 内存读取失败（此时没有可编辑的草稿，需要重试入口）。
+    var memoryLoadErrors: [String: String] = [:]
     // WebSocket Client
     @ObservationIgnored
     var websocket: ExarotonWebSocketAPI?
     @ObservationIgnored
     var websocketServerID: String?
+    /// 强引用回调转发器：`ExarotonWebSocketAPI.delegate` 是 weak，而转发器要活到连接结束。
+    @ObservationIgnored
+    var socketDelegate: ExarotonSocketDelegate?
+    /// 连接代数：丢弃上一条连接迟到的回调（见 `ConnectionEpoch`）。
+    @ObservationIgnored
+    var connectionEpoch = ConnectionEpoch()
 
     var readyServerID: String?
     var isConnected: Bool = false
     var disconnectedReason: String?
     var statusChangedServer: ExarotonWebSocket.Server?
+    /// 状态推送的版本号：视图用 `.onChange(of:)` 响应，
+    /// 而不是 `Optional.publisher`（那个只在订阅那一刻发一次，靠 body 重算才「碰巧」更新）。
+    var statusVersion = 0
+    /// 已订阅的远程流（由 `onStreamStarted` / `onStreamStopped` 回执维护）。
+    var activeStreams: Set<StreamCategory> = []
     var streamStarted: ExarotonWebSocket.StreamCategory?
     var streamStopped: ExarotonWebSocket.StreamCategory?
+
+    /// 除 `status` 外需要按需订阅的流（`status` 连接后默认就有）。
+    static let streamCategories = StreamCategory.allCases.filter { $0 != .status }
     var consoleLine: String?
-    var consoleLines = [String]()
+    private var consoleBuffer = RemoteConsoleBuffer()
+    var consoleLines: [RemoteConsoleBuffer.Line] { consoleBuffer.lines }
+
+    func appendConsoleLine(_ text: String) { consoleBuffer.append(text) }
+    func clearConsole() { consoleBuffer.clear() }
     var tickChanged: ExarotonWebSocket.Tick?
     var statsChanged: ExarotonWebSocket.Stats?
     var heapChanged: ExarotonWebSocket.Heap?

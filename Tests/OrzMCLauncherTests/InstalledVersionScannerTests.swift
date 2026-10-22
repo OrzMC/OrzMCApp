@@ -43,6 +43,14 @@ final class InstalledVersionScannerTests: XCTestCase {
         XCTAssertEqual(state.labels, ["Paper server"])
     }
 
+    func testHasServerMatchesCaseInsensitively() {
+        let state = VersionInstallState(hasClient: false, servers: ["paper", "vanilla"])
+        XCTAssertTrue(state.hasServer(id: "paper"))
+        XCTAssertTrue(state.hasServer(id: "Paper"), "UI 侧 rawValue 是首字母大写")
+        XCTAssertFalse(state.hasServer(id: "fabric"))
+        XCTAssertFalse(VersionInstallState.none.hasServer(id: "paper"))
+    }
+
     func testNilClientDirIsTreatedAsAbsent() {
         let scanner = InstalledVersionScanner { _ in true }
         let state = scanner.state(clientDir: nil, serverDirs: [])

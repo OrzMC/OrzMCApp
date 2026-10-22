@@ -5,26 +5,26 @@
 //  Created by joker on 2024/5/17.
 //
 
-import SwiftUI
 import ExarotonWebSocket
+import OrzMCDesignSystem
+import OrzMCRemoteHosting
+import SwiftUI
 
 struct ExarotonServerDetail: View {
 
     @Environment(ExarotonServerModel.self) var model
 
-    @State var server: ExarotonServer
+    @State private var server: ExarotonServer
+
+    init(server: ExarotonServer) {
+        _server = State(initialValue: server)
+    }
 
     @State private var wsServerReady: Bool = false
 
-    @State private var networkOpacity: Double = 1
-
-    @State private var serverRAM: Int32 = 0
-
-    @State private var loading  = false
-
-    @State private var consoleLog: String = ""
-
-    private let timer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
+    /// 内存的「草稿 / 已确认 / 保存中」状态（测试在 `ServerMemoryStateTests`）。
+    /// Stepper 只改草稿；明确保存后才更新确认值，失败时两边都不动。
+    @State private var memory = ServerMemoryState()
 
     @State private var showConsoleCommandInput = false
     @State private var consoleCommand: String = ""
@@ -36,7 +36,7 @@ struct ExarotonServerDetail: View {
         Form {
 
             Section("General") {
-                ExarotonServerView(server: server, showStatus: false, showMotd: true)
+                ExarotonServerView(server: server, showStatus: true, showMotd: true)
             }
 
             if let playlist = server.players?.list, !playlist.isEmpty {
@@ -64,65 +64,90 @@ struct ExarotonServerDetail: View {
                                     }
                                 }
                             }
-                            if let tick = model.tickChanged {
-                                Text(tick.usageLabel)
-                            }
-                            if let heap = model.heapChanged {
-                                Text(heap.usageLabel)
+                            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                                if let tick = model.tickChanged {
+                                    OrzMCTag(tick.usageLabel)
+                                }
+                                if let heap = model.heapChanged {
+                                    OrzMCTag(heap.usageLabel)
+                                }
                             }
                         }
                     }
                 }
 
-                ExarotonServerActionSection(
-                    server: server,
-                    status: serverStatus,
-                    serverRAM: $serverRAM,
-                    isLoading: $loading
+                ExarotonMemorySection(
+                    serverID: server.id ?? "",
+                    serverStatus: serverStatus,
+                    memory: memory,
+                    onEdit: { newValue in
+                        memory.edit(newValue)
+                        // 重新编辑即清掉上一次保存失败的错误，避免旧错误挂在新草稿上。
+                        model.memoryErrors[server.id ?? ""] = nil
+                    },
+                    onSave: saveMemory,
+                    onRevert: { memory.revert() },
+                    onReload: { await loadMemory() }
                 )
+
+                ExarotonServerActionSection(server: server, status: serverStatus)
 
                 if model.isConnected {
 
                     Section("Console") {
 
                         ScrollView(.vertical, showsIndicators: true) {
-                            Text(consoleLog)
-                                .foregroundStyle(Color.white)
-                                .font(.system(size: 8))
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(model.consoleLines) { line in
+                                    Text(verbatim: line.text)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
+                            .font(OrzMCTheme.Typography.console)
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
                         }
-                        .frame(height: 100)
-                        .listRowBackground(Color.black)
+                        .frame(height: 160)
+                        .consoleSurface()
                         .defaultScrollAnchor(.bottom)
 
-                        Button {
-                            consoleLog = ""
-                        } label: {
-                            Text("Clear Console")
-                        }
+                        HStack(spacing: OrzMCTheme.Spacing.sm) {
+                            Button("Send Console Command…", systemImage: "paperplane") {
+                                showConsoleCommandInput = true
+                            }
+                            .buttonStyle(.borderedProminent)
 
-                        Button("Send Console Command") {
-                            showConsoleCommandInput = true
+                            Button("Clear Console", systemImage: "trash") {
+                                model.clearConsole()
+                            }
+                            .buttonStyle(.bordered)
+
+                            Spacer()
                         }
-                        .keyboardShortcut(.init("c"), modifiers: .command)
                     }
                 }
             }
         }
-        .formStyle(GroupedFormStyle())
-        .navigationTitle("Server Detail")
+        .formStyle(.grouped)
+        .labeledContentStyle(.orzMCFieldRow)
+        .navigationTitle(server.name ?? String(localized: "Server Detail"))
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
         .toolbar {
             ToolbarItemGroup {
-                Image(systemName: wsServerReady ? "checkmark.icloud.fill" : "icloud.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .foregroundStyle(wsServerReady ? mainColor : dangerColor)
-                    .frame(width: 30, height: 30)
-                    .opacity(networkOpacity)
-                    .animation(wsServerReady ? nil : .easeInOut(duration: 0.8).repeatForever(), value: networkOpacity)
+                if let reason = model.disconnectedReason {
+                    Button("Reconnect", systemImage: "arrow.clockwise.icloud") {
+                        if let id = server.id { model.startConnect(for: id) }
+                    }
+                    .help(reason)
+                } else if wsServerReady {
+                    Label("Connected", systemImage: "checkmark.icloud.fill")
+                        .foregroundStyle(OrzMCTheme.Palette.success)
+                } else {
+                    ProgressView().controlSize(.small)
+                        .accessibilityLabel("Connecting")
+                }
 
                 if let serverStatus = server.serverStatus {
                     ExarotonServerStatusView(status: serverStatus)
@@ -130,29 +155,19 @@ struct ExarotonServerDetail: View {
                 }
             }
         }
-        .overlay {
-            ProgressView()
-                .controlSize(.extraLarge)
-                .progressViewStyle(.circular)
-                .opacity(loading ? 1 : 0)
-        }
         .sheet(isPresented: $showConsoleCommandInput) {
-            if !consoleCommand.isEmpty {
-                let validCommand = consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines)
-                model.sendConsoleCmd(.init(validCommand))
-                consoleCommand = ""
-            }
-        } content: {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Input Command")
+            // 命令只在用户点「Send」时发送；以前把发送逻辑写在 sheet 的 content builder 里，
+            // 等于“一打开就发”，而且是在 body 里改状态（SwiftUI 会报警告）。
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
+                Text("Send Console Command")
                     .font(.headline)
-                    .frame(minWidth: 300, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 TextEditor(text: $consoleCommand)
+                    .font(OrzMCTheme.Typography.consoleInput)
                     .scrollContentBackground(.hidden)
-                    .background(Color.black)
-                    .foregroundStyle(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .padding(OrzMCTheme.Spacing.xs)
+                    .consoleSurface(cornerRadius: OrzMCTheme.Radius.md)
                     .autocorrectionDisabled()
 #if os(macOS)
                     .frame(maxWidth: 400, minHeight: 100)
@@ -161,86 +176,104 @@ struct ExarotonServerDetail: View {
                     .keyboardType(.alphabet)
                     .textInputAutocapitalization(.never)
 #endif
+
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) {
+                        consoleCommand = ""
+                        showConsoleCommandInput = false
+                    }
+                    Button("Send") {
+                        sendConsoleCommand()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
-            .padding()
-            .onSubmit {
-                showConsoleCommandInput = false
-            }
+            .padding(OrzMCTheme.Spacing.lg)
             .presentationDragIndicator(.visible)
             .presentationDetents([.height(300)])
-            .presentationCornerRadius(10)
+            .presentationCornerRadius(OrzMCTheme.Radius.md)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
         .task {
             guard let serverID = server.id else {
-                model.errorMessage = "Server ID is missing."
+                model.errorMessage = String(localized: "Server ID is missing.")
                 return
             }
             model.startConnect(for: serverID)
-            wsServerReady = model.readyServerID != nil
-            networkOpacity = wsServerReady ? 1 : 0
-            if let ram = await model.getRAM(serverId: serverID) {
-                serverRAM = ram
-            }
+            wsServerReady = model.readyServerID == serverID
+            syncStreams()
+            await loadMemory()
         }
         .onDisappear {
             model.stopConnect()
         }
-        .onChange(of: model.readyServerID) { oldValue, newValue in
-            wsServerReady = newValue != nil
-            networkOpacity = wsServerReady ? 1 : 0
+        .onChange(of: model.savedMemory[server.id ?? ""]) { _, newValue in
+            guard let newValue else { return }
+            memory.loaded(newValue)
         }
-        .onChange(of: serverRAM, initial: false) { oldValue, newValue in
-            guard let serverID = server.id
-            else {
-                return
-            }
-            Task {
-                loading = true
-                if let ram = await model.changeRAM(serverId: serverID, ramGB: newValue) {
-                    serverRAM = ram
-                }
-                loading = false
-            }
+        .onChange(of: model.readyServerID) { _, newValue in
+            wsServerReady = newValue == server.id
+            syncStreams()
         }
-        .onReceive(model.consoleLine.publisher.throttle(for: 1, scheduler: RunLoop.main, latest: true)) { _ in
-            consoleLog = model.consoleLines.joined(separator: "")
+        // 状态推送用「版本号 + onChange」：`Optional.publisher` 只在订阅那一刻发一次，
+        // 之前能更新只是靠 body 重算重新订阅，滞后且不可靠。
+        .onChange(of: model.statusVersion) {
+            applyStatusUpdate()
         }
-        .onReceive(model.statusChangedServer.publisher) { newStatusServer in
-            guard let serverInfo = try? newStatusServer.serverInfo
-            else {
-                return
-            }
-            server = serverInfo
+        .onChange(of: model.isConnected) {
+            syncStreams()
         }
-        .onReceive(timer) { _ in
-            guard wsServerReady, model.isConnected == false,
-                  let serverStatus = server.serverStatus, serverStatus == .ONLINE
-            else {
-                return
-            }
-            startStreams()
-        }
-        .onReceive(timer) { _ in
-            guard wsServerReady, model.isConnected == true,
-                  let serverStatus = server.serverStatus, serverStatus == .OFFLINE
-            else {
-                return
-            }
-            stopStreams()
+        .onChange(of: server.serverStatus) {
+            syncStreams()
         }
     }
 }
 
 extension ExarotonServerDetail {
 
-    static let actionStreams = StreamCategory.allCases.filter { $0 != .status }
-
-    func startStreams() {
-        Self.actionStreams.forEach { model.startStream($0) }
+    /// 读取内存：成功则同步「确认值 + 草稿」；失败时模型记录 `memoryLoadErrors`，
+    /// 动作区会显示「Unavailable + Retry」，且不会把草稿改成一个假的 0。
+    private func loadMemory() async {
+        guard let id = server.id else { return }
+        if let ram = await model.getRAM(serverId: id) {
+            memory.loaded(ram)
+        }
     }
 
-    func stopStreams() {
-        Self.actionStreams.forEach { model.stopStream($0) }
+    private func saveMemory() {
+        guard let id = server.id, let requested = memory.beginSave() else { return }
+        Task {
+            if let ram = await model.changeRAM(serverId: id, ramGB: requested) {
+                memory.saveSucceeded(ram)
+            } else {
+                // 确认值不变、草稿保留：界面继续显示「未保存」，错误由模型就地展示。
+                memory.saveFailed()
+            }
+        }
+    }
+
+    private func sendConsoleCommand() {
+        let validCommand = consoleCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !validCommand.isEmpty else { return }
+        model.sendConsoleCmd(.init(validCommand))
+        consoleCommand = ""
+        showConsoleCommandInput = false
+    }
+
+    /// 状态推送 → 更新本页展示的服务器摘要。
+    private func applyStatusUpdate() {
+        guard let latest = model.statusChangedServer,
+              let serverInfo = try? latest.serverInfo
+        else {
+            return
+        }
+        server = serverInfo
+    }
+
+    /// 连接/服务端状态变化时同步远程流：只发缺的那几条，取代原来的 3 秒轮询。
+    private func syncStreams() {
+        model.reconcileStreams(serverIsOnline: server.serverStatus == .ONLINE)
     }
 }

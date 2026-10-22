@@ -62,9 +62,9 @@ Xcode 工程对平台差异用 **`platformFilter`**（文件级）兜住；Swift
 
 | 目标 | 命令 |
 |:--|:--|
-| macOS（本地车道，增量 ~17s） | `scripts/air/run.sh app` |
-| iOS 模拟器（本地车道） | `scripts/air/run.sh app-ios` |
-| 单测（平台无关部分） | `scripts/air/run.sh app-test` |
+| macOS（本地车道，增量 ~17s） | `scripts/swift-check.sh app` |
+| iOS 模拟器（本地车道） | `scripts/swift-check.sh app-ios` |
+| 单测（平台无关部分） | `scripts/swift-check.sh app-test` |
 | 平台分层校验 | `./scripts/check-platform-split.sh` |
 | 三条 CI | `.github/workflows/ci.yml`（macOS / iOS / 分层校验） |
 

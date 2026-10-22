@@ -3,7 +3,8 @@
 > **状态**：生效中｜**最后更新**：2026-10-20
 > **背景**：`GameModel` 曾是一个 390 行的上帝对象（UI 状态 + 5 个服务 + 进度镜像 + 进程登记），
 > 任何改动都要碰它，也测不了。现在按关注点拆成六个模型，逻辑尽量下沉到 `Sources/OrzMCLauncher`。
-> 平台分层见 [`app-platform-split.md`](app-platform-split.md)。
+> 平台分层见 [`app-platform-split.md`](app-platform-split.md)；
+> UI 信息架构、设计令牌与改进路线见 [`app-ui-design.md`](app-ui-design.md)。
 
 ## 1. 模型地图
 

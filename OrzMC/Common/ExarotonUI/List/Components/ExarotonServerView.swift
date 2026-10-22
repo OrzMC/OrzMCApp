@@ -5,6 +5,7 @@
 //  Created by joker on 5/17/24.
 //
 
+import OrzMCDesignSystem
 import SwiftUI
 
 struct ExarotonServerView: View {
@@ -12,37 +13,45 @@ struct ExarotonServerView: View {
     var showStatus = true
     var showMotd = false
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                VStack(alignment: .leading) {
-                    if let name = server.name {
-                        Text(name)
-                            .font(.headline)
-                    }
-                    if let id = server.id {
-                        Text(id)
-                            .font(.caption)
-                    }
-                    if let detail = server.detail {
-                        Text(detail)
-                            .font(.callout)
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.hairline) {
+                    Text(server.name ?? String(localized: "Server"))
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    HStack(spacing: OrzMCTheme.Spacing.xs) {
+                        if let id = server.id {
+                            Text(id)
+                                .font(OrzMCTheme.Typography.code)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        if let software = server.software {
+                            OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
+                        }
+                        if let players = server.players {
+                            OrzMCTag(String(localized: "\(Int(players.count ?? 0))/\(Int(players.max ?? 0)) players"))
+                        }
                     }
                 }
-                
+
+                Spacer(minLength: OrzMCTheme.Spacing.sm)
+
                 if showStatus, let status = server.serverStatus {
-                    Spacer()
-                    ExarotonServerStatusView(status: status)
-                        .frame(width: 30, height: 30)
+                    OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
                 }
             }
-            if showMotd, let motd = server.motd {
-                Divider()
-                Text(motd)
-                    .font(.subheadline)
+
+            if showMotd, let motd = server.motd, !motd.isEmpty {
+                Text(verbatim: motd.replacingOccurrences(of: "(?i)§[0-9a-fk-orx]", with: "", options: .regularExpression))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
             }
+
             if server.hasAddress {
-                Divider()
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.hairline) {
                     if let staticAddress = server.staticAddress {
                         ExarotonCopyableText(staticAddress, canCopy: showMotd)
                     }
@@ -52,9 +61,11 @@ struct ExarotonServerView: View {
                 }
             }
         }
+        .padding(.vertical, OrzMCTheme.Spacing.xs)
         .contentShape(Rectangle())
         .listRowSeparator(.hidden)
     }
+
 }
 #Preview {
     ExarotonServerView(

@@ -5,64 +5,61 @@
 //  Created by wangzhizhou on 2025/4/7.
 //
 
-import SwiftUI
 import Game
 import MojangAPI
+import OrzMCDesignSystem
 import OrzMCLauncher
+import SwiftUI
 
 /// 版本列表：**纯展示**。装了什么由 `VersionCatalogModel` 一次算好并传进来，
-/// 视图 body 里不再做文件 IO（以前每行 3 次 stat、每次重绘都跑）。
+/// 视图 body 里不做文件 IO。
 ///
-/// 排版要点：
-/// - 版本号用**等宽数字**，纵向对齐（`1.21.5` / `1.9` 不会错位）；
-/// - 已装内容用**小徽标**（`Client` / `Paper` / …），比一长串句子更好扫；
-/// - 未装任何东西的版本只显示版本号 + 类型，行高一致，列表不跳。
+/// 行设计（2026-10-22 方案 B）：
+/// - 第一行：版本号（等宽数字）+「最新」徽标；
+/// - 第二行：**发布日期（今天 / 昨天 / N 天前 / 绝对日期）· 已装内容（最多两项 + N）**；
+/// - 行首图标表示安装状态；悬停提示给完整信息（含类型与全部已装项）。
 struct GameList: View {
     let versions: [Version]
     @Binding var selectedVersion: Version?
     let installStates: [String: VersionInstallState]
+    /// 清单里的「最新正式版 / 最新快照」id。
+    let latestReleaseId: String?
+    let latestSnapshotId: String?
     let isOnlyRelease: Bool
     let canUseShortcut: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 列表底层滚动（跳到首/末项时用）：`scrollTo` 对懒加载 List 只能落到"估算位置"。
+    @State private var scrollController = VersionListScrollController()
 
     var body: some View {
         ScrollViewReader { proxy in
             List(versions, selection: $selectedVersion) { version in
                 let state = installStates[version.id] ?? .none
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    // **别用 accentColor 画行内元素**：侧边栏选中行背景就是 accentColor，
-                    // 同样的颜色会互相覆盖（标签直接看不见）。用语义色，选中时由系统自适应。
+                HStack(alignment: .center, spacing: 8) {
+                    // **别用 accentColor 画行内元素**：侧边栏选中行背景就是 accentColor。
                     Image(systemName: state.symbolName)
                         .font(.callout)
                         .foregroundStyle(state.isEmpty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
-                        .frame(width: 16)
+                        .frame(width: 18)
+                        .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 6) {
                             Text(version.id)
-                                .font(.body.monospacedDigit())
+                                .font(OrzMCTheme.Typography.numeric)
                                 .lineLimit(1)
-                            if !isOnlyRelease {
-                                Text(version.buildType.rawValue.capitalized)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background(Color.secondary.opacity(0.12))
-                                    .clipShape(Capsule())
+                            if let badge = latestBadge(for: version) {
+                                OrzMCTag(badge, tint: OrzMCTheme.Palette.accent)
                             }
                         }
-
-                        if !state.isEmpty {
-                            HStack(spacing: 4) {
-                                ForEach(state.badges, id: \.self) { badge in
-                                    Text(badge)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundStyle(.primary)
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
-                                        .background(Color.primary.opacity(0.10), in: Capsule())
-                                }
-                            }
+                        // 第二行：日期 · 已装内容；两者都没有就不占位（更紧凑）。
+                        if let detail = detailText(for: version, state: state) {
+                            Text(detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                         }
                     }
                     Spacer(minLength: 0)
@@ -75,24 +72,59 @@ struct GameList: View {
             .disabled(!canUseShortcut)
             .onChange(of: selectedVersion) {
                 guard let selectedVersionId = selectedVersion?.id else { return }
-                proxy.scrollTo(selectedVersionId)
+                // 首/末项：直接滚到列表真正的顶/底（含末尾留白）；
+                // 中间项：`scrollTo` 的最小滚动即可。
+                if selectedVersionId == versions.first?.id {
+                    scrollController.scrollToTop()
+                } else if selectedVersionId == versions.last?.id {
+                    scrollController.scrollToBottom()
+                } else {
+                    proxy.scrollTo(selectedVersionId)
+                }
             }
+            .background(VersionListScrollProbe(controller: scrollController))
         }
     }
 }
 
-private extension GameList {
-    func rowDetail(for version: Version, state: VersionInstallState) -> String? {
-        let installed = state.badges.joined(separator: ", ")
-        if isOnlyRelease {
-            return installed.isEmpty ? nil : installed
-        }
-        let buildType = version.buildType.rawValue.capitalized
-        return installed.isEmpty ? buildType : "\(buildType) - \(installed)"
+extension GameList {
+    /// 最新正式版 / 最新快照的徽标。
+    func latestBadge(for version: Version) -> LocalizedStringKey? {
+        if version.id == latestReleaseId { return "Latest" }
+        if version.id == latestSnapshotId { return "Latest snapshot" }
+        return nil
     }
 
+    /// 副标题：`发布日期 · 已装内容（最多两项 + N）`。
+    func detailText(for version: Version, state: VersionInstallState) -> String? {
+        var parts: [String] = []
+        if let released = VersionDateText.parse(version.releaseTime) {
+            parts.append(Self.dayText(VersionDateText.day(for: released)))
+        }
+        var installed = Array(state.badges.prefix(2))
+        if state.badges.count > 2 { installed.append("+\(state.badges.count - 2)") }
+        parts.append(contentsOf: installed)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// 日期判定 → 本地化文案（`Sources/*` 不做本地化，见 `VersionDateText`）。
+    static func dayText(_ day: VersionDateText.Day) -> String {
+        switch day {
+        case .today: return String(localized: "Today")
+        case .yesterday: return String(localized: "Yesterday")
+        case .daysAgo(let count): return String(localized: "\(count) days ago")
+        case .absolute(let text): return text
+        }
+    }
+
+    /// 悬停提示：版本 + 类型 + 全部已装内容。
     func rowHelp(for version: Version, state: VersionInstallState) -> String {
-        rowDetail(for: version, state: state).map { "\(version.id), \($0)" } ?? version.id
+        var parts = [version.id]
+        if !isOnlyRelease { parts.append(version.localizedBuildTypeTitle) }
+        if !state.labels.isEmpty {
+            parts.append(state.labels.formatted(.list(type: .and)))
+        }
+        return parts.joined(separator: "·")
     }
 }
 
@@ -103,6 +135,8 @@ private extension GameList {
         versions: versions,
         selectedVersion: $selectedVersion,
         installStates: [:],
+        latestReleaseId: "1.21.5",
+        latestSnapshotId: nil,
         isOnlyRelease: true,
         canUseShortcut: true
     )

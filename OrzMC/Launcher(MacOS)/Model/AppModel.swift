@@ -44,6 +44,9 @@ final class AppModel {
     /// 菜单「停止全部」请求确认（由 `LauncherUI` 弹出同一条确认）。
     var wantsStopAllConfirmation = false
 
+    /// 「停止全部 / 终止全部」进行中：菜单与工具栏按钮统一禁用，避免重复触发。
+    private(set) var isStoppingAll = false
+
     init(settings: SettingsModel = SettingsModel()) {
         self.settings = settings
         self.catalog = VersionCatalogModel()
@@ -58,6 +61,10 @@ final class AppModel {
         java.rootDir = settings.rootDir
         catalog.onSelectionChange = { [weak self] version in
             self?.selectionDidChange(version)
+        }
+        // 版本详情异步到达后 Java 需求才算得出来：到了就同步一次（标题栏的 Java 状态靠它）。
+        catalog.onGameInfoLoaded = { [weak self] in
+            self?.syncJavaRequirement()
         }
         // 首个选择可能来自恢复逻辑（此时 onSelectionChange 已就位）。
         if let restored = catalog.selected { selectionDidChange(restored) }
@@ -92,9 +99,19 @@ final class AppModel {
 
     var isRootDirValid: Bool { settings.isRootDirValid }
 
+    /// 模式的展示名（`GameMode.title` 是引擎层英文，UI 这里本地化）。
+    var localizedGameModeTitle: String {
+        gameMode == .client ? String(localized: "Client") : String(localized: "Server")
+    }
+
     var detailTitle: String {
         guard let selected = catalog.selected else { return "Minecraft" }
         return "Minecraft - \(selected.id)"
+    }
+
+    /// 把「当前版本需要哪个 Java」同步到 JRE 模型（选择变化 / gameInfo 到达时都调）。
+    private func syncJavaRequirement() {
+        java.requiredMajor = catalog.requiredJavaMajor(for: catalog.selected)
     }
 
     /// 用户名（离线）：存在设置里，下次启动预填。
@@ -105,7 +122,7 @@ final class AppModel {
 
     private func selectionDidChange(_ version: Version) {
         settings.lastSelectedVersionId = version.id
-        java.requiredMajor = catalog.requiredJavaMajor(for: version)
+        syncJavaRequirement()
         java.refresh()
         launch.resetProgress()
         servers.refresh()
@@ -113,11 +130,26 @@ final class AppModel {
 
     // MARK: 启动
 
+    /// 当前模式的实例是否已经在运行（客户端看控制台是否挂着进程；服务端看登记表）。
+    ///
+    /// 侧边栏的 Start 按钮和 Game 菜单都用它做前置条件，避免“点两次启动两个客户端/
+    /// 两个服务端”（服务端第二次会撞端口）。
+    var isCurrentInstanceRunning: Bool {
+        guard let version = catalog.selected else { return false }
+        switch gameMode {
+        case .client:
+            return isClientConsoleAttached(versionId: version.id)
+        case .server:
+            return servers.isRunning(versionId: version.id, software: settings.serverSoftware)
+        }
+    }
+
     var canStart: Bool {
         guard catalog.selected != nil,
               !catalog.isLoading,
               !launch.isLaunching,
-              settings.isMemoryValid
+              settings.isMemoryValid,
+              !isCurrentInstanceRunning
         else {
             return false
         }
@@ -185,14 +217,6 @@ final class AppModel {
             activity: activity(versionId: versionId, software: software),
             canControlGracefully: serverProcesses[key(versionId, software)] != nil
         )
-    }
-
-    /// 服务端实例运行状态文案（启动/停止过程中给出"正在…"）。
-    func serverStatusText(versionId: String, software: SettingsModel.ServerSoftware) -> String {
-        if let override = activity(versionId: versionId, software: software).statusOverride {
-            return override
-        }
-        return servers.isRunning(versionId: versionId, software: software) ? "Running" : "Stopped"
     }
 
     /// 启动某个服务端实例（按当前设置的内存/JVM 参数）。
@@ -374,7 +398,10 @@ final class AppModel {
     /// 而是把名字回报给用户 —— 由用户自己决定要不要「终止」（`SIGTERM`→`SIGKILL`）。
     /// 静默硬杀别人的世界比"停下来问一句"危险得多。
     func stopAllServers() {
+        guard !isStoppingAll else { return }
+        isStoppingAll = true
         Task { @MainActor in
+            defer { isStoppingAll = false }
             let running = servers.runningInstances()
             var gracefullyStopped = 0
             var unmanaged: [String] = []
@@ -401,7 +428,10 @@ final class AppModel {
 
     /// 「终止全部」：明确由用户触发时才硬杀（`SIGTERM` → 超时 `SIGKILL`）。
     func terminateAllServers() {
+        guard !isStoppingAll else { return }
+        isStoppingAll = true
         Task { @MainActor in
+            defer { isStoppingAll = false }
             for instance in servers.runningInstances() {
                 let key = self.key(instance.versionId, instance.software)
                 if let process = serverProcesses[key] {
@@ -413,6 +443,23 @@ final class AppModel {
                 }
                 servers.remove(versionId: instance.versionId, software: instance.software)
             }
+        }
+    }
+}
+
+
+// MARK: - 本地化辅助
+
+/// `InstanceActivity` 的英文文案在 `Sources/OrzMCLauncher` 里（纯逻辑，单测用）；
+/// UI 侧单独映射到本地化文案，避免把 Bundle/本地化依赖塞进可测的引擎层。
+extension InstanceActivity {
+    var localizedStatusText: String? {
+        switch self {
+        case .idle: return nil
+        case .starting: return String(localized: "Starting…")
+        case .stopping: return String(localized: "Stopping…")
+        case .terminating: return String(localized: "Terminating…")
+        case .restarting: return String(localized: "Restarting…")
         }
     }
 }

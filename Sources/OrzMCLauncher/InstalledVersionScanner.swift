@@ -20,6 +20,13 @@ public struct VersionInstallState: Equatable, Sendable {
 
     public var hasServer: Bool { !servers.isEmpty }
 
+    /// 某个服务端核心是否已装（`servers` 里存的是小写标识，如 `paper`）。
+    ///
+    /// 视图用这个替代直接 `stat` 目录：安装状态已由扫描器算好并缓存。
+    public func hasServer(id: String) -> Bool {
+        servers.contains { $0.caseInsensitiveCompare(id) == .orderedSame }
+    }
+
     public var isEmpty: Bool { !hasClient && servers.isEmpty }
 
     /// 列表行里的标签（"Client" / "Paper server" …）。

@@ -5,264 +5,45 @@
 //  Created by joker on 2024/4/28.
 //
 
-import SwiftUI
-import MojangAPI
 import Game
 import JokerKits
+import MojangAPI
 import OrzMCDesignSystem
 import OrzMCLauncher
+import SwiftUI
 
-struct FormSectionHeader: View {
-    typealias ButtonAction = () -> Void
-
-    let title: String
-    /// 运行状态（服务端/客户端都有：Running / Stopped / Starting… / Restarting…）。
-    var statusText: String?
-    var statusDotColor: Color?
-    var statusTextColor: Color?
-    /// 该实例有操作在进行（启动/停止/重启中）→ **全部按钮禁用**，防连点。
-    var isBusy: Bool = false
-    /// 生命周期按钮的可用性（`nil` = 该实例不提供生命周期控制，例如客户端）。
-    var availability: InstanceActionAvailability?
-    /// 打开该实例自己的控制台（客户端 + 四种核心各一个，入口就在自己这一栏）。
-    var consoleBtnAction: ButtonAction?
-    var consoleIsLive: Bool = false
-    /// 插件管理（仅支持插件的核心，如 Paper）。
-    var pluginsBtnAction: ButtonAction?
-    /// 启动（无确认）。
-    var startBtnAction: ButtonAction?
-    /// 重启（先停后起，会断开玩家 → 二次确认）。
-    var restartBtnAction: ButtonAction?
-    /// 优雅停止（送 `stop` → 让服务端自己存档退出；会断开玩家 → 二次确认）。
-    var stopBtnAction: ButtonAction?
-    /// 终止进程（`SIGTERM`→`SIGKILL`，可能丢存档 → 二次确认）。
-    var terminateBtnAction: ButtonAction?
-    /// 删除（**高危**：删文件，不可恢复）——点击后需二次确认。
-    var deleteBtnAction: ButtonAction
-
-    var body: some View {
-        HStack(spacing: 8) {
-            // 左：标题 + 状态
-            Text(title)
-                .font(.headline)
-            if let statusText {
-                statusBadge(statusText)
-            }
-
-            Spacer(minLength: 12)
-
-            // 右：操作按钮（高危动作带确认，执行中全禁用）
-            if isBusy {
-                ProgressView()
-                    .controlSize(.small)
-            }
-            HStack(spacing: 8) {
-                if let consoleBtnAction {
-                    iconButton(
-                        "Console",
-                        systemImage: consoleIsLive ? "terminal.fill" : "terminal",
-                        color: consoleIsLive ? .green : .accentColor,
-                        help: consoleIsLive ? "Open \(title) console (running)" : "Open \(title) console",
-                        action: consoleBtnAction
-                    )
-                }
-                if let pluginsBtnAction {
-                    iconButton(
-                        "Plugins",
-                        systemImage: "puzzlepiece.extension",
-                        color: .purple,
-                        help: "Manage \(title) plugins (install → plugins/, updates → plugins/update/)",
-                        action: pluginsBtnAction
-                    )
-                }
-                if startBtnAction != nil || restartBtnAction != nil || stopBtnAction != nil || terminateBtnAction != nil {
-                    groupSeparator
-                }
-                if let startBtnAction {
-                    iconButton(
-                        "Start",
-                        systemImage: "play.circle",
-                        color: .green,
-                        help: "Start \(title)",
-                        action: startBtnAction
-                    )
-                    .disabled(!(availability?.canStart ?? true))
-                }
-                if let restartBtnAction {
-                    iconButton(
-                        "Restart",
-                        systemImage: "arrow.clockwise.circle",
-                        color: .blue,
-                        help: "Restart \(title) (stop then start — asks for confirmation)",
-                        action: restartBtnAction
-                    )
-                    .disabled(!(availability?.canRestart ?? true))
-                }
-                if let stopBtnAction {
-                    iconButton(
-                        "Stop",
-                        systemImage: "stop.circle",
-                        color: .orange,
-                        help: "Stop \(title) gracefully (console `stop` — asks for confirmation)",
-                        action: stopBtnAction
-                    )
-                    .disabled(!(availability?.canStop ?? true))
-                }
-                if let terminateBtnAction {
-                    iconButton(
-                        "Terminate",
-                        systemImage: "xmark.octagon",
-                        color: .red,
-                        help: "Terminate \(title) process now (may lose unsaved world data — asks for confirmation)",
-                        action: terminateBtnAction
-                    )
-                    .disabled(!(availability?.canTerminate ?? true))
-                }
-                groupSeparator
-                iconButton(
-                    "Delete",
-                    systemImage: "trash",
-                    color: .red,
-                    help: "Delete \(title) files (asks for confirmation — cannot be undone)",
-                    action: deleteBtnAction
-                )
-                .disabled(!(availability?.canDelete ?? true))
-            }
-            .disabled(isBusy)
-        }
-    }
-
-    /// 按钮分组之间的一道细线：把「看/管」与「生命周期」与「删除」视觉上分开。
-    private var groupSeparator: some View {
-        Rectangle()
-            .fill(Color.secondary.opacity(0.25))
-            .frame(width: 1, height: 12)
-    }
-
-    private func iconButton(
-        _ label: String,
-        systemImage: String,
-        color: Color,
-        help: String,
-        action: @escaping ButtonAction
-    ) -> some View {
-        Button(action: action) {
-            Label(label, systemImage: systemImage)
-                .labelStyle(.iconOnly)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(color)
-        .help(help)
-    }
-
-    private func statusBadge(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(statusDotColor ?? Color.secondary)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .foregroundStyle(statusTextColor ?? Color.secondary)
-        }
-        .font(.caption)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background((statusDotColor ?? Color.secondary).opacity(0.12))
-        .cornerRadius(8)
-    }
-}
-
-/// 一条目录：**标题 + 一句说明 + 右侧「打开」按钮**。
+/// 详情页：当前版本的**实例内容**（目录 / 控制台 / 插件 / 生命周期）。
 ///
-/// 不显示完整路径：路径前缀（`~/minecraft/versions/…`）人人相同、又长又占地方，
-/// 用户真正要的是"这是干什么的" + 一键跳转。路径放在悬停提示里，需要时还能复制。
-struct DirectoryRow: View {
-    let entry: GameDirectoryEntry
-
-    private var exists: Bool { entry.path.isExist() }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbolName)
-                .foregroundStyle(exists ? Color.accentColor : Color.secondary)
-                .frame(width: 18)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(entry.title)
-                        .font(.body.weight(.medium))
-                    if !exists {
-                        Text("not created yet")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color.secondary.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
-                }
-                Text(entry.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-
-            Spacer(minLength: 8)
-
-            Button {
-                open()
-            } label: {
-                Label("Open", systemImage: "arrow.up.forward.app")
-                    .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(exists ? Color.accentColor : Color.secondary)
-            .disabled(!exists)
-            .help(exists ? "Open \(entry.path) in Finder" : "\(entry.path) does not exist yet")
-        }
-        .padding(.vertical, 1)
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) { open() }
-        .help(entry.path)
-    }
-
-    private var symbolName: String {
-        switch entry.kind {
-        case .root: return "folder"
-        case .world: return "globe.asia.australia"
-        case .logs: return "doc.text.magnifyingglass"
-        case .plugins: return "puzzlepiece.extension"
-        case .pluginUpdates: return "arrow.triangle.2.circlepath"
-        case .mods: return "shippingbox"
-        case .config: return "slider.horizontal.3"
-        case .saves: return "bookmark"
-        case .resourcePacks: return "paintpalette"
-        }
-    }
-
-    private func open() {
-        guard exists else { return }
-        _ = try? Shell.runCommand(with: ["open", entry.path])
-    }
-}
-
+/// 启动参数（模式 / 类型 / 玩家名 / Java / 启动按钮）在窗口标题栏（`LaunchToolbar`），
+/// 正文不再有"启动面板"。
+///
+/// 结构要点（2026-10-22 审查 A1/A2）：
+/// - **body 里不做文件 IO**：安装状态来自 `VersionCatalogModel.installStates`，
+///   目录清单与「目录是否存在」由下面的刷新任务算好放进 `@State`；
+/// - 视图按类型拆分：`FormSectionHeader` / `DirectoryRow` / `InstanceSection` /
+///   `DetailInstance` / `ConsoleTarget` / `PluginSheetTarget` 各自成文件。
 struct BasicInfo: View {
 
     @Environment(AppModel.self) private var app
-    
+
     /// 待确认的高危操作（删除/停止）——统一入口，点按钮只"排队"，确认后才执行。
     @State private var pendingRisky: RiskyAction?
     /// 正在执行的实例（`版本#实例`）→ 该实例按钮全禁用（防连点）。
     @State private var busyInstanceId: String?
-    /// 「停止全部」的二次确认。
-    @State private var confirmStopAll = false
     /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
     @State private var consoleTarget: ConsoleTarget?
     /// 要打开的插件管理面板（绑定到某个版本）。
     @State private var pluginSheet: PluginSheetTarget?
-    /// 详情页当前查看的实例（`版本#核心` / `版本#Client`）—— 四核心+客户端全装时不再一屏铺 5 段。
-    @State private var focusedInstance: String?
-    
+    /// 展示模式：折叠（默认，只留表头）/ 展开（显示目录行）。记住上次选择。
+    @AppStorage("orzmc.detail.allExpanded") private var allExpanded = false
+    /// 单栏的折叠/展开覆盖：`实例 id → 是否展开`（点某一栏的标题时写入；切换全局模式时清空）。
+    @State private var expansionOverrides: [String: Bool] = [:]
+
+    /// 每个实例的目录清单：`实例 id → [目录]`（由刷新任务填充，body 只读）。
+    @State private var entries: [String: [GameDirectoryEntry]] = [:]
+    /// 每个实例的 `path → 是否存在`（同上：body 里不再逐行 `stat`）。
+    @State private var entryExists: [String: [String: Bool]] = [:]
+
     var body: some View {
         Group {
             if app.catalog.selected == nil {
@@ -271,6 +52,18 @@ struct BasicInfo: View {
             } else {
                 detailsForm
             }
+        }
+        .onChange(of: app.catalog.selected?.id) {
+            consoleTarget = nil
+            pluginSheet = nil
+            entries = [:]
+            entryExists = [:]
+            expansionOverrides = [:]
+            refreshInstances()
+        }
+        // 切「全部折叠 / 全部展开」= 重置所有单栏覆盖，回到统一状态。
+        .onChange(of: allExpanded) {
+            expansionOverrides = [:]
         }
         .navigationTitle(app.detailTitle)
         .navigationDestination(item: $consoleTarget) { target in
@@ -283,39 +76,15 @@ struct BasicInfo: View {
             if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
-                        // 会断开所有在线玩家 → 二次确认；执行中禁用（防连点）。
-                        confirmStopAll = true
+                        // 确认框只在 `LauncherUI` 维护一份（菜单和这里共用），避免 ⌘K 注册两次。
+                        app.wantsStopAllConfirmation = true
                     } label: {
                         Label("Stop All Servers", systemImage: "stop.circle")
                     }
-                    .keyboardShortcut(.init(.init("k")), modifiers: .command)
-                    .disabled(busyInstanceId != nil)
+                    .disabled(busyInstanceId != nil || app.isStoppingAll)
                     .help("Stop all running Minecraft servers (asks for confirmation)")
                 }
             }
-        }
-        .alert("Stop All Servers?", isPresented: $confirmStopAll) {
-            Button("Stop All (graceful)") {
-                busyInstanceId = "all"
-                Task { @MainActor in
-                    defer { busyInstanceId = nil }
-                    app.stopAllServers()
-                }
-            }
-            Button("Terminate All", role: .destructive) {
-                busyInstanceId = "all"
-                Task { @MainActor in
-                    defer { busyInstanceId = nil }
-                    app.terminateAllServers()
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("""
-            Stop All sends `stop` to every running server, so each one saves and exits normally.             Servers started by a previous app session have no console to talk to — those are left alone.
-
-            Terminate All kills the processes instead (SIGTERM, then SIGKILL). Recent world changes may be lost.
-            """)
         }
         .alert(
             pendingRisky?.confirmTitle ?? "",
@@ -345,13 +114,16 @@ struct BasicInfo: View {
             defer { busyInstanceId = nil }
             switch action {
             case let .deleteServer(versionId, software, path):
-                try? path.remove()
+                // 删除失败必须说话：以前 `try?` 吞掉后还会把界面刷新成"已删除"。
+                guard remove(path) else { return }
                 app.removeConsole(versionId: versionId, software: software)
                 app.catalog.refreshInstallStates()
+                refreshInstances()
             case let .deleteClient(versionId, path):
-                try? path.remove()
+                guard remove(path) else { return }
                 app.removeClientConsole(versionId: versionId)
                 app.catalog.refreshInstallStates()
+                refreshInstances()
             case let .stopServer(versionId, software):
                 app.control(.stop, versionId: versionId, software: software)
             case let .restartServer(versionId, software):
@@ -362,230 +134,303 @@ struct BasicInfo: View {
         }
     }
 
+    /// 删除目录；失败时把原因交给全局错误提示并中止后续状态刷新。
+    private func remove(_ path: String) -> Bool {
+        guard !path.isEmpty else {
+            app.error = LauncherError(code: "E_IO", message: String(localized: "The instance folder is not known yet."))
+            return false
+        }
+        do {
+            try path.remove()
+            return true
+        } catch {
+            app.error = LauncherError(
+                code: "E_IO",
+                message: String(localized: "Could not delete the folder. \(error.localizedDescription)")
+            )
+            return false
+        }
+    }
+
     /// 该服务端实例是否有操作在进行（确认框执行中 或 生命周期操作中）。
     private func isBusy(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {
         busyInstanceId == "\(versionId)#\(software.rawValue)"
             || app.activity(versionId: versionId, software: software).isBusy
-    }
-
-    /// 客户端运行状态：以"客户端控制台是否挂着进程"为准（进程退出即解绑）。
-    private var clientRunStatus: (text: String, dotColor: Color, textColor: Color) {
-        guard let versionId = app.catalog.selected?.id else {
-            return ("Unknown", .secondary, .secondary)
-        }
-        return app.isClientConsoleAttached(versionId: versionId)
-            ? ("Running", .green, .green)
-            : ("Stopped", .red, .secondary)
+            || app.launch.isLaunching
     }
 
     private func consoleView(for target: ConsoleTarget) -> some View {
-        let console: ServerConsoleModel = app.console(for: target)
-        let title: String = target.title
-        return ServerConsoleView(title: title, console: console, target: target)
+        ServerConsoleView(
+            title: target.title,
+            console: app.console(for: target),
+            target: target
+        )
     }
 
-    /// 当前版本是否装了任何东西（都没装时给一句引导，而不是一片空白）。
-    private var hasAnyInstall: Bool {
-        SettingsModel.ServerSoftware.allCases.contains { software in
-            (serverDirPath(for: software)?.isExist() ?? false)
-        } || (clientDirPath?.isExist() ?? false)
+    /// **所有**客户端实例（Vanilla / Fabric）：两者共用同一个 `<version>/client` 目录，
+    /// 差别只在启动方式与 Fabric 多出来的 `mods/`。
+    private var clientInstances: [DetailInstance] {
+        guard let versionId = app.catalog.selected?.id else { return [] }
+        return DetailInstance.clients(versionId: versionId)
     }
 
-    /// 已安装的实例（用于顶部切换器；只有 1 个时不显示切换器）。
-    private var installedInstances: [DetailInstance] {
-        var result: [DetailInstance] = []
-        for software in SettingsModel.ServerSoftware.allCases {
-            if serverDirPath(for: software)?.isExist() ?? false {
-                result.append(DetailInstance(id: "\(app.catalog.selected?.id ?? "")#\(software.rawValue)", title: software.rawValue, software: software))
-            }
-        }
-        if clientDirPath?.isExist() ?? false {
-            result.append(DetailInstance(id: "\(app.catalog.selected?.id ?? "")#Client", title: "Client", software: nil))
-        }
-        return result
-    }
-
-    /// 当前聚焦的实例：优先用户选的，其次"正在运行的"，再次第一个。
-    private var currentInstance: DetailInstance? {
-        let instances = installedInstances
-        if let focusedInstance, let match = instances.first(where: { $0.id == focusedInstance }) {
-            return match
-        }
-        return instances.first(where: { isRunning($0) }) ?? instances.first
-    }
-
-    /// 该实例是否在运行（服务端看登记表，客户端看控制台是否挂着进程）。
-    private func isRunning(_ instance: DetailInstance) -> Bool {
-        guard let software = instance.software else {
-            return app.isClientConsoleAttached(versionId: instance.versionId)
-        }
-        return app.servers.isRunning(versionId: instance.versionId, software: software)
+    /// **所有**服务端实例（每个核心一个，目录/控制台/生命周期都各自独立）。
+    private var serverInstances: [DetailInstance] {
+        guard let versionId = app.catalog.selected?.id else { return [] }
+        return DetailInstance.servers(versionId: versionId)
     }
 
     private var detailsForm: some View {
-        Form {
-            // 顶部实例切换器：四种核心 + 客户端全装时，一次只看一个实例（否则一屏 5 段、每段 3-6 行目录，很挤）。
-            let instances = installedInstances
-            if instances.count > 1 {
-                Section {
-                    Picker("Instance", selection: Binding(
-                        get: { currentInstance?.id ?? instances[0].id },
-                        set: { focusedInstance = $0 }
-                    )) {
-                        ForEach(instances) { instance in
-                            Text(isRunning(instance) ? "\(instance.title) ●" : instance.title).tag(instance.id)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                }
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 启动进度与内存校验这类"当下的问题"贴在实例区上方；
+                // 正常状态下什么都不显示，正文从实例面板开始。
+                // 顶部的启动条：启动目标 / 玩家名（仅客户端）/ Java 状态 / 启动。
+                LaunchBar()
 
-            if let instance = currentInstance {
-                instanceSection(instance)
-            } else {
-                Section {
-                    Text("Nothing installed for \(app.catalog.selected?.id ?? "this version") yet — press Start in the sidebar to install the client or a server core.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                launchFeedback
+
+                // 客户端 + 服务端：**所有类型**都列出来，按类型分组（不再随工具栏切换）。
+                if !clientInstances.isEmpty {
+                    instanceGroup(
+                        title: "Client",
+                        caption: "Both client types share the same game folder; Fabric adds a mods folder.",
+                        instances: clientInstances,
+                        showsDisplayControls: true
+                    )
+                }
+
+                if !serverInstances.isEmpty {
+                    instanceGroup(
+                        title: "Server",
+                        caption: "Each server core has its own folder, console and lifecycle.",
+                        instances: serverInstances
+                    )
                 }
             }
+            .padding(20)
+            .frame(maxWidth: 780)
+            .frame(maxWidth: .infinity)
         }
-        .formStyle(.grouped)
-        // 目录是否存在会随**文件系统**变化（服务端跑起来会自己建 world/、装插件会建 update/），
-        // 不能只在"切换版本"时才算一遍：详情页可见期间每 1.5s 复核一次（只是几次 stat）。
+        .focusSection()
+        // 目录是否存在会随**文件系统**变化（服务端跑起来会自己建 world/、装插件会建 update/）：
+        // 这里每 1.5s 复核一次，并把结果写进 `@State`，让 body 保持"纯渲染"。
         .task(id: app.catalog.selected?.id) {
             while !Task.isCancelled {
-                app.catalog.refreshInstallStates()
+                if let selected = app.catalog.selected {
+                    app.catalog.refreshInstallState(for: selected)
+                }
+                refreshInstances()
                 try? await Task.sleep(for: .seconds(1.5))
             }
         }
     }
 
-    /// 一个实例的目录清单 + 表头（客户端与服务端同一套渲染，客户端只是没有生命周期按钮）。
+    /// 启动过程中的进度 / 设置校验失败时的提示（都只在"需要看"的时候出现）。
     @ViewBuilder
-    private func instanceSection(_ instance: DetailInstance) -> some View {
-        let entries = instance.software.map { directoryEntries(for: $0) } ?? clientDirectoryEntries()
+    private var launchFeedback: some View {
+        if app.launch.progress.isRunning {
+            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                ProgressView().controlSize(.small)
+                Text(app.launch.progress.summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                Spacer(minLength: 0)
+            }
+        }
 
-        Section {
-            ForEach(entries, id: \.id) { entry in
-                if entry.showsWhenMissing || entry.path.isExist() {
-                    DirectoryRow(entry: entry)
+        if let message = app.settings.memoryValidationMessage {
+            OrzMCBanner("Invalid memory setting: \(message)", role: .error)
+        }
+    }
+
+    /// 展示模式：**两个动作按钮**（图标），点一下就把所有卡片设成同一状态。
+    ///
+    /// 这里不能用 `Picker` 绑定 `allExpanded`：单栏折叠/展开后 `allExpanded` 没变，
+    /// 再点"已经选中的那一档"不会触发 `onChange`，看起来就是"按钮不起作用"（2026-10-22 实测复现）。
+    /// 动作按钮每次都显式设置全局值并清空单栏覆盖，任何状态下都有效。
+    private var displayModeControls: some View {
+        HStack(spacing: 2) {
+            modeButton(
+                systemImage: "rectangle.compress.vertical",
+                label: "Collapse All",
+                isActive: !allExpanded && expansionOverrides.isEmpty
+            ) {
+                allExpanded = false
+                expansionOverrides = [:]
+            }
+            modeButton(
+                systemImage: "rectangle.expand.vertical",
+                label: "Expand All",
+                isActive: allExpanded && expansionOverrides.isEmpty
+            ) {
+                allExpanded = true
+                expansionOverrides = [:]
+            }
+        }
+        .padding(3)
+        .background(OrzMCTheme.Palette.subtleFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
+        .help("Collapse or expand every instance card")
+    }
+
+    /// 单个模式按钮：图标态，选中档位有底色；单栏覆盖存在时两档都不高亮（= 混合状态）。
+    private func modeButton(
+        systemImage: String,
+        label: LocalizedStringKey,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(width: 30, height: 22)
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm)
+                            .fill(OrzMCTheme.Palette.selectionFill)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .help(label)
+        .accessibilityLabel(label)
+    }
+
+    /// 一组实例（客户端组 / 服务端组）：组标题 + 一句说明 + 各实例面板。
+    private func instanceGroup(
+        title: LocalizedStringKey,
+        caption: LocalizedStringKey,
+        instances: [DetailInstance],
+        showsDisplayControls: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+
+                Spacer(minLength: 0)
+
+                // 「全部折叠 / 全部展开」放在列表最近的地方（页面级动作，但离卡片最近）。
+                if showsDisplayControls {
+                    displayModeControls
                 }
             }
-        } header: {
-            if let software = instance.software {
-                let availability = app.availability(versionId: instance.versionId, software: software)
-                let status = statusFor(software: software)
-                FormSectionHeader(
-                    title: "Server (\(software.rawValue))",
-                    statusText: status.text,
-                    statusDotColor: status.dotColor,
-                    statusTextColor: status.textColor,
-                    isBusy: isBusy(versionId: instance.versionId, software: software),
-                    availability: availability,
-                    consoleBtnAction: {
-                        consoleTarget = ConsoleTarget(versionId: instance.versionId, software: software)
-                    },
-                    consoleIsLive: app.isConsoleAttached(versionId: instance.versionId, software: software),
-                    pluginsBtnAction: software.supportsPlugins ? {
-                        pluginSheet = PluginSheetTarget(versionId: instance.versionId)
-                    } : nil,
-                    startBtnAction: {
-                        app.control(.start, versionId: instance.versionId, software: software)
-                    },
-                    restartBtnAction: {
-                        pendingRisky = .restartServer(versionId: instance.versionId, software: software)
-                    },
-                    stopBtnAction: {
-                        pendingRisky = .stopServer(versionId: instance.versionId, software: software)
-                    },
-                    terminateBtnAction: {
-                        pendingRisky = .terminateServer(versionId: instance.versionId, software: software)
-                    },
-                    deleteBtnAction: {
-                        pendingRisky = .deleteServer(
-                            versionId: instance.versionId,
-                            software: software,
-                            path: entryPath(of: entries)
-                        )
-                    }
-                )
-            } else {
-                let clientStatus = clientRunStatus
-                FormSectionHeader(
-                    title: "Client",
-                    statusText: clientStatus.text,
-                    statusDotColor: clientStatus.dotColor,
-                    statusTextColor: clientStatus.textColor,
-                    isBusy: busyInstanceId == instance.id,
-                    consoleBtnAction: {
-                        consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
-                    },
-                    consoleIsLive: app.isClientConsoleAttached(versionId: instance.versionId),
-                    deleteBtnAction: {
-                        pendingRisky = .deleteClient(versionId: instance.versionId, path: entryPath(of: entries))
-                    }
-                )
+
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 2)
+                .padding(.bottom, 2)
+
+            ForEach(instances) { instance in
+                instanceSection(instance)
             }
         }
     }
 
-    /// 删除用的路径：取该实例的根目录（`entries` 的第一条恒为根目录）。
-    private func entryPath(of entries: [GameDirectoryEntry]) -> String {
-        entries.first(where: { $0.kind == .root })?.path ?? entries.first?.path ?? ""
+    private func instanceSection(_ instance: DetailInstance) -> some View {
+        let rows = entries[instance.id] ?? []
+        let exists = entryExists[instance.id] ?? [:]
+        let root = rows.first(where: { $0.kind == .root })?.path ?? ""
+        let status = instance.software.map { statusFor(software: $0) } ?? clientRunStatus
+
+        return InstanceSection(
+            instance: instance,
+            entries: rows,
+            entryExists: exists,
+            rootPath: root,
+            statusText: status.text,
+            statusStyle: status.style,
+            isCurrentType: isCurrentType(instance),
+            isExpanded: isExpanded(instance),
+            toggleAction: { expansionOverrides[instance.id] = !isExpanded(instance) },
+            isBusy: instance.software.map { isBusy(versionId: instance.versionId, software: $0) }
+                ?? (busyInstanceId == instance.id),
+            consoleIsLive: instance.software.map {
+                app.isConsoleAttached(versionId: instance.versionId, software: $0)
+            } ?? app.isClientConsoleAttached(versionId: instance.versionId),
+            availability: instance.software.map {
+                app.availability(versionId: instance.versionId, software: $0)
+            },
+            consoleTarget: $consoleTarget,
+            pluginSheet: $pluginSheet,
+            pendingRisky: $pendingRisky
+        )
+    }
+
+    /// 这一栏是否展开：单栏覆盖优先，否则跟随全局模式。
+    private func isExpanded(_ instance: DetailInstance) -> Bool {
+        expansionOverrides[instance.id] ?? allExpanded
+    }
+
+    /// 该实例是不是工具栏「当前启动类型」指向的那个（客户端的 Vanilla/Fabric、服务端的核心各一个）。
+    private func isCurrentType(_ instance: DetailInstance) -> Bool {
+        if let software = instance.software {
+            return software == app.settings.serverSoftware
+        }
+        return instance.clientKind == app.settings.clientType
+    }
+
+    /// 重新计算**所有实例**的目录清单与存在性（**唯一的**文件 IO 入口，只在任务里跑）。
+    private func refreshInstances() {
+        let all = clientInstances + serverInstances
+        guard !all.isEmpty else {
+            entries = [:]
+            entryExists = [:]
+            return
+        }
+
+        var newEntries: [String: [GameDirectoryEntry]] = [:]
+        var newExistence: [String: [String: Bool]] = [:]
+        newEntries.reserveCapacity(all.count)
+        newExistence.reserveCapacity(all.count)
+
+        for instance in all {
+            let rows = instance.software.map(directoryEntries(for:)) ?? clientDirectoryEntries(kind: instance.clientKind)
+            var existence: [String: Bool] = [:]
+            existence.reserveCapacity(rows.count)
+            for entry in rows {
+                existence[entry.path] = entry.path.isExist()
+            }
+            newEntries[instance.id] = rows
+            newExistence[instance.id] = existence
+        }
+        if newEntries != entries { entries = newEntries }
+        if newExistence != entryExists { entryExists = newExistence }
     }
 }
 
-/// 详情页里"一个可查看的实例"（某个服务端核心，或客户端）。
-struct DetailInstance: Identifiable {
-    let id: String
-    let title: String
-    /// `nil` = 客户端。
-    let software: SettingsModel.ServerSoftware?
-
-    var versionId: String {
-        String(id.split(separator: "#").first ?? "")
-    }
-}
-
-/// 插件管理面板的目标（`Identifiable` 供 `sheet(item:)` 用）。
-struct PluginSheetTarget: Identifiable {
-    let versionId: String
-    var id: String { versionId }
-}
-
-/// 控制台要打开的实例（`Identifiable` 供 `navigationDestination(item:)` 用）。
-///
-/// `software == nil` 表示**客户端实例**（`版本#Client`）；否则是对应的服务端核心。
-struct ConsoleTarget: Identifiable, Hashable {
-    let versionId: String
-    let software: SettingsModel.ServerSoftware?
-
-    var id: String {
-        "\(versionId)#\(software?.rawValue ?? "Client")"
-    }
-
-    var title: String {
-        "\(versionId) \(software?.rawValue ?? "Client")"
-    }
-}
-
+/// 客户端运行状态：以"客户端控制台是否挂着进程"为准（进程退出即解绑）。
 extension BasicInfo {
-
-    func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, dotColor: Color, textColor: Color) {
-        guard let selectedVersion = app.catalog.selected
-        else {
-            return ("Unknown", .secondary, .secondary)
+    var clientRunStatus: (text: String, style: OrzMCStatusStyle) {
+        guard let versionId = app.catalog.selected?.id else {
+            return (String(localized: "Unknown"), .idle)
         }
-        let text = app.serverStatusText(versionId: selectedVersion.id, software: software)
-        switch text {
-        case "Running": return ("Running", .green, .green)
-        case "Stopped": return ("Stopped", .red, .secondary)
-        default: return (text, .orange, .orange)   // Starting… / Stopping… / Restarting… / Terminating…
-        }
+        return app.isClientConsoleAttached(versionId: versionId)
+            ? (String(localized: "Running"), .running)
+            : (String(localized: "Stopped"), .idle)
     }
-    
+
+    func statusFor(software: SettingsModel.ServerSoftware) -> (text: String, style: OrzMCStatusStyle) {
+        guard let selectedVersion = app.catalog.selected else {
+            return (String(localized: "Unknown"), .idle)
+        }
+        if let activityText = app.activity(versionId: selectedVersion.id, software: software).localizedStatusText {
+            return (activityText, .busy)   // Starting… / Stopping… / Restarting… / Terminating…
+        }
+        if app.servers.isRunning(versionId: selectedVersion.id, software: software) {
+            return (String(localized: "Running"), .running)
+        }
+        // 停止不是错误：用中性色，红色只留给真正的失败/破坏性操作。
+        return (String(localized: "Stopped"), .idle)
+    }
+
     func serverDirPath(for software: SettingsModel.ServerSoftware) -> String? {
         guard let selectedVersion = app.catalog.selected
         else {
@@ -614,12 +459,12 @@ extension BasicInfo {
         )
     }
 
-    /// 客户端常用目录。
-    func clientDirectoryEntries() -> [GameDirectoryEntry] {
+    /// 客户端常用目录（`kind` 决定是否列出 `mods/`；两者共用同一个 `<version>/client`）。
+    func clientDirectoryEntries(kind: SettingsModel.ClientKind?) -> [GameDirectoryEntry] {
         guard let versionId = app.catalog.selected?.id else { return [] }
         let root = app.settings.rootDir
         return GameDirectoryCatalog.clientEntries(
-            clientType: app.settings.clientType.rawValue,
+            clientType: (kind ?? app.settings.clientType).rawValue,
             clientDir: GamePlan.clientDir(version: versionId, root: root),
             logsDir: GamePlan.clientLogsDir(version: versionId, root: root),
             savesDir: GamePlan.clientSavesDir(version: versionId, root: root),
@@ -628,7 +473,6 @@ extension BasicInfo {
         )
     }
 
-    
     var clientDirPath: String? {
         guard let selectedVersion = app.catalog.selected
         else {
@@ -638,9 +482,7 @@ extension BasicInfo {
     }
 }
 
-
 #Preview {
-    
     @Previewable
     @State
     var app = AppModel()
