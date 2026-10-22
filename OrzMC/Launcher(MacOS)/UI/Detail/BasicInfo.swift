@@ -73,9 +73,6 @@ struct BasicInfo: View {
             PluginManagerView(versionId: target.versionId)
         }
         .toolbar {
-            // 启动区（模式 / 类型 / 启动设置 / 启动）在窗口标题栏，正文只留实例内容。
-            LaunchToolbar()
-
             if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
@@ -188,19 +185,18 @@ struct BasicInfo: View {
             VStack(alignment: .leading, spacing: 16) {
                 // 启动进度与内存校验这类"当下的问题"贴在实例区上方；
                 // 正常状态下什么都不显示，正文从实例面板开始。
-                launchFeedback
+                // 顶部的启动条：启动目标 / 玩家名（仅客户端）/ Java 状态 / 启动。
+                LaunchBar()
 
-                HStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    displayModeControls
-                }
+                launchFeedback
 
                 // 客户端 + 服务端：**所有类型**都列出来，按类型分组（不再随工具栏切换）。
                 if !clientInstances.isEmpty {
                     instanceGroup(
                         title: "Client",
                         caption: "Both client types share the same game folder; Fabric adds a mods folder.",
-                        instances: clientInstances
+                        instances: clientInstances,
+                        showsDisplayControls: true
                     )
                 }
 
@@ -305,12 +301,26 @@ struct BasicInfo: View {
     }
 
     /// 一组实例（客户端组 / 服务端组）：组标题 + 一句说明 + 各实例面板。
-    private func instanceGroup(title: LocalizedStringKey, caption: LocalizedStringKey, instances: [DetailInstance]) -> some View {
+    private func instanceGroup(
+        title: LocalizedStringKey,
+        caption: LocalizedStringKey,
+        instances: [DetailInstance],
+        showsDisplayControls: Bool = false
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 2)
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+
+                Spacer(minLength: 0)
+
+                // 「全部折叠 / 全部展开」放在列表最近的地方（页面级动作，但离卡片最近）。
+                if showsDisplayControls {
+                    displayModeControls
+                }
+            }
 
             Text(caption)
                 .font(.caption)

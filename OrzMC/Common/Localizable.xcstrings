@@ -2911,16 +2911,6 @@
         }
       }
     },
-    "Servers don't need a player name.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务端不需要玩家名。"
-          }
-        }
-      }
-    },
     "Latest": {
       "localizations": {
         "zh-Hans": {
@@ -3011,72 +3001,12 @@
         }
       }
     },
-    "Launch Settings": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启动设置"
-          }
-        }
-      }
-    },
-    "More Settings…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更多设置…"
-          }
-        }
-      }
-    },
     "Client or server instance": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "客户端或服务端实例"
-          }
-        }
-      }
-    },
-    "Vanilla or Fabric client": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vanilla 或 Fabric 客户端"
-          }
-        }
-      }
-    },
-    "Which server core this instance runs": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "该实例使用的服务端核心"
-          }
-        }
-      }
-    },
-    "Player name and Java runtime": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "玩家名与 Java 运行时"
-          }
-        }
-      }
-    },
-    "Player name and Java runtime — the player name is still empty": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "玩家名与 Java 运行时 —— 玩家名还是空的"
           }
         }
       }
@@ -3167,6 +3097,106 @@
           "stringUnit": {
             "state": "translated",
             "value": "展开该实例"
+          }
+        }
+      }
+    },
+    "Client · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端 · %@"
+          }
+        }
+      }
+    },
+    "Server · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器 · %@"
+          }
+        }
+      }
+    },
+    "Launch target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动目标"
+          }
+        }
+      }
+    },
+    "Choose what to launch: client (Vanilla / Fabric) or a server core": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择启动对象：客户端（Vanilla / Fabric）或某个服务端核心"
+          }
+        }
+      }
+    },
+    "Player name used for the offline client launch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离线客户端启动使用的玩家名"
+          }
+        }
+      }
+    },
+    "Java requirement is unknown until a version is selected. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择版本后才能确定 Java 需求。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "This version needs Java %@; installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该版本需要 Java %@；本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "This version needs Java %@; it will be installed on launch. Installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该版本需要 Java %@；启动时会自动安装。本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "Could not detect Java runtimes. Installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能检测到 Java 运行时。本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "Enter player name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入玩家名称"
           }
         }
       }

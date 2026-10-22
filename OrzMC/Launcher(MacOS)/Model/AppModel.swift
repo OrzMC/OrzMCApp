@@ -62,6 +62,10 @@ final class AppModel {
         catalog.onSelectionChange = { [weak self] version in
             self?.selectionDidChange(version)
         }
+        // 版本详情异步到达后 Java 需求才算得出来：到了就同步一次（标题栏的 Java 状态靠它）。
+        catalog.onGameInfoLoaded = { [weak self] in
+            self?.syncJavaRequirement()
+        }
         // 首个选择可能来自恢复逻辑（此时 onSelectionChange 已就位）。
         if let restored = catalog.selected { selectionDidChange(restored) }
     }
@@ -105,6 +109,11 @@ final class AppModel {
         return "Minecraft - \(selected.id)"
     }
 
+    /// 把「当前版本需要哪个 Java」同步到 JRE 模型（选择变化 / gameInfo 到达时都调）。
+    private func syncJavaRequirement() {
+        java.requiredMajor = catalog.requiredJavaMajor(for: catalog.selected)
+    }
+
     /// 用户名（离线）：存在设置里，下次启动预填。
     var username: String {
         get { settings.username }
@@ -113,7 +122,7 @@ final class AppModel {
 
     private func selectionDidChange(_ version: Version) {
         settings.lastSelectedVersionId = version.id
-        java.requiredMajor = catalog.requiredJavaMajor(for: version)
+        syncJavaRequirement()
         java.refresh()
         launch.resetProgress()
         servers.refresh()

@@ -179,6 +179,9 @@ final class VersionCatalogModel {
         if selected == nil { selected = filtered.first }
     }
 
+    /// 版本详情（gameInfo）是异步拉取的，**Java 需求依赖它**：到达后通知根模型同步一次。
+    var onGameInfoLoaded: (() -> Void)?
+
     private func loadGameInfoIfNeeded(for version: Version) {
         guard gameInfoMap[version] == nil else { return }
         let handler = loadGameInfoHandler
@@ -186,6 +189,7 @@ final class VersionCatalogModel {
         Task { [weak self] in
             guard let info = try? await handler(version, root) else { return }
             self?.gameInfoMap[version] = info
+            self?.onGameInfoLoaded?()
         }
     }
 }
