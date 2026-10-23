@@ -23,12 +23,15 @@ struct MacOSScene: Scene {
 
     /// 由 `OrzMCApp` 持有（App 级 `@State`），保证 Window 与 Settings 看到同一份状态。
     let app: AppModel
+    /// 快捷键覆盖值（同一个实例，菜单与设置页共用）。
+    let shortcuts: ShortcutStore
 
     var body: some Scene {
         Window("OrzMC", id: "main") {
             LauncherUI()
                 .frame(minWidth: Constants.minWidth, minHeight: Constants.minHeight)
                 .environment(app)
+                .environment(shortcuts)
                 .syncAppearance(app.settings.appearance)
                 // 单窗口 → 探活循环只有一个。周期 2s（`kill(pid, 0)`，只探自己登记过的服务端）。
                 .task { await app.servers.monitor() }
@@ -59,12 +62,14 @@ struct MacOSScene: Scene {
                 Button("Jump to Newest Version") {
                     app.catalog.stepSelection(by: -1, jumpToEdge: true)
                 }
-                .keyboardShortcut(.upArrow, modifiers: .command)
+                .keyboardShortcut(shortcuts.spec(for: .jumpNewest).keyEquivalent,
+                                  modifiers: shortcuts.spec(for: .jumpNewest).eventModifiers)
 
                 Button("Jump to Oldest Version") {
                     app.catalog.stepSelection(by: 1, jumpToEdge: true)
                 }
-                .keyboardShortcut(.downArrow, modifiers: .command)
+                .keyboardShortcut(shortcuts.spec(for: .jumpOldest).keyEquivalent,
+                                  modifiers: shortcuts.spec(for: .jumpOldest).eventModifiers)
 
                 Divider()
 
@@ -77,7 +82,8 @@ struct MacOSScene: Scene {
                 Button("Stop All Servers…") {
                     app.wantsStopAllConfirmation = true
                 }
-                .keyboardShortcut("k", modifiers: [.command, .shift])
+                .keyboardShortcut(shortcuts.spec(for: .stopAll).keyEquivalent,
+                                  modifiers: shortcuts.spec(for: .stopAll).eventModifiers)
                 .disabled(!app.servers.hasRunning || app.isStoppingAll)
             }
 
@@ -120,6 +126,7 @@ struct MacOSScene: Scene {
             // `@Environment(AppModel.self)` 找不到对象 → SIGTRAP（见 2026-10-21 崩溃报告）。
             SettingsView()
                 .environment(app)
+                .environment(shortcuts)
                 .syncAppearance(app.settings.appearance)
         }
     }

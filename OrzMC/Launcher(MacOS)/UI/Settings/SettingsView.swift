@@ -57,6 +57,10 @@ struct SettingsView: View {
                 .tabItem { Label("Command Line", systemImage: "terminal") }
                 .tag(SettingsTab.tools)
 
+            ShortcutsSettingsView()
+                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+                .tag(SettingsTab.shortcuts)
+
             AboutSettingsView()
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(SettingsTab.about)
@@ -77,6 +81,7 @@ enum SettingsTab: String, CaseIterable, Hashable {
     case client
     case server
     case tools
+    case shortcuts
     case about
 }
 

@@ -41,6 +41,22 @@ final class AppModel {
     /// 各实例正在进行的生命周期操作（驱动按钮禁用 + 防连点）。
     private(set) var activities: [ConsoleInstanceKey: InstanceActivity] = [:]
 
+    /// 按**客户端类型**记正在运行的进程（控制台仍按版本共用，但"运行中"必须分卡片）。
+    private(set) var runningClients: [ConsoleInstanceKey: ManagedProcess] = [:]
+
+    /// 各实例**当前启动进度**（卡片标题区的百分比；与全局 `launch.progress` 同源，但按实例存）。
+    private(set) var instanceProgress: [ConsoleInstanceKey: LaunchProgressState] = [:]
+
+    /// 某个实例的启动进度（`nil` = 没在下载/启动）。
+    func progress(for key: ConsoleInstanceKey) -> LaunchProgressState? {
+        instanceProgress[key]
+    }
+
+    /// 客户端实例键（按类型区分：Vanilla / Fabric 是两张卡片）。
+    func clientKey(versionId: String, kind: SettingsModel.ClientKind) -> ConsoleInstanceKey {
+        ConsoleInstanceKey.client(versionId: versionId, kind: kind.rawValue)
+    }
+
     /// 菜单「停止全部」请求确认（由 `LauncherUI` 弹出同一条确认）。
     var wantsStopAllConfirmation = false
 
@@ -172,10 +188,17 @@ final class AppModel {
                     case .client:
                         // 客户端实例也有自己的控制台（key = `版本#Client`）。
                         let key = ConsoleInstanceKey.client(versionId: version.id)
-                        // 忙碌状态按"实例"记，而不是全靠全局 `launch.isLaunching`：
-                        // 那个全局标志会让**所有**服务端卡片一起转圈（实测踩过）。
-                        activities[key] = .starting
-                        defer { activities[key] = nil }
+                        // **状态按"卡片"记**：Vanilla 与 Fabric 是两张卡，启动其中一个不能把另一张也点亮。
+                        let cardKey = clientKey(versionId: version.id, kind: settings.clientType)
+                        activities[cardKey] = .starting
+                        defer {
+                            activities[cardKey] = nil
+                            instanceProgress[cardKey] = nil
+                        }
+                        launch.progressObserver = { [weak self] state in
+                            self?.instanceProgress[cardKey] = state
+                        }
+                        defer { launch.progressObserver = nil }
                         let console = consoles.model(for: key)
                         let logHandler: @Sendable (String) -> Void = { chunk in
                             console.append(chunk)
@@ -190,7 +213,8 @@ final class AppModel {
                             onClientLog: logHandler
                         ) {
                             consoles.attach(session.process, to: key)
-                            watchClientExit(session, key: key)
+                            runningClients[cardKey] = session.process
+                            watchClientExit(session, key: key, cardKey: cardKey)
                         }
                     case .server:
                         try await launchServer(version: version, software: settings.serverSoftware)
@@ -214,9 +238,9 @@ final class AppModel {
         activities[key(versionId, software)] ?? .idle
     }
 
-    /// 客户端实例当前活动（启动过程中为 `.starting`）。
-    func clientActivity(versionId: String) -> InstanceActivity {
-        activities[ConsoleInstanceKey.client(versionId: versionId)] ?? .idle
+    /// 客户端**某类型**卡片当前活动（启动过程中为 `.starting`）。
+    func clientActivity(versionId: String, kind: SettingsModel.ClientKind) -> InstanceActivity {
+        activities[clientKey(versionId: versionId, kind: kind)] ?? .idle
     }
 
     /// 按钮可用性：结合"是否在跑 / 是否在忙 / 有没有句柄"。
@@ -235,6 +259,14 @@ final class AppModel {
         let console = consoles.model(for: key)
         let logHandler: @Sendable (String) -> Void = { chunk in
             console.append(chunk)
+        }
+        // 进度进卡片（详情页标题区），启动结束后清掉。
+        launch.progressObserver = { [weak self] state in
+            self?.instanceProgress[key] = state
+        }
+        defer {
+            launch.progressObserver = nil
+            instanceProgress[key] = nil
         }
         if let session = try await launch.startServer(
             version: version,
@@ -345,11 +377,16 @@ final class AppModel {
     }
 
     /// 客户端退出（玩家关掉游戏）后解绑控制台，日志保留。
-    private func watchClientExit(_ session: LaunchedClientSession, key: ConsoleInstanceKey) {
+    private func watchClientExit(
+        _ session: LaunchedClientSession,
+        key: ConsoleInstanceKey,
+        cardKey: ConsoleInstanceKey
+    ) {
         let consoles = self.consoles
-        Task {
+        Task { @MainActor [weak self] in
             let code = await session.process.waitForExit()
             consoles.detach(key, reason: "Client exited (code \(code))")
+            self?.runningClients[cardKey] = nil
         }
     }
 
@@ -372,6 +409,11 @@ final class AppModel {
 
     func isClientConsoleAttached(versionId: String) -> Bool {
         consoles.isAttached(.client(versionId: versionId))
+    }
+
+    /// 客户端**某类型**是否在运行（Vanilla / Fabric 各算各的）。
+    func isClientRunning(versionId: String, kind: SettingsModel.ClientKind) -> Bool {
+        runningClients[clientKey(versionId: versionId, kind: kind)] != nil
     }
 
     func isConsoleAttached(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {

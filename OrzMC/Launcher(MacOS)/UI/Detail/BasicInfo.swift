@@ -160,9 +160,17 @@ struct BasicInfo: View {
             || app.activity(versionId: versionId, software: software).isBusy
     }
 
-    /// 客户端实例自己的忙碌状态（启动过程中转圈 + 状态显示「启动中…」）。
+    /// 客户端**这张卡片**的忙碌状态（Vanilla / Fabric 各自独立）。
     private func isClientBusy(_ instance: DetailInstance) -> Bool {
-        busyInstanceId == instance.id || app.clientActivity(versionId: instance.versionId).isBusy
+        guard let kind = instance.clientKind else { return false }
+        return busyInstanceId == instance.id
+            || app.clientActivity(versionId: instance.versionId, kind: kind).isBusy
+    }
+
+    /// 客户端某张卡片的启动进度（标题区的百分比）。
+    private func clientProgress(_ instance: DetailInstance) -> LaunchProgressState? {
+        guard let kind = instance.clientKind else { return nil }
+        return app.progress(for: app.clientKey(versionId: instance.versionId, kind: kind))
     }
 
     private func consoleView(for target: ConsoleTarget) -> some View {
@@ -232,22 +240,12 @@ struct BasicInfo: View {
         }
     }
 
-    /// 启动过程中的进度 / 设置校验失败时的提示（都只在"需要看"的时候出现）。
+    /// 页面顶部只留"设置有问题"这类全局提示。
+    ///
+    /// 启动/下载进度**不再出现在这里**：那是某个实例的事，应该出现在它自己的卡片标题区
+    /// （`InstanceSection.progress`），否则"顶部转圈 + 不知道是谁在启动"。
     @ViewBuilder
     private var launchFeedback: some View {
-        if app.launch.progress.isRunning {
-            HStack(spacing: OrzMCTheme.Spacing.xs) {
-                ProgressView().controlSize(.small)
-                Text(app.launch.progress.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-                Spacer(minLength: 0)
-            }
-        }
-
         if let message = app.settings.memoryValidationMessage {
             OrzMCBanner("Invalid memory setting: \(message)", role: .error)
         }
@@ -344,7 +342,7 @@ struct BasicInfo: View {
         let rows = entries[instance.id] ?? []
         let exists = entryExists[instance.id] ?? [:]
         let root = rows.first(where: { $0.kind == .root })?.path ?? ""
-        let status = instance.software.map { statusFor(software: $0) } ?? clientRunStatus
+        let status = instance.software.map { statusFor(software: $0) } ?? clientRunStatus(for: instance)
 
         return InstanceSection(
             instance: instance,
@@ -353,6 +351,9 @@ struct BasicInfo: View {
             rootPath: root,
             statusText: status.text,
             statusStyle: status.style,
+            progress: instance.software.map {
+                app.progress(for: ConsoleInstanceKey(versionId: instance.versionId, instanceId: $0.rawValue))
+            } ?? clientProgress(instance),
             isCurrentType: isCurrentType(instance),
             isExpanded: isExpanded(instance),
             toggleAction: { expansionOverrides[instance.id] = !isExpanded(instance) },
@@ -414,14 +415,15 @@ struct BasicInfo: View {
 
 /// 客户端运行状态：以"客户端控制台是否挂着进程"为准（进程退出即解绑）。
 extension BasicInfo {
-    var clientRunStatus: (text: String, style: OrzMCStatusStyle) {
-        guard let versionId = app.catalog.selected?.id else {
+    /// 客户端**这张卡片**的运行状态（按类型，不和另一张共享）。
+    func clientRunStatus(for instance: DetailInstance) -> (text: String, style: OrzMCStatusStyle) {
+        guard let versionId = app.catalog.selected?.id, let kind = instance.clientKind else {
             return (String(localized: "Unknown"), .idle)
         }
-        if let activityText = app.clientActivity(versionId: versionId).localizedStatusText {
+        if let activityText = app.clientActivity(versionId: versionId, kind: kind).localizedStatusText {
             return (activityText, .busy)     // 启动中…（与客户端启动是异步的，先给反馈）
         }
-        return app.isClientConsoleAttached(versionId: versionId)
+        return app.isClientRunning(versionId: versionId, kind: kind)
             ? (String(localized: "Running"), .running)
             : (String(localized: "Stopped"), .idle)
     }

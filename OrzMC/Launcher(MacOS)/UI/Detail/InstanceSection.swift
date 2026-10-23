@@ -24,6 +24,8 @@ struct InstanceSection: View {
     let rootPath: String
     let statusText: String
     let statusStyle: OrzMCStatusStyle
+    /// 该实例的启动/下载进度（`nil` = 没在下载启动）。
+    var progress: LaunchProgressState?
     /// 是否为工具栏"当前启动类型"对应的实例。
     var isCurrentType: Bool = false
     /// 是否展开（折叠时只保留表头那一行，页面可以一屏看完所有实例）。
@@ -91,6 +93,7 @@ struct InstanceSection: View {
                 statusText: statusText,
                 statusStyle: statusStyle,
                 isBusy: isBusy,
+                progress: progress,
                 availability: availability,
                 consoleBtnAction: {
                     consoleTarget = ConsoleTarget(versionId: instance.versionId, software: software)
@@ -128,6 +131,7 @@ struct InstanceSection: View {
                 statusText: statusText,
                 statusStyle: statusStyle,
                 isBusy: isBusy,
+                progress: progress,
                 consoleBtnAction: {
                     consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
                 },
