@@ -154,9 +154,15 @@ struct BasicInfo: View {
 
     /// 该服务端实例是否有操作在进行（确认框执行中 或 生命周期操作中）。
     private func isBusy(versionId: String, software: SettingsModel.ServerSoftware) -> Bool {
+        // 只看**这个实例**：`launch.isLaunching` 是全局的，启动客户端时会把四个服务端卡片
+        // 一起点亮成 loading（实测踩过）。
         busyInstanceId == "\(versionId)#\(software.rawValue)"
             || app.activity(versionId: versionId, software: software).isBusy
-            || app.launch.isLaunching
+    }
+
+    /// 客户端实例自己的忙碌状态（启动过程中转圈 + 状态显示「启动中…」）。
+    private func isClientBusy(_ instance: DetailInstance) -> Bool {
+        busyInstanceId == instance.id || app.clientActivity(versionId: instance.versionId).isBusy
     }
 
     private func consoleView(for target: ConsoleTarget) -> some View {
@@ -351,7 +357,7 @@ struct BasicInfo: View {
             isExpanded: isExpanded(instance),
             toggleAction: { expansionOverrides[instance.id] = !isExpanded(instance) },
             isBusy: instance.software.map { isBusy(versionId: instance.versionId, software: $0) }
-                ?? (busyInstanceId == instance.id),
+                ?? isClientBusy(instance),
             consoleIsLive: instance.software.map {
                 app.isConsoleAttached(versionId: instance.versionId, software: $0)
             } ?? app.isClientConsoleAttached(versionId: instance.versionId),
@@ -411,6 +417,9 @@ extension BasicInfo {
     var clientRunStatus: (text: String, style: OrzMCStatusStyle) {
         guard let versionId = app.catalog.selected?.id else {
             return (String(localized: "Unknown"), .idle)
+        }
+        if let activityText = app.clientActivity(versionId: versionId).localizedStatusText {
+            return (activityText, .busy)     // 启动中…（与客户端启动是异步的，先给反馈）
         }
         return app.isClientConsoleAttached(versionId: versionId)
             ? (String(localized: "Running"), .running)

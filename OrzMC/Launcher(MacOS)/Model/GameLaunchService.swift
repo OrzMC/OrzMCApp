@@ -20,6 +20,17 @@ struct GameLaunchService {
         progressHandler: @escaping LaunchProgressHandler,
         onClientLog: (@Sendable (String) -> Void)? = nil
     ) async throws -> LaunchedClientSession? {
+        // Fabric 客户端必须解析 profile addon（loader 库 + 主类）。
+        // 引擎只在 `addon != nil` 时才下载 Fabric 库、替换主类（见 `Client+Fabric`）；
+        // 之前 GUI 只传了 `type: .fabric` 却没解析 addon，结果"Fabric 启动 = 原版启动"
+        // （CLI 一直是对的：`ClientCommand` 里会 `FabricMeta.resolve`）。
+        let addon: ProfileAddon?
+        if clientType == .fabric {
+            addon = try await FabricMeta.resolve(version: version.id, root: rootDir)
+        } else {
+            addon = nil
+        }
+
         // 内存/客户端类型来自设置（校验已在 `SettingsModel` 用引擎 `MemorySpec` 做过）。
         let clientInfo = ClientInfo(
             version: version,
@@ -28,6 +39,7 @@ struct GameLaunchService {
             type: clientType.gameType,
             minMem: minMem,
             maxMem: maxMem,
+            addon: addon,
             onClientLog: onClientLog
         )
         var launcher = GUIClient(

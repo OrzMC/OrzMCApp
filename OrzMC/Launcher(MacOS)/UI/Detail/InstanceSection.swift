@@ -63,6 +63,16 @@ struct InstanceSection: View {
             }
         }
         .orzMCPanel()
+        // 「当前启动类型」不用一个会挤动状态徽标的胶囊，而是把整张卡片描边高亮：
+        // 几行状态徽标因此在同一条竖线上（切换类型时不会左右跳）。
+        .overlay {
+            if isCurrentType {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(OrzMCTheme.Palette.accent.opacity(0.55), lineWidth: 1.5)
+                    .allowsHitTesting(false)
+            }
+        }
+        .modifier(CurrentInstanceHint(isCurrent: isCurrentType))
     }
 
     /// 需要显示的行（未创建且「始终显示」的目录才出现）。
@@ -80,7 +90,6 @@ struct InstanceSection: View {
                 helpTitle: "\(instance.versionId) \(software.rawValue)",
                 statusText: statusText,
                 statusStyle: statusStyle,
-                isCurrentType: isCurrentType,
                 isBusy: isBusy,
                 availability: availability,
                 consoleBtnAction: {
@@ -118,7 +127,6 @@ struct InstanceSection: View {
                 helpTitle: "\(instance.versionId) Client",
                 statusText: statusText,
                 statusStyle: statusStyle,
-                isCurrentType: isCurrentType,
                 isBusy: isBusy,
                 consoleBtnAction: {
                     consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
@@ -130,6 +138,19 @@ struct InstanceSection: View {
                     pendingRisky = .deleteClient(versionId: instance.versionId, path: rootPath)
                 }
             )
+        }
+    }
+}
+
+/// 「当前启动类型」的说明：只在当前那一张卡片上挂 tooltip（`.help("")` 会留下空气泡）。
+private struct CurrentInstanceHint: ViewModifier {
+    let isCurrent: Bool
+
+    func body(content: Content) -> some View {
+        if isCurrent {
+            content.help("Start button launches this instance")
+        } else {
+            content
         }
     }
 }
