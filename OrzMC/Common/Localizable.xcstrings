@@ -3370,6 +3370,26 @@
           }
         }
       }
+    },
+    "%@ server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端"
+          }
+        }
+      }
+    },
+    "Start button launches this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动按钮启动的就是这个实例"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

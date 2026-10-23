@@ -101,10 +101,20 @@ extension GameList {
         if let released = VersionDateText.parse(version.releaseTime) {
             parts.append(Self.dayText(VersionDateText.day(for: released)))
         }
-        var installed = Array(state.badges.prefix(2))
-        if state.badges.count > 2 { installed.append("+\(state.badges.count - 2)") }
+        let badges = state.badges.map(Self.localizedBadge)
+        var installed = Array(badges.prefix(2))
+        if badges.count > 2 { installed.append("+\(badges.count - 2)") }   // "+N" 与语言无关，不再翻译
         parts.append(contentsOf: installed)
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// 安装徽标 → 界面文案。
+    ///
+    /// `VersionInstallState.badges` 是**平台无关层**（`Sources/OrzMCLauncher`）产出的原始字符串，
+    /// 那里不做本地化（它对 CLI 也说同一套话）。`Client` 是通用词，必须按语言翻；
+    /// `Paper` / `Vanilla` / `Fabric` / `Forge` 是产品名，保持原样。
+    static func localizedBadge(_ badge: String) -> String {
+        badge == "Client" ? String(localized: "Client") : badge
     }
 
     /// 日期判定 → 本地化文案（`Sources/*` 不做本地化，见 `VersionDateText`）。
@@ -121,8 +131,10 @@ extension GameList {
     func rowHelp(for version: Version, state: VersionInstallState) -> String {
         var parts = [version.id]
         if !isOnlyRelease { parts.append(version.localizedBuildTypeTitle) }
-        if !state.labels.isEmpty {
-            parts.append(state.labels.formatted(.list(type: .and)))
+        if state.hasClient { parts.append(String(localized: "Client")) }
+        // `servers` 里是小写标识（paper/…），展示用首字母大写 + 本地化的「服务端」后缀。
+        for server in state.servers {
+            parts.append(String(localized: "\(server.capitalized) server"))
         }
         return parts.joined(separator: "·")
     }

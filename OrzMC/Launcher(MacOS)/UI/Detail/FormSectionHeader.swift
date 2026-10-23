@@ -79,15 +79,6 @@ struct FormSectionHeader: View {
             .disabled(toggleAction == nil)
             .help(isExpanded ? "Collapse this instance" : "Expand this instance")
             .accessibilityLabel(Text(isExpanded ? "Collapse this instance" : "Expand this instance"))
-            if isCurrentType {
-                Text("Current")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 1)
-                    .background(OrzMCTheme.Palette.subtleFill, in: Capsule())
-                    .accessibilityLabel(Text("Current launch type"))
-            }
             if let statusText {
                 OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
             }

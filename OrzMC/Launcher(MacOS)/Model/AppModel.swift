@@ -172,6 +172,10 @@ final class AppModel {
                     case .client:
                         // 客户端实例也有自己的控制台（key = `版本#Client`）。
                         let key = ConsoleInstanceKey.client(versionId: version.id)
+                        // 忙碌状态按"实例"记，而不是全靠全局 `launch.isLaunching`：
+                        // 那个全局标志会让**所有**服务端卡片一起转圈（实测踩过）。
+                        activities[key] = .starting
+                        defer { activities[key] = nil }
                         let console = consoles.model(for: key)
                         let logHandler: @Sendable (String) -> Void = { chunk in
                             console.append(chunk)
@@ -208,6 +212,11 @@ final class AppModel {
     /// 实例当前活动（`idle` = 没在忙）。
     func activity(versionId: String, software: SettingsModel.ServerSoftware) -> InstanceActivity {
         activities[key(versionId, software)] ?? .idle
+    }
+
+    /// 客户端实例当前活动（启动过程中为 `.starting`）。
+    func clientActivity(versionId: String) -> InstanceActivity {
+        activities[ConsoleInstanceKey.client(versionId: versionId)] ?? .idle
     }
 
     /// 按钮可用性：结合"是否在跑 / 是否在忙 / 有没有句柄"。
