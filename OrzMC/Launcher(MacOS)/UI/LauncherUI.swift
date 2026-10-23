@@ -54,12 +54,10 @@ struct LauncherUI: View {
             }
         } message: {
             Text(
-                """
-                Stop All sends `stop` to every running server, so each one saves and exits normally. \
-                Servers started by a previous app session have no console to talk to — those are left alone.
-
-                Terminate All kills the processes instead (SIGTERM, then SIGKILL). Recent world changes may be lost.
-                """
+                [
+                    String(localized: "Stop: each server saves the world, then shuts down. Players are disconnected."),
+                    String(localized: "Terminate: processes are killed at once, so recent changes may be lost."),
+                ].joined(separator: "\n")
             )
         }
     }

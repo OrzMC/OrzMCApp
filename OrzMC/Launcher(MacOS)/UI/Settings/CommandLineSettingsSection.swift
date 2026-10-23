@@ -84,16 +84,12 @@ struct CommandLineSettingsSection: View {
             Button("Cancel", role: .cancel) { pendingChannel = nil }
         } message: { channel in
             Text(
-                """
-                This downloads and runs the official OrzMC installer:
-
-                \(channel.oneLiner)
-
-                It installs to ~/.local/bin and may add that directory to your shell PATH. \
-                No administrator rights are needed.
-
-                \(InstallSurfacePolicy.reinstallNotice())
-                """
+                [
+                    String(localized: "Downloads and runs the official installer:"),
+                    channel.oneLiner,
+                    String(localized: "Installs to ~/.local/bin (no admin rights) and may add it to your shell PATH."),
+                    String(localized: "Reinstalling rewrites the install record: it will say this app installed it."),
+                ].joined(separator: "\n")
             )
         }
         .confirmationDialog(
@@ -105,12 +101,7 @@ struct CommandLineSettingsSection: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(
-                """
-                Runs `orzmc uninstall --yes`: removes the binary, the PATH line it added, \
-                the shell completion, and the install record. Your game files are kept.
-                """
-            )
+            Text("Removes the binary, the PATH line it added, the shell completion and the install record. Game files are kept.")
         }
     }
 

@@ -3670,6 +3670,166 @@
           }
         }
       }
+    },
+    "Delete %@ Client Files?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 %@ 客户端文件？"
+          }
+        }
+      }
+    },
+    "this version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个版本"
+          }
+        }
+      }
+    },
+    "Stop: each server saves the world, then shuts down. Players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止：逐个先存档再退出，玩家会掉线。"
+          }
+        }
+      }
+    },
+    "Terminate: processes are killed at once, so recent changes may be lost.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "终止：直接结束进程，最近的进度可能丢失。"
+          }
+        }
+      }
+    },
+    "Downloads and runs the official installer:": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会下载并运行官方安装器："
+          }
+        }
+      }
+    },
+    "Installs to ~/.local/bin (no admin rights) and may add it to your shell PATH.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装到 ~/.local/bin（无需管理员权限），可能修改 shell 的 PATH。"
+          }
+        }
+      }
+    },
+    "Reinstalling rewrites the install record: it will say this app installed it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重装会改写安装记录：来源会变成「由本应用安装」。"
+          }
+        }
+      }
+    },
+    "The server saves and shuts down; connected players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器会存档并关闭，在线玩家会掉线。"
+          }
+        }
+      }
+    },
+    "The server restarts; players are disconnected during the restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器会重启，期间玩家掉线。"
+          }
+        }
+      }
+    },
+    "Removes the binary, the PATH line it added, the shell completion and the install record. Game files are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删除可执行文件、它写入的 PATH 行、命令补全和安装记录；游戏文件保留。"
+          }
+        }
+      }
+    },
+    "The %@ server folder (%@) is deleted for good, including worlds, configs and plugins.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 服务端目录（%@），存档、配置和插件一并消失。"
+          }
+        }
+      }
+    },
+    "The %@ client folder (%@) is deleted for good, including assets, mods and options.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 客户端目录（%@），资源、mods 和设置一并消失。"
+          }
+        }
+      }
+    },
+    "All %lld instance folders (%@) are deleted for good, including worlds, configs, plugins and assets.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 的全部 %lld 个实例目录，含存档、配置、插件与资源。"
+          }
+        }
+      }
+    },
+    "The %@ server saves the world, then shuts down; connected players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会先存档再退出，在线玩家会掉线。"
+          }
+        }
+      }
+    },
+    "The %@ server restarts; players are disconnected during the restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会重启，期间玩家掉线。"
+          }
+        }
+      }
+    },
+    "The %@ server is killed immediately and cannot finish saving; recent changes may be lost.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会被立即结束，来不及存档，最近的进度可能丢失。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
