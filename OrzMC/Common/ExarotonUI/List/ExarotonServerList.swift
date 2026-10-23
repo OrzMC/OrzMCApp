@@ -110,7 +110,12 @@ struct ExarotonServerList: View {
                 await model.reloadList()
             }
             #if DEBUG
-            // 调试构建：`--remote-detail` 直接进第一台服务器的详情页，便于快照这个次级窗口。
+            // 调试构建：`ORZMC_DEMO_FAKE_SERVER=1` 注入一台假服务器（不需要 exaroton Token），
+            // 用来在没有账号/钥匙串的环境（CI、模拟器、无签名桌面包）里验收详情页布局。
+            if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SERVER"] == "1", model.servers.isEmpty {
+                model.servers = [Self.demoServer]
+            }
+            // `--remote-detail` 直接进第一台服务器的详情页，便于快照这个次级窗口。
             if ProcessInfo.processInfo.arguments.contains("--remote-detail"),
                let first = model.servers.first {
                 model.path.append(first)
@@ -127,6 +132,24 @@ struct ExarotonServerList: View {
 }
 
 extension ExarotonServerList {
+
+    #if DEBUG
+    /// 仅用于界面验收的假服务器（数据形状与真实响应一致）。
+    static var demoServer: ExarotonServer {
+        .init(
+            id: "ATMiLQGZ43vW2k3W",
+            name: "jokerhub",
+            address: nil,
+            motd: "§b欢迎来到 jokerhub 的海外服务器！",
+            status: .init(rawValue: ServerStatus.OFFLINE.rawValue),
+            host: "jokerhub.exaroton.me",
+            port: 39742,
+            players: .init(max: 20, count: 0, list: []),
+            software: .init(id: "1", name: "PaperMC", version: "26.3 (218)"),
+            shared: false
+        )
+    }
+    #endif
 
     // MARK: - 页面部件
 

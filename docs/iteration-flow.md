@@ -103,6 +103,24 @@ xcrun simctl install booted <…>/OrzMC.app && xcrun simctl launch booted com.jo
 xcrun simctl io booted screenshot /tmp/ios.png
 ```
 
+## 4.0 本地调试要验 Keychain / 通知时，用**签名**构建
+
+`check.sh` / `swift-check.sh app` 都是 `CODE_SIGNING_ALLOWED=NO`（CI 也一样，快、不需要证书）。
+但**钥匙串条目是按代码签名做 ACL 的**：
+
+- 未签名（或 cdhash 每次变化的 ad-hoc）构建，读不到之前由签名构建写入的条目 →
+  「远程托管列表空着」「RCON 密码读不到」；
+- 还可能弹「OrzMC 想使用钥匙串中的机密信息」（`SecurityAgent`）等待点「始终允许」。
+
+所以验证这类功能用：
+
+```bash
+./scripts/dev/run-macos-signed.sh       # 开发证书签名构建 + 启动（首次点「始终允许」）
+```
+
+要在 **Terminal.app** 里跑（ssh/agent 会话拿不到 GUI 钥匙串，会报 `errSecInternalComponent`）。
+iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
+
 ## 4.1 真机验收（真实 Minecraft 服务端）
 
 两件工具，配合起来能在**不改 App 代码**的情况下完成端到端验收：
