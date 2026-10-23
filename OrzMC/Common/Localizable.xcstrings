@@ -5050,6 +5050,16 @@
           }
         }
       }
+    },
+    "Add another server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再添加一台服务器"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
