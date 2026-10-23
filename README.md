@@ -4,6 +4,17 @@
 
 OrzMC 是用于 macOS/iOS 的 Minecraft Java Edition 启动器与辅助应用。项目文档请查看：[项目文档](https://orzmc.github.io/OrzMCApp/)
 
+## 开发
+
+```bash
+./scripts/dev/install-hooks.sh   # 一次性：安装 pre-push 本地门禁
+./scripts/dev/check.sh           # 日常门禁（静态检查 + 单测 + 应用测试 + macOS 构建）
+./scripts/dev/check.sh --full    # 提交前完整门禁（+ iOS 构建 + 真 socket 协议联调）
+```
+
+改动 → 提交 → PR → squash 合并的完整流程、CI job 说明、发版步骤与已知坑，
+见 [`docs/iteration-flow.md`](docs/iteration-flow.md)。
+
 ---
 
 <!-- ORZMC:COMPLIANCE:BEGIN (auto-generated; do not edit by hand. Single source: docs/compliance/ + scripts/sync_compliance.py in the OrzMC/OrzMC umbrella repo) -->
