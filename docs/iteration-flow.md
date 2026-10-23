@@ -122,6 +122,19 @@ xcrun simctl io booted screenshot /tmp/ios.png
   打印**原始回复**与解析结果（`list` / `whitelist list` / `banlist list`）。
   看到新措辞就说明解析器要加兼容——这是 App 里看不到的信息。
 
+## 4.2 真机安装 debug 包（iPhone）
+
+```bash
+./scripts/dev/install-ios-device.sh              # 自动挑已连接的真机，装完并启动
+./scripts/dev/install-ios-device.sh --device iPhoneSE3
+```
+
+- **必须在有图形会话的 Terminal.app 里跑**：`codesign` 要访问登录钥匙串里的私钥，
+  锁着的钥匙串会报 `errSecInternalComponent`（ssh / agent 会话就是这种情况）。
+  钥匙串锁了就 `security unlock-keychain ~/Library/Keychains/login.keychain-db`。
+- 首次装开发包，iPhone 上要「设置 → 通用 → VPN与设备管理」信任开发者证书。
+- 脚本用的是开发签名（自动 provision，team `2N62934Y28`），和 TestFlight/App Store 无关。
+
 ## 5. 发版
 
 1. 改版本：`OrzMC/Configuration/Config.xcconfig` 里 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`
