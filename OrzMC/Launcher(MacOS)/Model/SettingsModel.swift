@@ -176,7 +176,7 @@ extension SettingsModel {
     }
 
     /// 客户端类型：引擎只支持 vanilla / fabric。
-    enum ClientKind: String, CaseIterable, Identifiable {
+    enum ClientKind: String, CaseIterable, Identifiable, Codable {
         case vanilla = "Vanilla"
         case fabric = "Fabric"
 

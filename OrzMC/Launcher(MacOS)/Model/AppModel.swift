@@ -154,7 +154,7 @@ final class AppModel {
         guard let version = catalog.selected else { return false }
         switch gameMode {
         case .client:
-            return isClientConsoleAttached(versionId: version.id)
+            return isClientConsoleAttached(versionId: version.id, kind: settings.clientType)
         case .server:
             return servers.isRunning(versionId: version.id, software: settings.serverSoftware)
         }
@@ -187,9 +187,9 @@ final class AppModel {
                     switch mode {
                     case .client:
                         // 客户端实例也有自己的控制台（key = `版本#Client`）。
-                        let key = ConsoleInstanceKey.client(versionId: version.id)
-                        // **状态按"卡片"记**：Vanilla 与 Fabric 是两张卡，启动其中一个不能把另一张也点亮。
+                        // **一切按"卡片"记**：两种客户端各有一张卡、一个控制台。
                         let cardKey = clientKey(versionId: version.id, kind: settings.clientType)
+                        let key = cardKey
                         activities[cardKey] = .starting
                         defer {
                             activities[cardKey] = nil
@@ -400,15 +400,18 @@ final class AppModel {
         if let software = target.software {
             return console(for: target.versionId, software: software)
         }
-        return clientConsole(versionId: target.versionId)
+        return clientConsole(
+            versionId: target.versionId,
+            kind: target.clientKind ?? settings.clientType
+        )
     }
 
-    func clientConsole(versionId: String) -> ServerConsoleModel {
-        consoles.model(for: .client(versionId: versionId))
+    func clientConsole(versionId: String, kind: SettingsModel.ClientKind) -> ServerConsoleModel {
+        consoles.model(for: clientKey(versionId: versionId, kind: kind))
     }
 
-    func isClientConsoleAttached(versionId: String) -> Bool {
-        consoles.isAttached(.client(versionId: versionId))
+    func isClientConsoleAttached(versionId: String, kind: SettingsModel.ClientKind) -> Bool {
+        consoles.isAttached(clientKey(versionId: versionId, kind: kind))
     }
 
     /// 客户端**某类型**是否在运行（Vanilla / Fabric 各算各的）。
@@ -427,8 +430,18 @@ final class AppModel {
         consoles.remove(ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue))
     }
 
-    func removeClientConsole(versionId: String) {
-        consoles.remove(.client(versionId: versionId))
+    func removeClientConsole(versionId: String, kind: SettingsModel.ClientKind) {
+        consoles.remove(clientKey(versionId: versionId, kind: kind))
+    }
+
+    /// 清掉某版本下**所有实例**的控制台（批量删除用）。
+    func removeConsoles(versionId: String) {
+        for software in SettingsModel.ServerSoftware.allCases {
+            consoles.remove(ConsoleInstanceKey(versionId: versionId, instanceId: software.rawValue))
+        }
+        for kind in SettingsModel.ClientKind.allCases {
+            consoles.remove(clientKey(versionId: versionId, kind: kind))
+        }
     }
 
     // MARK: 版本目录

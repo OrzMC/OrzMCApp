@@ -73,6 +73,21 @@ struct BasicInfo: View {
             PluginManagerView(versionId: target.versionId)
         }
         .toolbar {
+            if !existingInstancePaths.isEmpty {
+                ToolbarItem {
+                    Button {
+                        pendingRisky = .deleteAllInstances(
+                            versionId: app.catalog.selected?.id ?? "",
+                            paths: existingInstancePaths
+                        )
+                    } label: {
+                        Label("Delete All Instances", systemImage: "trash")
+                    }
+                    .disabled(busyInstanceId != nil)
+                    .help("Delete every instance folder of this version (asks for confirmation)")
+                }
+            }
+
             if app.servers.hasRunning {
                 ToolbarItem {
                     Button {
@@ -119,11 +134,24 @@ struct BasicInfo: View {
                 app.removeConsole(versionId: versionId, software: software)
                 app.catalog.refreshInstallStates()
                 refreshInstances()
-            case let .deleteClient(versionId, path):
+            case let .deleteClient(versionId, kind, path):
                 guard remove(path) else { return }
-                app.removeClientConsole(versionId: versionId)
+                app.removeClientConsole(versionId: versionId, kind: kind)
                 app.catalog.refreshInstallStates()
                 refreshInstances()
+            case let .deleteAllInstances(versionId, paths):
+                // 批量删除：逐个删目录（失败的写在 `error` 里），随后清掉对应控制台并刷新卡片。
+                var failed: [String] = []
+                for path in paths where !remove(path) { failed.append(path) }
+                app.removeConsoles(versionId: versionId)
+                app.catalog.refreshInstallStates()
+                refreshInstances()
+                if !failed.isEmpty {
+                    app.error = LauncherError(
+                        code: "E_IO",
+                        message: "Some folders could not be deleted:\n" + failed.joined(separator: "\n")
+                    )
+                }
             case let .stopServer(versionId, software):
                 app.control(.stop, versionId: versionId, software: software)
             case let .restartServer(versionId, software):
@@ -194,6 +222,39 @@ struct BasicInfo: View {
         return DetailInstance.servers(versionId: versionId)
     }
 
+    /// 磁盘上确实存在的客户端实例（`<version>/client` 目录在）。
+    private var existingClientInstances: [DetailInstance] {
+        clientInstances.filter(isExisting)
+    }
+
+    /// 磁盘上确实存在的服务端实例（对应核心目录在）。
+    private var existingServerInstances: [DetailInstance] {
+        serverInstances.filter(isExisting)
+    }
+
+    /// 待批量删除的目录（客户端两种类型共用同一个目录 → 去重）。
+    private var existingInstancePaths: [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for instance in existingClientInstances + existingServerInstances {
+            guard let rows = entries[instance.id],
+                  let root = rows.first(where: { $0.kind == .root })?.path,
+                  entryExists[instance.id]?[root] == true,
+                  seen.insert(root).inserted
+            else { continue }
+            result.append(root)
+        }
+        return result
+    }
+
+    /// 该实例的根目录是否存在（客户端两种类型共用一个目录，因此会同时出现/消失）。
+    private func isExisting(_ instance: DetailInstance) -> Bool {
+        guard let rows = entries[instance.id],
+              let root = rows.first(where: { $0.kind == .root })?.path
+        else { return false }
+        return entryExists[instance.id]?[root] ?? false
+    }
+
     private var detailsForm: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -204,22 +265,32 @@ struct BasicInfo: View {
 
                 launchFeedback
 
-                // 客户端 + 服务端：**所有类型**都列出来，按类型分组（不再随工具栏切换）。
-                if !clientInstances.isEmpty {
+                // 只列**磁盘上真的存在**的实例：删掉的/还没创建过的卡片不再占位
+                //（要创建就启动一次，引擎会就地建好目录，卡片随后出现）。
+                if !existingClientInstances.isEmpty {
                     instanceGroup(
                         title: "Client",
                         caption: "Both client types share the same game folder; Fabric adds a mods folder.",
-                        instances: clientInstances,
+                        instances: existingClientInstances,
                         showsDisplayControls: true
                     )
                 }
 
-                if !serverInstances.isEmpty {
+                if !existingServerInstances.isEmpty {
                     instanceGroup(
                         title: "Server",
                         caption: "Each server core has its own folder, console and lifecycle.",
-                        instances: serverInstances
+                        instances: existingServerInstances
                     )
+                }
+
+                if existingClientInstances.isEmpty, existingServerInstances.isEmpty {
+                    ContentUnavailableView {
+                        Label("No instances yet", systemImage: "shippingbox")
+                    } description: {
+                        Text("Pick a launch target above and press Start — the folder and its cards appear here once created.")
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(20)
@@ -361,7 +432,10 @@ struct BasicInfo: View {
                 ?? isClientBusy(instance),
             consoleIsLive: instance.software.map {
                 app.isConsoleAttached(versionId: instance.versionId, software: $0)
-            } ?? app.isClientConsoleAttached(versionId: instance.versionId),
+            } ?? app.isClientConsoleAttached(
+                versionId: instance.versionId,
+                kind: instance.clientKind ?? app.settings.clientType
+            ),
             availability: instance.software.map {
                 app.availability(versionId: instance.versionId, software: $0)
             },
