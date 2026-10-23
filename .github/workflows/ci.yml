@@ -90,12 +90,23 @@ jobs:
 
       - name: Unit tests (SwiftPM + app target)
         # 两套都跑：SwiftPM 包单测（Sources/*）+ 应用层 target `OrzMCTests`
-        # （后者以前从没进过 CI，参考 `scripts/swift-check.sh app-test`）。
+        # （后者以前从没进过 CI，所以悄悄腐烂过）。
         # 只在 macOS 那一格跑：它本身是 macOS destination，iOS 格再跑一遍没有意义。
+        # 注意：**不要**在这里调 `scripts/swift-check.sh`——那脚本属于父仓库 OrzMC，
+        # 不在本仓库里（第一次就踩了这个坑）。
         if: matrix.cache_key == 'macos'
         run: |
-          cd "$GITHUB_WORKSPACE"
-          ./scripts/swift-check.sh app-test
+          swift test
+          xcodebuild test \
+            -project OrzMC.xcodeproj \
+            -scheme OrzMC \
+            -destination 'platform=macOS' \
+            -only-testing:OrzMCTests \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
       - name: Build (no signing)
         run: |
