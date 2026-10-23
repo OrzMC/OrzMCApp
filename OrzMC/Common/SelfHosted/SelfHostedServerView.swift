@@ -44,6 +44,9 @@ struct SelfHostedServerView: View {
                 }
             }
             .padding(20)
+            // iOS 26 的浮动 TabBar 会盖住滚动内容底部（SE 小屏实测：控制台输入行被压住）。
+            // `contentMargins` 在这个嵌套结构里不生效，直接在内容尾部留白。
+            .padding(.bottom, 76)
             .frame(maxWidth: 780)
             .frame(maxWidth: .infinity)
         }
