@@ -17,6 +17,9 @@ public protocol MCByteStream: AnyObject, Sendable {
     func write(_ data: Data) throws
     /// 读满 `count` 个字节（`Socket` 只保证"读到一些"，TCP 分段时必须自己凑满）。
     func read(count: Int) throws -> Data
+    /// 在 `timeoutMilliseconds` 内**还有没有数据可读**（缓冲里或 socket 上）。
+    /// RCON 的多包响应靠它判断"后面还有没有下一包"。
+    func hasPendingInput(timeoutMilliseconds: Int) throws -> Bool
     func close()
 }
 
@@ -40,6 +43,7 @@ public struct MCReadBuffer: Sendable {
     }
 
     public var isEmpty: Bool { storage.isEmpty }
+    public var count: Int { storage.count }
 
     public mutating func removeAll() { storage.removeAll() }
 }
@@ -83,6 +87,12 @@ public final class SocketByteStream: MCByteStream, @unchecked Sendable {
             guard read > 0 else { throw MCStreamError.connectionClosed }
             buffer.append(chunk)
         }
+    }
+
+    public func hasPendingInput(timeoutMilliseconds: Int) throws -> Bool {
+        if !buffer.isEmpty { return true }
+        guard let socket else { return false }
+        return try socket.isReadableOrWritable(waitForever: false, timeout: UInt(max(0, timeoutMilliseconds))).readable
     }
 
     public func close() {

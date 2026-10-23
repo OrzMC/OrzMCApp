@@ -82,6 +82,7 @@
 		CE2026102300000000002002 /* SelfHostedServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001002 /* SelfHostedServerModel.swift */; };
 		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
 		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
+		CE2026102300000000007001 /* ServersWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006001 /* ServersWindowContent.swift */; };
 		2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */; };
 		2B62C97D2BF7216000387498 /* ExarotonServerDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */; };
 		2B62C9852BF73F0200387498 /* ExarotonServerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C9842BF73F0200387498 /* ExarotonServerList.swift */; };
@@ -110,6 +111,7 @@
 		CE2026102300000000000030 /* ShortcutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000030 /* ShortcutStore.swift */; platformFilters = (macos, ); };
 		CE2026102300000000000040 /* ShortcutEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000040 /* ShortcutEvents.swift */; platformFilters = (macos, ); };
 		CE2026102300000000000041 /* WindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000041 /* WindowReader.swift */; platformFilters = (macos, ); };
+		CE2026102300000000007000 /* EscapeClosesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006000 /* EscapeClosesWindow.swift */; platformFilters = (macos, ); };
 		CE2026102300000000000031 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000031 /* ShortcutsSettingsView.swift */; platformFilters = (macos, ); };
 		C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D300020000000000000002 /* CommandLineSettingsSection.swift */; platformFilters = (macos, ); };
 		F310C79E2C8B535700590F32 /* ExarotonCopyableText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */; };
@@ -174,6 +176,7 @@
 		CE2026102300000000001002 /* SelfHostedServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerModel.swift; sourceTree = "<group>"; };
 		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
 		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
+		CE2026102300000000006001 /* ServersWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServersWindowContent.swift"; sourceTree = "<group>"; };
 		2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonContent.swift; sourceTree = "<group>"; };
 		2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerDetail.swift; sourceTree = "<group>"; };
 		2B62C9842BF73F0200387498 /* ExarotonServerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerList.swift; sourceTree = "<group>"; };
@@ -193,6 +196,7 @@
 		CD2026102300000000000030 /* ShortcutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShortcutStore.swift"; sourceTree = "<group>"; };
 		CD2026102300000000000040 /* ShortcutEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShortcutEvents.swift"; sourceTree = "<group>"; };
 		CD2026102300000000000041 /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WindowReader.swift"; sourceTree = "<group>"; };
+		CE2026102300000000006000 /* EscapeClosesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EscapeClosesWindow.swift"; sourceTree = "<group>"; };
 		CD2026102300000000000031 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShortcutsSettingsView.swift"; sourceTree = "<group>"; };
 		C0D300020000000000000002 /* CommandLineSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineSettingsSection.swift; sourceTree = "<group>"; };
 		F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonCopyableText.swift; sourceTree = "<group>"; };
@@ -459,6 +463,7 @@
 				CE2026102300000000001002 /* SelfHostedServerModel.swift */,
 				CE2026102300000000001003 /* SelfHostedServerView.swift */,
 				CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */,
+				CE2026102300000000006001 /* ServersWindowContent.swift */,
 			);
 			path = SelfHosted;
 			sourceTree = "<group>";
@@ -489,6 +494,7 @@
 			children = (
 				2BA7F9932CA5848200ED2684 /* SettingsView.swift */,
 				CD2026102300000000000041 /* WindowReader.swift */,
+				CE2026102300000000006000 /* EscapeClosesWindow.swift */,
 				CD2026102300000000000031 /* ShortcutsSettingsView.swift */,
 				CD2026102200000000000020 /* AppearanceSync.swift */,
 				C0D300020000000000000002 /* CommandLineSettingsSection.swift */,
@@ -775,6 +781,7 @@
 				CE2026102300000000002002 /* SelfHostedServerModel.swift in Sources */,
 				CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */,
 				CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */,
+				CE2026102300000000007001 /* ServersWindowContent.swift in Sources */,
 				2B5ACA5B2BFB28B100397BFC /* ExarotonAPI+.swift in Sources */,
 				2B5ACA6A2BFB5C8A00397BFC /* ExarotonTradeMarkView.swift in Sources */,
 				F310C7A02C8B6B5D00590F32 /* documentation.docc in Sources */,
@@ -815,6 +822,7 @@
 				CE2026102300000000000030 /* ShortcutStore.swift in Sources */,
 				CE2026102300000000000040 /* ShortcutEvents.swift in Sources */,
 				CE2026102300000000000041 /* WindowReader.swift in Sources */,
+				CE2026102300000000007000 /* EscapeClosesWindow.swift in Sources */,
 				CE2026102300000000000031 /* ShortcutsSettingsView.swift in Sources */,
 				C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */,
 				2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */,

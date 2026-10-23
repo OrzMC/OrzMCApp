@@ -72,12 +72,13 @@ struct GameView: View {
 
             ToolbarItem {
                 Button {
-                    // 远程托管是独立的管理面，用独立窗口承载，不混进"本机实例"的导航栈。
+                    // 服务器管理（自建 + 远程托管）是独立的管理面，用独立窗口承载，
+                    // 不混进"本机实例"的导航栈。
                     openWindow(id: "remote")
                 } label: {
-                    Label("Remote Servers", systemImage: "server.rack")
+                    Label("Servers", systemImage: "server.rack")
                 }
-                .help("Manage exaroton remote servers in a separate window")
+                .help("Check your own server and manage exaroton servers in a separate window")
             }
         }
     }

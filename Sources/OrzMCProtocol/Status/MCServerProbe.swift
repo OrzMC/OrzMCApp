@@ -178,10 +178,19 @@ public struct MCServerProbe: Sendable {
 
         let request = RCONPacket(id: 2, type: .command, body: command)
         try stream.write(request.data)
-        let response = try readRCONPacket(stream: stream)
-        guard let response else { throw MCRCONError.packetMalFormat }
-        guard response.type == .response else { throw MCRCONError.responseInvalid }
-        return response.body
+
+        // 返回可能是**多个包**（长输出会拆包：`help` / `list` 人多时）。
+        // 第一包必须读；之后在 120ms 内还有数据就继续读，直到没有为止。
+        var chunks: [String] = []
+        var isFirst = true
+        while isFirst || (try? stream.hasPendingInput(timeoutMilliseconds: 120)) == true {
+            guard let packet = try readRCONPacket(stream: stream) else { throw MCRCONError.packetMalFormat }
+            guard packet.type == .response else { throw MCRCONError.responseInvalid }
+            let body = packet.body
+            if !body.isEmpty { chunks.append(body) }
+            isFirst = false
+        }
+        return chunks.joined(separator: "\n")
     }
 
     private static func readRCONPacket(stream: MCByteStream) throws -> RCONPacket? {

@@ -14,8 +14,10 @@ Minecraft 服务端查状态、发控制台命令。
 | 在线玩家列表 | SLP 的 `players.sample` | 服务端可能隐藏，隐藏时整块不显示 |
 | 控制台命令 | RCON | 需要在服务端 `server.properties` 打开 `enable-rcon=true` |
 
-iOS 首页变成两个并列的 Tab：**我的服务器** / **远程托管**。macOS 的自建服务器入口暂未做，
-但 `OrzMC/Common/SelfHosted/` 里的视图是跨平台的，接上去就能用。
+iOS 首页变成两个并列的 Tab：**我的服务器** / **远程托管**。
+
+macOS 上这两个面放进同一个「服务器」窗口（顶部分段控件切换，`ServersWindowContent`），
+入口在主窗口工具栏的 **Servers**；窗口支持 Esc 关闭（规则见 `docs/app-ui-design.md` §3.2.1）。
 
 ## 2. 分层
 
@@ -66,7 +68,7 @@ xcrun simctl install booted <…>/OrzMC.app && xcrun simctl launch booted com.jo
 
 ## 5. 还没做的（明确记录，避免误以为有）
 
-- RCON 的**多包响应**：只取第一条（`list` / `say` 够用；`help` 这类会截断）。
+- RCON 多包响应：已支持（第一包必读，之后 120ms 内还有数据就继续读，最后按行拼接）。
 - 多服务器档案：目前只有一个地址（P3 最小闭环）。
 - `OrzMCProtocol` 里老的 `MCSLP` / `MCRCON`（BlueSocket 同步封装）已不被应用使用，
   但保留了分包实现；后续可整体并入 `MCServerProbe` 后删除。

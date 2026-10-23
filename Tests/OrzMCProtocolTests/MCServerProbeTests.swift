@@ -14,14 +14,23 @@ final class MCServerProbeTests: XCTestCase {
         private(set) var written = Data()
         private(set) var closed = false
         var connectError: Error?
+        /// `hasPendingInput` 的返回值（模拟"还没读完的多包响应"）。
+        var pendingAfterReads: Bool
         let host: String?
         let port: Int32?
 
-        init(incoming: [UInt8] = [], host: String? = nil, port: Int32? = nil, connectError: Error? = nil) {
+        init(
+            incoming: [UInt8] = [],
+            host: String? = nil,
+            port: Int32? = nil,
+            connectError: Error? = nil,
+            pendingAfterReads: Bool = false
+        ) {
             self.incoming = incoming
             self.host = host
             self.port = port
             self.connectError = connectError
+            self.pendingAfterReads = pendingAfterReads
         }
 
         func connect(host: String, port: Int32) throws {
@@ -35,6 +44,12 @@ final class MCServerProbeTests: XCTestCase {
             let slice = Array(incoming.prefix(count))
             incoming.removeFirst(count)
             return Data(slice)
+        }
+
+        func hasPendingInput(timeoutMilliseconds: Int) throws -> Bool {
+            // 预置数据还没读完 → 还有；否则用调用方给的开关（模拟"后面没有更多包了"）。
+            if !incoming.isEmpty { return true }
+            return pendingAfterReads
         }
 
         func close() { closed = true }
@@ -153,6 +168,20 @@ final class MCServerProbeTests: XCTestCase {
             host: "127.0.0.1", port: 25575, password: "secret", command: "list"
         )
         XCTAssertEqual(reply, "There are 1 of a max of 10 players online")
+        XCTAssertTrue(stream.closed)
+    }
+
+    /// 长输出会被服务端拆成多个响应包：必须全部读回来（以前只取第一个）。
+    func testRCONJoinsMultipleResponsePackets() async throws {
+        let stream = FakeStream(
+            incoming:
+                Self.rconPacket(id: 1, type: 2, body: "")
+                + Self.rconPacket(id: 2, type: 0, body: "line one")
+                + Self.rconPacket(id: 2, type: 0, body: "line two")
+        )
+        let probe = MCServerProbe(streamFactory: { stream })
+        let reply = try await probe.runRCON(host: "127.0.0.1", port: 25575, password: "s", command: "help")
+        XCTAssertEqual(reply, "line one\nline two")
         XCTAssertTrue(stream.closed)
     }
 

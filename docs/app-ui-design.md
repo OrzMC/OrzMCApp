@@ -99,15 +99,22 @@ Settings（TabView：General / Server / Tools / About）
 
 ```
 WindowGroup
-└── ContentView
-    └── ExarotonContent
+└── ContentView（两个并列 Tab）
+    ├── 我的服务器（SelfHostedServerView）
+    │   ├── 状态卡（SLP：在线/版本/玩家/延迟/MOTD）
+    │   ├── 玩家列表（服务端没隐藏时）
+    │   └── 控制台（RCON）
+    └── 远程托管（ExarotonContent）
         └── NavigationStack
-            ├── ExarotonServerList（服务器 / 额度池 / 添加账号 Token）
-            ├── ExarotonServerDetail（General / Playlist / Metrics / Actions / Console）
+            ├── ExarotonServerList（摘要卡 + 服务器/额度池卡片 + 账号 Token）
+            ├── ExarotonServerDetail（概览 / 玩家列表 / 性能 / 内存 / 操作 / 控制台）
             └── ExarotonCreditPoolDetail（成员 / 服务器）
 ```
 
-iOS 与 macOS **共用** `Common/ExarotonUI`；平台差异只在 `#if os(...)` 里（List 样式、键盘、sheet detents）。
+iOS 与 macOS **共用** `Common/ExarotonUI` 与 `Common/SelfHosted`；
+平台差异只在 `#if os(...)` 里（List 样式、键盘、sheet detents、是否需要 Esc）。
+
+macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部分段控件切换（见 §3.2）。
 
 ### 1.3 关键跳转规则
 
@@ -192,12 +199,31 @@ iOS 与 macOS **共用** `Common/ExarotonUI`；平台差异只在 `#if os(...)` 
 |---|---|---|
 | `Window(id:"main")` | 主启动器 | **唯一**，单份 `AppModel` |
 | `WindowGroup(for: ConsoleTarget.self)` | 某个实例的控制台 | 共享主窗口的 `AppModel`，同一个 `ServerConsoleModel` |
-| `Window(id:"remote")` | Exaroton 远程托管 | 独立 `ExarotonServerModel`，不碰本机进程状态 |
+| `Window(id:"remote")` | 「服务器」：自建（SLP/RCON）+ exaroton 托管，顶部切换 | 自建用 `SelfHostedServerModel`；托管用独立的 `ExarotonServerModel`。都不碰本机进程状态 |
 
-- `GameView` 工具栏的 **Remote Servers** 打开远程窗口；
+- `GameView` 工具栏的 **Servers** 打开「服务器」窗口；
 - 控制台工具栏的 **Open in New Window** 用 `openWindow(value: ConsoleTarget)` 打开独立控制台；
 - `MainWindowCommands` 提供 **Window > Show Main Window（⌘0）**，关掉主窗口后能叫回来；
 - 用 `CommandGroup(replacing: .newItem) {}` 移除 File > New Window 的空白窗口入口。
+
+### 3.2.1 窗口关闭语义（2026-10-23 定稿）
+
+| 类别 | 例子 | Esc | ⌘W / 红点 |
+|---|---|---|---|
+| **主窗口** | 启动器主页 | ❌ 不关（Esc 留给"取消搜索 / 退出编辑") | ✅ |
+| **辅助窗口** | 设置、控制台、服务器 | ✅ 关 | ✅ |
+| **弹层** | sheet / 确认框 / alert | ✅ 关（先关这一层） | — |
+
+理由：辅助窗口是"看一眼就走"的覆盖层，Esc 是 macOS 里撤掉一层覆盖层的通用手势；
+主窗口关掉等于退出应用，不该被一次误按 Esc 触发。
+
+统一实现：`OrzMC/Launcher(MacOS)/UI/Settings/EscapeClosesWindow.swift`（`.escapeClosesWindow()`）：
+
+- 只响应**聚焦窗口**（`NSApp.keyWindow === window`），不会在 A 窗口按 Esc 把 B 窗口关掉；
+  控制台窗口例外（`allowWhenNotKey: true`），因为 `openWindow(value:)` 之后 key 可能仍在主窗口；
+- 放行条件：输入法正在拼写、窗口上有 sheet、正在文本编辑（`closeWhileEditingText: false` 时）；
+- 不用 `.onExitCommand`（辅助窗口第一响应者常为空，命令链收不到），也不用零尺寸
+  `keyboardShortcut(.escape)` 按钮（独立 `Window` 里不参与键盘分发）。
 
 ### 3.3 结论
 
