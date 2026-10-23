@@ -4261,16 +4261,6 @@
         }
       }
     },
-    "Can't connect to %@:%lld. Check the address, the port and your network.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连不上 %@:%lld，请检查地址、端口和网络。"
-          }
-        }
-      }
-    },
     "Players online (%lld)": {
       "localizations": {
         "zh-Hans": {
@@ -4387,6 +4377,236 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在加载远程服务器…"
+          }
+        }
+      }
+    },
+    "Add Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器"
+          }
+        }
+      }
+    },
+    "Add Server…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器…"
+          }
+        }
+      }
+    },
+    "Ban…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁…"
+          }
+        }
+      }
+    },
+    "Commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用命令"
+          }
+        }
+      }
+    },
+    "Delete This Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这台服务器"
+          }
+        }
+      }
+    },
+    "Edit…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑…"
+          }
+        }
+      }
+    },
+    "Fill in or run a common command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填好参数或直接执行常用命令"
+          }
+        }
+      }
+    },
+    "Kick": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "踢出"
+          }
+        }
+      }
+    },
+    "Kick…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "踢出…"
+          }
+        }
+      }
+    },
+    "List players": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列出玩家"
+          }
+        }
+      }
+    },
+    "No server added yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有添加服务器"
+          }
+        }
+      }
+    },
+    "Removes the address, the saved RCON password and the console history on this device.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录。"
+          }
+        }
+      }
+    },
+    "Removes the address, the saved RCON password and the console history on this device. The server itself is not touched.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录；服务器本身不受影响。"
+          }
+        }
+      }
+    },
+    "Save the world": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存世界"
+          }
+        }
+      }
+    },
+    "Say…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "广播…"
+          }
+        }
+      }
+    },
+    "Select Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择服务器"
+          }
+        }
+      }
+    },
+    "The server didn't answer in time. Check the address and that the port is open.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器没有按时回应，请检查地址和端口是否开放。"
+          }
+        }
+      }
+    },
+    "Unban…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解除封禁…"
+          }
+        }
+      }
+    },
+    "Whitelist add…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单添加…"
+          }
+        }
+      }
+    },
+    "Whitelist list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单列表"
+          }
+        }
+      }
+    },
+    "Whitelist remove…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单移除…"
+          }
+        }
+      }
+    },
+    "Delete This Server?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这台服务器？"
+          }
+        }
+      }
+    },
+    "Can't connect to %@. Check the address, the port and your network.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连不上 %@，请检查地址、端口和网络。"
           }
         }
       }

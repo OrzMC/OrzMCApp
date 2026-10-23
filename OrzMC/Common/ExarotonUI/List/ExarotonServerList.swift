@@ -92,24 +92,6 @@ struct ExarotonServerList: View {
             await model.reloadList()
         }
 #endif
-        .toolbar {
-            ToolbarItemGroup {
-#if os(macOS)
-                Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await model.reloadList() }
-                }
-                .keyboardShortcut("r", modifiers: .command)
-                .help("Reload remote servers")
-                .disabled(model.isLoadingList)
-#endif
-                Button("Account", systemImage: "key") {
-                    token = model.token
-                    showTokenInput = true
-                }
-                .help("Change exaroton account token")
-                .disabled(model.isLoadingList || model.gate.isBusy)
-            }
-        }
         .sheet(isPresented: $showTokenInput) {
             ExarotonAccountTokenInputView(
                 token: $token,
@@ -175,6 +157,32 @@ extension ExarotonServerList {
                     .controlSize(.small)
                     .accessibilityLabel(Text("Loading remote servers…"))
             }
+
+            // 这两个动作以前是工具栏里两个裸图标（箭头 / 钥匙）：功能都在，但看不出干什么。
+            // 挪到卡里带文字后，一眼就知道是"刷新列表"和"换账号 Token"。
+            Button {
+                Task { await model.reloadList() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(model.isLoadingList)
+            .help("Reload remote servers")
+            #if os(macOS)
+            .keyboardShortcut("r", modifiers: .command)
+            #endif
+
+            Button {
+                token = model.token
+                showTokenInput = true
+            } label: {
+                Label("Account", systemImage: "key")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(model.isLoadingList || model.gate.isBusy)
+            .help("Change exaroton account token")
         }
         .padding(OrzMCTheme.Spacing.md)
         .background {

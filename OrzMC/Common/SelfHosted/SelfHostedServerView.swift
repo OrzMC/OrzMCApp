@@ -4,28 +4,33 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCLauncher
 import OrzMCProtocol
 import SwiftUI
 
-/// 「自建服务器」页：**看状态 + 发控制台命令**。
+/// 「我的服务器」页：**选服务器 → 看状态 → 发命令**。
 ///
 /// 与远程托管（exaroton）是两条并列的路：
 /// - exaroton：账号 + 官方 API + WebSocket；
 /// - 自建：直接 Server List Ping 查状态、RCON 发命令，不需要任何第三方账号。
 ///
-/// 同一份代码 macOS / iOS 都能用（只用跨平台 API），目前先在 iOS 上露出。
+/// 同一份代码 macOS / iOS 都能用；macOS 上它和远程托管合并在「服务器」窗口里。
 struct SelfHostedServerView: View {
-    @State private var model = SelfHostedServerModel()
+    @State private var model = SelfHostedServersModel()
+    @State private var editing: SelfHostedServerProfile?
     @State private var showSettings = false
+    @FocusState private var commandFocused: Bool
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
-                if model.profile.isConfigured {
-                    statusCard
-                    if let statusError = model.statusError { errorCard(statusError) }
-                    if let names = model.status?.sampleNames, !names.isEmpty { playersCard(names) }
-                    if model.profile.rconEnabled { consoleCard }
+                serverPicker
+
+                if let profile = model.selected, profile.isConfigured {
+                    statusCard(profile)
+                    if let error = model.currentStatusError { errorCard(error) }
+                    if let names = model.currentStatus?.sampleNames, !names.isEmpty { playersCard(names) }
+                    if profile.rconEnabled { consoleCard }
                 } else {
                     setupCard
                 }
@@ -39,33 +44,22 @@ struct SelfHostedServerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await model.refreshStatus() }
         #endif
-        .toolbar {
-            ToolbarItemGroup {
-                Button {
-                    Task { await model.refreshStatus() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(!model.profile.isConfigured || model.isProbing)
-                .help("Check the server status now")
-
-                Button {
-                    showSettings = true
-                } label: {
-                    Label("Settings", systemImage: "slider.horizontal.3")
-                }
-                .help("Server address, port and RCON")
-            }
-        }
         .sheet(isPresented: $showSettings) {
-            SelfHostedServerSettingsView(profile: model.profile) { updated in
-                model.profile = updated
-                Task { await model.refreshStatus() }
+            if let editing {
+                SelfHostedServerSettingsView(profile: editing) { updated, password, delete in
+                    if delete {
+                        model.remove(updated.id)
+                    } else {
+                        model.save(updated, rconPassword: password)
+                        Task { await model.refreshStatus() }
+                    }
+                    self.editing = nil
+                }
             }
         }
-        // 页面可见时每 20s 刷一次状态（比手动点的默认节奏慢得多，够用且省电）。
-        .task(id: model.profile) {
-            guard model.profile.isConfigured else { return }
+        // 页面可见时每 20s 刷一次当前服务器（比手动点慢得多，够用且省电）。
+        .task(id: model.selected?.id) {
+            guard model.selected?.isConfigured == true else { return }
             while !Task.isCancelled {
                 await model.refreshStatus()
                 try? await Task.sleep(for: .seconds(20))
@@ -73,12 +67,88 @@ struct SelfHostedServerView: View {
         }
     }
 
+    // MARK: - 选择服务器
+
+    private var serverPicker: some View {
+        HStack(spacing: OrzMCTheme.Spacing.sm) {
+            if model.profiles.servers.isEmpty {
+                Text("No server added yet")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                Menu {
+                    ForEach(model.profiles.servers) { profile in
+                        Button {
+                            model.select(profile.id)
+                        } label: {
+                            if profile.id == model.selected?.id {
+                                Label(profile.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(profile.displayName)
+                            }
+                        }
+                    }
+                    Divider()
+                    Button("Add Server…") { addServer() }
+                    if let selected = model.selected {
+                        Button("Edit…") { edit(selected) }
+                        Button("Delete…", role: .destructive) { edit(selected) }
+                    }
+                } label: {
+                    Label(model.selected?.displayName ?? String(localized: "Select Server"), systemImage: "server.rack")
+                        .font(.callout)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(OrzMCTheme.Palette.controlFill, in: Capsule())
+                .accessibilityLabel(Text("Server"))
+            }
+
+            Spacer(minLength: 0)
+
+            Button {
+                Task { await model.refreshStatus() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(model.selected?.isConfigured != true || model.isProbing)
+            .help("Check the server status now")
+
+            Button {
+                if let selected = model.selected {
+                    edit(selected)
+                } else {
+                    addServer()
+                }
+            } label: {
+                Label("Settings", systemImage: "slider.horizontal.3")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Server address, port and RCON")
+        }
+    }
+
+    private func addServer() {
+        editing = SelfHostedServerProfile()
+        showSettings = true
+    }
+
+    private func edit(_ profile: SelfHostedServerProfile) {
+        editing = profile
+        showSettings = true
+    }
+
     // MARK: - 状态卡
 
-    private var statusCard: some View {
+    private func statusCard(_ profile: SelfHostedServerProfile) -> some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
             HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-                Text(displayName)
+                Text(profile.displayName)
                     .font(.headline)
                     .lineLimit(1)
                 OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
@@ -88,32 +158,32 @@ struct SelfHostedServerView: View {
                 }
             }
 
-            Text(model.profile.address)
+            Text(profile.address)
                 .font(OrzMCTheme.Typography.code)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
 
             HStack(spacing: OrzMCTheme.Spacing.xs) {
-                if let version = model.status?.versionName {
+                if let version = model.currentStatus?.versionName {
                     OrzMCTag(version)
                 }
                 if let players = model.playersText {
                     OrzMCTag(players)
                 }
-                if let latency = model.status?.latencyMilliseconds, latency > 0 {
+                if let latency = model.currentStatus?.latencyMilliseconds, latency > 0 {
                     OrzMCTag(String(localized: "\(latency) ms"))
                 }
                 Spacer(minLength: 0)
             }
 
-            if let motd = model.status?.motd, !motd.isEmpty {
+            if let motd = model.currentStatus?.motd, !motd.isEmpty {
                 Text(verbatim: motd)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let updated = model.lastUpdatedAt {
+            if let updated = model.currentLastUpdatedAt {
                 Text("Updated \(updated.formatted(date: .omitted, time: .standard))")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
@@ -143,20 +213,15 @@ struct SelfHostedServerView: View {
         }
     }
 
-    private var displayName: String {
-        let name = model.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.isEmpty ? model.profile.host : name
-    }
-
     private var statusText: String {
-        if model.isProbing, model.status == nil { return String(localized: "Checking…") }
-        guard model.status != nil else { return String(localized: "Offline") }
+        if model.isProbing, model.currentStatus == nil { return String(localized: "Checking…") }
+        guard model.currentStatus != nil else { return String(localized: "Offline") }
         return String(localized: "Online")
     }
 
     private var statusStyle: OrzMCStatusStyle {
-        if model.isProbing, model.status == nil { return .busy }
-        return model.status != nil ? .running : .idle
+        if model.isProbing, model.currentStatus == nil { return .busy }
+        return model.currentStatus != nil ? .running : .idle
     }
 
     private func errorCard(_ message: String) -> some View {
@@ -170,8 +235,18 @@ struct SelfHostedServerView: View {
             Label("Players online (\(names.count))", systemImage: "person.2")
                 .font(.subheadline.weight(.semibold))
             ForEach(names, id: \.self) { name in
-                Text(verbatim: name)
-                    .font(OrzMCTheme.Typography.code)
+                HStack(spacing: OrzMCTheme.Spacing.xs) {
+                    Text(verbatim: name)
+                        .font(OrzMCTheme.Typography.code)
+                    Spacer(minLength: 0)
+                    // 每个玩家两个最常用动作：不用背命令，点一下就填进输入框。
+                    Button("Kick") { prefill("kick \(name)") }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    Button("OP") { prefill("op \(name)") }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                }
             }
         }
         .padding(OrzMCTheme.Spacing.md)
@@ -187,9 +262,10 @@ struct SelfHostedServerView: View {
                 Label("Console (RCON)", systemImage: "terminal")
                     .font(.subheadline.weight(.semibold))
                 Spacer(minLength: 0)
+                commandPresetMenu
                 Button("Clear") { model.clearConsole() }
                     .font(.caption)
-                    .disabled(model.consoleLines.isEmpty)
+                    .disabled(model.currentConsoleLines.isEmpty)
             }
 
             consoleLog
@@ -199,6 +275,7 @@ struct SelfHostedServerView: View {
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
+                    .focused($commandFocused)
                     #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .submitLabel(.send)
@@ -221,16 +298,43 @@ struct SelfHostedServerView: View {
         .orzMCPanel()
     }
 
+    /// 常用命令：**需要参数的先填好开头**（`kick `），不需要参数的直接发。
+    /// 比"记住 RCON 命令语法"友好，也不会替用户猜参数。
+    private var commandPresetMenu: some View {
+        Menu {
+            Button("List players") { send("list") }
+            Button("Save the world") { send("save-all") }
+            Divider()
+            Button("Say…") { prefill("say ") }
+            Button("Kick…") { prefill("kick ") }
+            Button("Ban…") { prefill("ban ") }
+            Button("Unban…") { prefill("pardon ") }
+            Button("OP…") { prefill("op ") }
+            Button("De-OP…") { prefill("deop ") }
+            Divider()
+            Button("Whitelist add…") { prefill("whitelist add ") }
+            Button("Whitelist remove…") { prefill("whitelist remove ") }
+            Button("Whitelist list") { send("whitelist list") }
+        } label: {
+            Label("Commands", systemImage: "text.badge.plus")
+                .font(.caption)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(model.isSending || !model.canRunCommands)
+        .help("Fill in or run a common command")
+    }
+
     private var consoleLog: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
-                    if model.consoleLines.isEmpty {
+                    if model.currentConsoleLines.isEmpty {
                         Text("Commands and replies show up here.")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
-                    ForEach(model.consoleLines) { line in
+                    ForEach(model.currentConsoleLines) { line in
                         Text(verbatim: line.text)
                             .font(OrzMCTheme.Typography.console)
                             .foregroundStyle(color(for: line.kind))
@@ -243,13 +347,13 @@ struct SelfHostedServerView: View {
             }
             .frame(minHeight: 140, maxHeight: 220)
             .consoleSurface()
-            .onChange(of: model.consoleLines.count) {
-                if let last = model.consoleLines.last { proxy.scrollTo(last.id, anchor: .bottom) }
+            .onChange(of: model.currentConsoleLines.count) {
+                if let last = model.currentConsoleLines.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }
     }
 
-    private func color(for kind: SelfHostedServerModel.ConsoleLine.Kind) -> Color {
+    private func color(for kind: SelfHostedServersModel.ConsoleLine.Kind) -> Color {
         switch kind {
         case .command: return OrzMCTheme.Palette.accent
         case .output: return Color.primary
@@ -259,6 +363,16 @@ struct SelfHostedServerView: View {
 
     private func send() {
         Task { await model.sendCommand() }
+    }
+
+    private func send(_ command: String) {
+        Task { await model.sendCommand(command) }
+    }
+
+    /// 填进输入框并把焦点放进去：用户补参数后按回车。
+    private func prefill(_ prefix: String) {
+        model.commandDraft = prefix
+        commandFocused = true
     }
 
     // MARK: - 还没配置
@@ -271,7 +385,7 @@ struct SelfHostedServerView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Add Server Address…") { showSettings = true }
+            Button("Add Server Address…") { addServer() }
                 .buttonStyle(.borderedProminent)
         }
         .padding(OrzMCTheme.Spacing.lg)

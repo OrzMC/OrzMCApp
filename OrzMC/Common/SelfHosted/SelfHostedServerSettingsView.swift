@@ -4,15 +4,17 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCLauncher
 import SwiftUI
 
-/// 自建服务器的连接设置：地址 / 端口 / RCON。
+/// 自建服务器的连接设置：地址 / 端口 / RCON，以及删除这台服务器。
 ///
 /// 校验只做"能不能连"这一层（端口范围、地址非空）；**不在这里发网络请求**——
 /// 保存后回到页面由状态卡自己去查，失败信息显示在那里。
 struct SelfHostedServerSettingsView: View {
     let profile: SelfHostedServerProfile
-    let onSave: (SelfHostedServerProfile) -> Void
+    /// `(保存后的档案, RCON 密码, 是否删除)` —— 密码交回给模型写 Keychain。
+    let onDone: (SelfHostedServerProfile, String?, Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: SelfHostedServerProfile
@@ -20,14 +22,20 @@ struct SelfHostedServerSettingsView: View {
     @State private var rconPortText: String
     @State private var rconPassword: String
     @State private var errorMessage: String?
+    @State private var confirmDelete = false
 
-    init(profile: SelfHostedServerProfile, onSave: @escaping (SelfHostedServerProfile) -> Void) {
+    private var isNew: Bool {
+        // 新建时地址一定为空（`addServer()` 造的是空档案）。
+        profile.host.isEmpty
+    }
+
+    init(profile: SelfHostedServerProfile, onDone: @escaping (SelfHostedServerProfile, String?, Bool) -> Void) {
         self.profile = profile
-        self.onSave = onSave
+        self.onDone = onDone
         _draft = State(initialValue: profile)
         _portText = State(initialValue: String(profile.port))
         _rconPortText = State(initialValue: String(profile.rconPort))
-        _rconPassword = State(initialValue: SelfHostedServerProfile.rconPassword() ?? "")
+        _rconPassword = State(initialValue: SelfHostedCredentials.password(for: profile.id) ?? "")
     }
 
     var body: some View {
@@ -91,9 +99,17 @@ struct SelfHostedServerSettingsView: View {
                         OrzMCBanner(verbatim: errorMessage, role: .error)
                     }
                 }
+
+                if !isNew {
+                    Section {
+                        Button("Delete This Server", role: .destructive) { confirmDelete = true }
+                    } footer: {
+                        Text("Removes the address, the saved RCON password and the console history on this device. The server itself is not touched.")
+                    }
+                }
             }
             .formStyle(.grouped)
-            .navigationTitle(String(localized: "Server Settings"))
+            .navigationTitle(isNew ? String(localized: "Add Server") : String(localized: "Server Settings"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -106,9 +122,22 @@ struct SelfHostedServerSettingsView: View {
                         .disabled(draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .confirmationDialog(
+                "Delete This Server?",
+                isPresented: $confirmDelete,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    onDone(draft, nil, true)
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Removes the address, the saved RCON password and the console history on this device.")
+            }
         }
 #if os(macOS)
-        .frame(minWidth: 460, minHeight: 420)
+        .frame(minWidth: 460, minHeight: 460)
 #endif
     }
 
@@ -127,6 +156,7 @@ struct SelfHostedServerSettingsView: View {
         updated.host = host
         updated.port = port
 
+        var password: String?
         if updated.rconEnabled {
             guard let rconPort = Int(rconPortText.trimmingCharacters(in: .whitespacesAndNewlines)),
                   (1...65535).contains(rconPort) else {
@@ -138,14 +168,14 @@ struct SelfHostedServerSettingsView: View {
                 return
             }
             updated.rconPort = rconPort
-            SelfHostedServerProfile.saveRCONPassword(rconPassword)
+            password = rconPassword
         }
 
-        onSave(updated)
+        onDone(updated, password, false)
         dismiss()
     }
 }
 
 #Preview {
-    SelfHostedServerSettingsView(profile: SelfHostedServerProfile()) { _ in }
+    SelfHostedServerSettingsView(profile: SelfHostedServerProfile()) { _, _, _ in }
 }
