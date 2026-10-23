@@ -4650,6 +4650,176 @@
           }
         }
       }
+    },
+    "Players": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家"
+          }
+        }
+      }
+    },
+    "Online (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线（%lld）"
+          }
+        }
+      }
+    },
+    "Whitelist (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单（%lld）"
+          }
+        }
+      }
+    },
+    "Banned (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁（%lld）"
+          }
+        }
+      }
+    },
+    "Nobody is online right now.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在没有人在线。"
+          }
+        }
+      }
+    },
+    "The whitelist is empty.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单是空的。"
+          }
+        }
+      }
+    },
+    "Nobody is banned.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有被封禁的玩家。"
+          }
+        }
+      }
+    },
+    "Player name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家名"
+          }
+        }
+      }
+    },
+    "Add to Whitelist": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入白名单"
+          }
+        }
+      }
+    },
+    "Ban": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁"
+          }
+        }
+      }
+    },
+    "Unban": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解封"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "OP": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OP"
+          }
+        }
+      }
+    },
+    "De-OP…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消 OP…"
+          }
+        }
+      }
+    },
+    "Ban list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁列表"
+          }
+        }
+      }
+    },
+    "Reload online / whitelist / ban lists": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新拉取在线 / 白名单 / 封禁名单"
+          }
+        }
+      }
+    },
+    "RCON needs a password. Add it in Settings to manage players.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 需要密码，先在设置里填好才能管理玩家。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

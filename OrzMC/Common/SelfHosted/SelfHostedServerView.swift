@@ -20,6 +20,14 @@ struct SelfHostedServerView: View {
     @State private var editing: SelfHostedServerProfile?
     @State private var showSettings = false
     @FocusState private var commandFocused: Bool
+    @State private var playerListTab: PlayerListTab = .online
+    @State private var playerNameDraft = ""
+
+    enum PlayerListTab: Hashable {
+        case online
+        case whitelist
+        case banned
+    }
 
     var body: some View {
         ScrollView {
@@ -29,7 +37,7 @@ struct SelfHostedServerView: View {
                 if let profile = model.selected, profile.isConfigured {
                     statusCard(profile)
                     if let error = model.currentStatusError { errorCard(error) }
-                    if let names = model.currentStatus?.sampleNames, !names.isEmpty { playersCard(names) }
+                    if profile.rconEnabled { playersCard }
                     if profile.rconEnabled { consoleCard }
                 } else {
                     setupCard
@@ -62,6 +70,7 @@ struct SelfHostedServerView: View {
             guard model.selected?.isConfigured == true else { return }
             while !Task.isCancelled {
                 await model.refreshStatus()
+                if model.canRunCommands { await model.refreshPlayerLists() }
                 try? await Task.sleep(for: .seconds(20))
             }
         }
@@ -230,29 +239,142 @@ struct SelfHostedServerView: View {
 
     // MARK: - 玩家
 
-    private func playersCard(_ names: [String]) -> some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
-            Label("Players online (\(names.count))", systemImage: "person.2")
-                .font(.subheadline.weight(.semibold))
-            ForEach(names, id: \.self) { name in
-                HStack(spacing: OrzMCTheme.Spacing.xs) {
-                    Text(verbatim: name)
-                        .font(OrzMCTheme.Typography.code)
-                    Spacer(minLength: 0)
-                    // 每个玩家两个最常用动作：不用背命令，点一下就填进输入框。
-                    Button("Kick") { prefill("kick \(name)") }
-                        .buttonStyle(.borderless)
-                        .controlSize(.small)
-                    Button("OP") { prefill("op \(name)") }
-                        .buttonStyle(.borderless)
-                        .controlSize(.small)
+    /// 玩家卡：**在线 / 白名单 / 封禁** 三份名单，每行直接给对应动作。
+    ///
+    /// 名单来自 RCON（`list` / `whitelist list` / `banlist list`），不是 SLP 的 sample：
+    /// sample 常常被服务端隐藏，而且拿不到白名单和封禁。
+    private var playersCard: some View {
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Label("Players", systemImage: "person.2")
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: 0)
+                if model.isFetchingLists {
+                    ProgressView().controlSize(.small)
                 }
+                Button {
+                    Task { await model.refreshPlayerLists() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .disabled(model.isFetchingLists || !model.canRunCommands)
+                .help("Reload online / whitelist / ban lists")
+            }
+
+            Picker("", selection: $playerListTab) {
+                Text("Online (\(model.currentLists.online.count))").tag(PlayerListTab.online)
+                Text("Whitelist (\(model.currentLists.whitelisted.count))").tag(PlayerListTab.whitelist)
+                Text("Banned (\(model.currentLists.banned.count))").tag(PlayerListTab.banned)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            switch playerListTab {
+            case .online:
+                if model.currentLists.online.isEmpty {
+                    emptyRow(String(localized: "Nobody is online right now."))
+                }
+                ForEach(model.currentLists.online, id: \.self) { name in
+                    playerRow(name) {
+                        action("Kick") { await model.performPlayerAction("kick \(name)") }
+                        action("OP") { await model.performPlayerAction("op \(name)") }
+                        action("Ban") { await model.performPlayerAction("ban \(name)") }
+                    }
+                }
+            case .whitelist:
+                if model.currentLists.whitelisted.isEmpty {
+                    emptyRow(String(localized: "The whitelist is empty."))
+                }
+                ForEach(model.currentLists.whitelisted, id: \.self) { name in
+                    playerRow(name) {
+                        action("Remove") { await model.performPlayerAction("whitelist remove \(name)") }
+                        action("OP") { await model.performPlayerAction("op \(name)") }
+                    }
+                }
+            case .banned:
+                if model.currentLists.banned.isEmpty {
+                    emptyRow(String(localized: "Nobody is banned."))
+                }
+                ForEach(model.currentLists.banned, id: \.name) { entry in
+                    playerRow(entry.reason.map { "\(entry.name)（\($0)）" } ?? entry.name) {
+                        action("Unban") { await model.performPlayerAction("pardon \(entry.name)") }
+                    }
+                }
+            }
+
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                TextField("", text: $playerNameDraft, prompt: Text("Player name"))
+                    .labelsHidden()
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .onSubmit { addToList() }
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    .submitLabel(.done)
+                    #endif
+                Button(addButtonTitle) { addToList() }
+                    .disabled(playerNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if let error = model.currentListError {
+                Text(verbatim: error)
+                    .font(.caption)
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+            } else if !model.canRunCommands {
+                Text("RCON needs a password. Add it in Settings to manage players.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(OrzMCTheme.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .orzMCPanel()
     }
+
+    private func playerRow(_ title: String, @ViewBuilder actions: () -> some View) -> some View {
+        HStack(spacing: OrzMCTheme.Spacing.xs) {
+            Text(verbatim: title)
+                .font(OrzMCTheme.Typography.code)
+            Spacer(minLength: 0)
+            actions()
+        }
+    }
+
+    private func emptyRow(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+    }
+
+    private func action(_ title: String, perform: @escaping () async -> Void) -> some View {
+        Button(title) { Task { await perform() } }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .disabled(!model.canRunCommands || model.isSending)
+    }
+
+    private func addToList() {
+        let name = playerNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        let command = switch playerListTab {
+        case .online: "whitelist add \(name)"
+        case .whitelist: "whitelist add \(name)"
+        case .banned: "ban \(name)"
+        }
+        playerNameDraft = ""
+        Task { await model.performPlayerAction(command) }
+    }
+
+    private var addButtonTitle: String {
+        switch playerListTab {
+        case .online, .whitelist: return String(localized: "Add to Whitelist")
+        case .banned: return String(localized: "Ban")
+        }
+    }
+
+
 
     // MARK: - 控制台
 
@@ -306,15 +428,10 @@ struct SelfHostedServerView: View {
             Button("Save the world") { send("save-all") }
             Divider()
             Button("Say…") { prefill("say ") }
-            Button("Kick…") { prefill("kick ") }
-            Button("Ban…") { prefill("ban ") }
-            Button("Unban…") { prefill("pardon ") }
-            Button("OP…") { prefill("op ") }
             Button("De-OP…") { prefill("deop ") }
             Divider()
-            Button("Whitelist add…") { prefill("whitelist add ") }
-            Button("Whitelist remove…") { prefill("whitelist remove ") }
             Button("Whitelist list") { send("whitelist list") }
+            Button("Ban list") { send("banlist list") }
         } label: {
             Label("Commands", systemImage: "text.badge.plus")
                 .font(.caption)
