@@ -70,54 +70,25 @@ enum RiskyAction: Identifiable {
         }
     }
 
-    /// 一句话讲清后果（删除要强调不可恢复；停止要强调玩家会掉线）。
+    /// 一句话讲清后果：**一行**，只说"会发生什么、能不能恢复"。
+    ///
+    /// 标题已经说明"要删/要停哪个"，正文不再重复动词，只补后果；
+    /// 目录绝对路径不放进弹窗（卡片的「目录」行能看到）。
     func message(selectedVersionId: String?) -> String {
+        let version = selectedVersionId ?? String(localized: "this version")
         switch self {
-        case let .deleteServer(_, software, path):
-            return """
-            This permanently deletes the \(software.rawValue) server folder for \
-            \(selectedVersionId ?? "this version"):
-
-            \(path)
-
-            Worlds, configs and plugins inside it are gone. This cannot be undone.
-            """
-        case let .deleteClient(_, kind, path):
-            return """
-            This permanently deletes the \(kind.rawValue) client folder for \
-            \(selectedVersionId ?? "this version"):
-
-            \(path)
-
-            Downloaded assets, mods and options inside it are gone. This cannot be undone.
-            """
+        case let .deleteServer(_, software, _):
+            return String(localized: "The \(software.rawValue) server folder (\(version)) is deleted for good, including worlds, configs and plugins.")
+        case let .deleteClient(_, kind, _):
+            return String(localized: "The \(kind.rawValue) client folder (\(version)) is deleted for good, including assets, mods and options.")
         case let .deleteAllInstances(_, paths):
-            let list = paths.map { "- \($0)" }.joined(separator: "\n")
-            return """
-            This permanently deletes every existing instance folder for \
-            \(selectedVersionId ?? "this version"):
-
-            \(list)
-
-            Client assets, worlds, configs and plugins inside them are gone. \
-            This cannot be undone.
-            """
+            return String(localized: "All \(paths.count) instance folders (\(version)) are deleted for good, including worlds, configs, plugins and assets.")
         case let .stopServer(_, software):
-            return """
-            `stop` is sent to the \(software.rawValue) server console: it saves the world \
-            and shuts down normally. Players connected to it will be disconnected.
-            """
+            return String(localized: "The \(software.rawValue) server saves the world, then shuts down; connected players are disconnected.")
         case let .restartServer(_, software):
-            return """
-            The \(software.rawValue) server stops gracefully, then starts again with the \
-            current settings. Players are disconnected during the restart (usually 10-60s).
-            """
+            return String(localized: "The \(software.rawValue) server restarts; players are disconnected during the restart.")
         case let .terminateServer(_, software):
-            return """
-            The \(software.rawValue) server process is terminated right away \
-            (SIGTERM, then SIGKILL if it doesn't exit). Unlike `stop`, the server has no \
-            chance to finish saving — recent world changes may be lost.
-            """
+            return String(localized: "The \(software.rawValue) server is killed immediately and cannot finish saving; recent changes may be lost.")
         }
     }
 

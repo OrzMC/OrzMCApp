@@ -65,13 +65,13 @@ struct ExarotonServerActionSection: View {
             Button("Stop", role: .destructive) { perform(.stop) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The server saves and shuts down. Connected players are disconnected.")
+            Text("The server saves and shuts down; connected players are disconnected.")
         }
         .confirmationDialog("Restart Server?", isPresented: $confirmRestart) {
             Button("Restart") { perform(.restart) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The server stops and starts again. Connected players are disconnected during the restart.")
+            Text("The server restarts; players are disconnected during the restart.")
         }
     }
 
