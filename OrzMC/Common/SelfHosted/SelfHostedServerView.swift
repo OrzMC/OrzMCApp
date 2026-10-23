@@ -37,8 +37,14 @@ struct SelfHostedServerView: View {
                 if let profile = model.selected, profile.isConfigured {
                     statusCard(profile)
                     if let error = model.currentStatusError { errorCard(error) }
-                    if profile.rconEnabled { playersCard }
-                    if profile.rconEnabled { consoleCard }
+                    // 玩家卡**始终显示**：没开 RCON 时用 SLP 的 sample 显示"谁在线"（只读），
+                    // 否则一个只配了地址的服务器页面会只剩一张状态卡、下面大片空白（真机验收发现）。
+                    playersCard(profile)
+                    if profile.rconEnabled {
+                        consoleCard
+                    } else {
+                        rconHintCard
+                    }
                 } else {
                     setupCard
                 }
@@ -264,7 +270,7 @@ struct SelfHostedServerView: View {
     ///
     /// 名单来自 RCON（`list` / `whitelist list` / `banlist list`），不是 SLP 的 sample：
     /// sample 常常被服务端隐藏，而且拿不到白名单和封禁。
-    private var playersCard: some View {
+    private func playersCard(_ profile: SelfHostedServerProfile) -> some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
             HStack(spacing: OrzMCTheme.Spacing.sm) {
                 Label("Players", systemImage: "person.2")
@@ -284,13 +290,15 @@ struct SelfHostedServerView: View {
                 .help("Reload online / whitelist / ban lists")
             }
 
-            Picker("", selection: $playerListTab) {
-                Text("Online (\(model.currentOnlinePlayers.count))").tag(PlayerListTab.online)
-                Text("Whitelist (\(model.currentLists.whitelisted.count))").tag(PlayerListTab.whitelist)
-                Text("Banned (\(model.currentLists.banned.count))").tag(PlayerListTab.banned)
+            if profile.rconEnabled {
+                Picker("", selection: $playerListTab) {
+                    Text("Online (\(model.currentOnlinePlayers.count))").tag(PlayerListTab.online)
+                    Text("Whitelist (\(model.currentLists.whitelisted.count))").tag(PlayerListTab.whitelist)
+                    Text("Banned (\(model.currentLists.banned.count))").tag(PlayerListTab.banned)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
 
             switch playerListTab {
             case .online:
@@ -327,8 +335,9 @@ struct SelfHostedServerView: View {
                 }
             }
 
-            HStack(spacing: OrzMCTheme.Spacing.sm) {
-                TextField("", text: $playerNameDraft, prompt: Text("Player name"))
+            if profile.rconEnabled {
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
+                    TextField("", text: $playerNameDraft, prompt: Text("Player name"))
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
@@ -337,14 +346,24 @@ struct SelfHostedServerView: View {
                     .textInputAutocapitalization(.never)
                     .submitLabel(.done)
                     #endif
-                Button(addButtonTitle) { addToList() }
-                    .disabled(playerNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(addButtonTitle) { addToList() }
+                        .disabled(playerNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
 
             if let error = model.currentListError {
                 Text(verbatim: error)
                     .font(.caption)
                     .foregroundStyle(OrzMCTheme.Palette.danger)
+            } else if !profile.rconEnabled {
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
+                    Text("Turn on RCON to kick players or edit the whitelist.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button("Set Up RCON") { edit(profile) }
+                        .font(.caption)
+                }
             } else if !model.canRunCommands {
                 Text("RCON needs a password. Add it in Settings to manage players.")
                     .font(.caption)
@@ -398,6 +417,26 @@ struct SelfHostedServerView: View {
     }
 
 
+
+    /// 没开启 RCON 时的提示卡（替代整块空白）。
+    private var rconHintCard: some View {
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+            Label("Console (RCON)", systemImage: "terminal")
+                .font(.subheadline.weight(.semibold))
+            Text("Turn on RCON in the server settings to run console commands from here.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let profile = model.selected {
+                Button("Set Up RCON") { edit(profile) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .padding(OrzMCTheme.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .orzMCPanel()
+    }
 
     // MARK: - 控制台
 
