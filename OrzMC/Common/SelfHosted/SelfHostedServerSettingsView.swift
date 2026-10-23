@@ -186,6 +186,13 @@ struct SelfHostedServerSettingsView: View {
 #if os(macOS)
         .frame(minWidth: 460, minHeight: 460)
 #endif
+        #if DEBUG
+        // 验收钩子：`ORZMC_DEMO_RUN_TEST=1` 打开设置后自动跑一次「测试连接」，便于截图核对结果样式。
+        .task {
+            guard ProcessInfo.processInfo.environment["ORZMC_DEMO_RUN_TEST"] == "1" else { return }
+            await testConnection()
+        }
+        #endif
     }
 
     /// 用**当前草稿**去探一次，不改任何存储。

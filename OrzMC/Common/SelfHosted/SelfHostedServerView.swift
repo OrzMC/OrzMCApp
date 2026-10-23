@@ -65,6 +65,24 @@ struct SelfHostedServerView: View {
                 }
             }
         }
+        #if DEBUG
+        // 验收钩子：合成鼠标事件到不了这个次级窗口的 SwiftUI 控件，用参数直接落到指定状态。
+        // `--players-tab whitelist|banned`、`--selfhosted-settings`。
+        .task {
+            let args = ProcessInfo.processInfo.arguments
+            if let index = args.firstIndex(of: "--players-tab"), index + 1 < args.count {
+                switch args[index + 1] {
+                case "whitelist": playerListTab = .whitelist
+                case "banned": playerListTab = .banned
+                default: playerListTab = .online
+                }
+            }
+            if args.contains("--selfhosted-settings") {
+                editing = model.selected ?? SelfHostedServerProfile()
+                showSettings = true
+            }
+        }
+        #endif
         // 页面可见时每 20s 刷一次当前服务器（比手动点慢得多，够用且省电）。
         .task(id: model.selected?.id) {
             guard model.selected?.isConfigured == true else { return }
@@ -264,7 +282,7 @@ struct SelfHostedServerView: View {
             }
 
             Picker("", selection: $playerListTab) {
-                Text("Online (\(model.currentLists.online.count))").tag(PlayerListTab.online)
+                Text("Online (\(model.currentOnlinePlayers.count))").tag(PlayerListTab.online)
                 Text("Whitelist (\(model.currentLists.whitelisted.count))").tag(PlayerListTab.whitelist)
                 Text("Banned (\(model.currentLists.banned.count))").tag(PlayerListTab.banned)
             }
@@ -273,14 +291,16 @@ struct SelfHostedServerView: View {
 
             switch playerListTab {
             case .online:
-                if model.currentLists.online.isEmpty {
+                if model.currentOnlinePlayers.isEmpty {
                     emptyRow(String(localized: "Nobody is online right now."))
                 }
-                ForEach(model.currentLists.online, id: \.self) { name in
+                ForEach(model.currentOnlinePlayers, id: \.self) { name in
                     playerRow(name) {
-                        action("Kick") { await model.performPlayerAction("kick \(name)") }
-                        action("OP") { await model.performPlayerAction("op \(name)") }
-                        action("Ban") { await model.performPlayerAction("ban \(name)") }
+                        if model.canRunCommands {
+                            action("Kick") { await model.performPlayerAction("kick \(name)") }
+                            action("OP") { await model.performPlayerAction("op \(name)") }
+                            action("Ban") { await model.performPlayerAction("ban \(name)") }
+                        }
                     }
                 }
             case .whitelist:

@@ -21,7 +21,15 @@ enum SelfHostedCredentials {
     }
 
     static func password(for id: UUID) -> String? {
-        KeychainStore.get(account: account(for: id))
+        #if DEBUG
+        // **仅调试构建**的验收通道：本地联调时用假 SLP/RCON 服务端（`scripts/test-servers/`），
+        // 真机上的 Keychain 在无 GUI 会话里写不进去，于是允许用环境变量临时提供密码。
+        // 发布构建里这段代码不存在。
+        if let demo = ProcessInfo.processInfo.environment["ORZMC_DEMO_RCON_PASSWORD"], !demo.isEmpty {
+            return demo
+        }
+        #endif
+        return KeychainStore.get(account: account(for: id))
     }
 
     static func save(_ password: String, for id: UUID) {

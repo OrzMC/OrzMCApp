@@ -88,6 +88,16 @@ final class SelfHostedServersModel {
     var currentLastUpdatedAt: Date? { selected.flatMap { lastUpdatedAt[$0.id] } }
     var currentConsoleLines: [ConsoleLine] { selected.flatMap { consoleLines[$0.id] } ?? [] }
     var currentLists: PlayerLists { selected.flatMap { playerLists[$0.id] } ?? PlayerLists() }
+
+    /// 展示用的在线名单。
+    ///
+    /// 优先用 RCON `list` 的结果（最准）；**没有 RCON 时退回 SLP 的 sample**——
+    /// 否则会出现"状态卡写着 2/20 名玩家、玩家卡却是 0"的自相矛盾（实测）。
+    var currentOnlinePlayers: [String] {
+        let fromRCON = currentLists.online
+        if !fromRCON.isEmpty { return fromRCON }
+        return currentStatus?.sampleNames ?? []
+    }
     var currentListError: String? { selected.flatMap { listError[$0.id] } }
 
     var playersText: String? {
