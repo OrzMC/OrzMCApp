@@ -13,6 +13,12 @@ Minecraft 服务端查状态、发控制台命令。
 | 在线状态（在线/离线、版本、玩家 0/20、延迟、MOTD） | Server List Ping | 和游戏里「多人游戏」列表看到的是同一份数据 |
 | 在线玩家列表 | SLP 的 `players.sample` | 服务端可能隐藏，隐藏时整块不显示 |
 | 控制台命令 | RCON | 需要在服务端 `server.properties` 打开 `enable-rcon=true` |
+| 常用命令 | RCON | 「列出玩家 / 保存世界 / 广播 / 踢出 / 封禁 / OP / 白名单」——**要参数的先填好开头**，不用背语法 |
+| 玩家快捷动作 | RCON | 玩家列表每行有「踢出」「OP」，点一下填进输入框 |
+
+**多台服务器**：顶部胶囊菜单切换（新增/编辑/删除在菜单里，删除要二次确认）。
+早期版本只存一台，升级时自动迁移（`orzmc.selfHosted.profile` → `orzmc.selfHosted.profiles`，
+密码从旧的固定 Keychain 账户搬到新档案上），用户不会看到"配置没了"。
 
 iOS 首页变成两个并列的 Tab：**我的服务器** / **远程托管**。
 
@@ -23,10 +29,14 @@ macOS 上这两个面放进同一个「服务器」窗口（顶部分段控件�
 
 ```
 OrzMC/Common/SelfHosted/          应用侧（跨平台，只用 Foundation/SwiftUI）
-  SelfHostedServerProfile.swift   地址/端口/RCON 开关 + 本地存储（密码进 Keychain）
-  SelfHostedServerModel.swift     @MainActor @Observable：状态、控制台行、错误文案
-  SelfHostedServerView.swift      状态卡 + 玩家列表 + 控制台
-  SelfHostedServerSettingsView.swift  地址/端口/RCON 表单（含校验）
+  SelfHostedCredentials.swift     RCON 密码 → Keychain（按档案 id 分开，含旧账户迁移）
+  SelfHostedServersModel.swift    @MainActor @Observable：多档案 + 每台的状态/控制台/错误文案
+  SelfHostedServerView.swift      服务器菜单 + 状态卡 + 玩家列表 + 控制台 + 常用命令
+  SelfHostedServerSettingsView.swift  地址/端口/RCON 表单（含校验、删除这台服务器）
+  ServersWindowContent.swift     macOS「服务器」窗口：自建 / 远程托管 两个面
+
+Sources/OrzMCLauncher/            平台无关、可单测
+  SelfHostedProfiles.swift        档案模型 + `upsert`/`remove`/选中规则 + 旧格式迁移
 
 Sources/OrzMCProtocol/            协议层（可单测，无 UI）
   Transport/MCByteStream.swift    字节流协议 + Socket 实现 + 读缓冲（MCReadBuffer）

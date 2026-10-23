@@ -4,6 +4,7 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCLauncher
 import SwiftUI
 
 /// 「服务器」窗口：**自建服务器** 与 **exaroton 远程托管** 两个面。
@@ -34,7 +35,7 @@ struct ServersWindowContent: View {
     }
 
     /// 默认落在哪个面：已经配过自建地址就来自建，否则来自托管的账号页。
-    @State private var mode: Mode = SelfHostedServerProfile.load().isConfigured ? .selfHosted : .managed
+    @State private var mode: Mode = SelfHostedProfilesStore.load().servers.isEmpty ? .managed : .selfHosted
 
     var body: some View {
         VStack(spacing: 0) {

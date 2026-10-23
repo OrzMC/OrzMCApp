@@ -27,6 +27,26 @@ final class LiveProbeSmokeTests: XCTestCase {
         print("live probe: \(summary.versionName ?? "?") players=\(summary.playersOnline ?? -1)/\(summary.playersMax ?? -1) ping=\(summary.latencyMilliseconds)ms")
     }
 
+    /// 真实 RCON（本地 `python3` 假服务端）：验证**多包响应**在真 socket 上也能读全。
+    /// `ORZMC_LIVE_RCON=host:port:password`。
+    func testLiveRCONJoinsMultiplePackets() async throws {
+        guard let raw = ProcessInfo.processInfo.environment["ORZMC_LIVE_RCON"] else {
+            throw XCTSkip("set ORZMC_LIVE_RCON=host:port:password to run this test")
+        }
+        let parts = raw.split(separator: ":")
+        guard parts.count == 3, let port = Int32(parts[1]) else {
+            throw XCTSkip("ORZMC_LIVE_RCON must be host:port:password")
+        }
+        let reply = try await MCServerProbe().runRCON(
+            host: String(parts[0]),
+            port: port,
+            password: String(parts[2]),
+            command: "list"
+        )
+        XCTAssertTrue(reply.contains("There are 2 of a max of 20 players online"), reply)
+        XCTAssertTrue(reply.contains("alice, bob"), "第二个包也要读回来：\(reply)")
+    }
+
     /// 黑洞地址必须**按时失败**，而不是让界面一直转圈。
     func testUnreachableServerTimesOut() async {
         let probe = MCServerProbe()
