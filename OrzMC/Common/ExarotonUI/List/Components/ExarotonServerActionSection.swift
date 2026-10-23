@@ -29,45 +29,36 @@ struct ExarotonServerActionSection: View {
 
     private var serverID: String { server.id ?? "" }
 
-    @ViewBuilder
-    private func actionButtons(axis: Axis) -> some View {
-        let stack = axis == .horizontal
-            ? AnyLayout(HStackLayout(spacing: OrzMCTheme.Spacing.sm))
-            : AnyLayout(VStackLayout(alignment: .leading, spacing: OrzMCTheme.Spacing.sm))
-
-        stack {
-            Button {
-                perform(.start)
-            } label: {
-                Label("Start Server", systemImage: "play.fill")
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canPerform(.start))
-
-            Button {
-                confirmStop = true
-            } label: {
-                Label("Stop", systemImage: "stop.fill")
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .buttonStyle(.bordered)
-            .disabled(!canPerform(.stop))
-
-            Button {
-                confirmRestart = true
-            } label: {
-                Label("Restart", systemImage: "arrow.clockwise")
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .buttonStyle(.bordered)
-            .disabled(!canPerform(.restart))
-
-            if axis == .horizontal { Spacer(minLength: 0) }
+    /// 三个动作按钮。
+    ///
+    /// 用 `Button(_:systemImage:)`（**不要**自己塞 `Label`：在 Form 行里会被渲染成图标-only，
+    /// 主按钮还会变成"蓝底蓝字"的空白色块——真机截图复现过）。`fixedSize()` 保证不换行，
+    /// 放不下时由外层 `ViewThatFits` 换成竖排。
+    private var startButton: some View {
+        Button("Start Server", systemImage: "play.fill") {
+            perform(.start)
         }
+        .buttonStyle(.borderedProminent)
+        .fixedSize()
+        .disabled(!canPerform(.start))
+    }
+
+    private var stopButton: some View {
+        Button("Stop", systemImage: "stop.fill") {
+            confirmStop = true
+        }
+        .buttonStyle(.bordered)
+        .fixedSize()
+        .disabled(!canPerform(.stop))
+    }
+
+    private var restartButton: some View {
+        Button("Restart", systemImage: "arrow.clockwise") {
+            confirmRestart = true
+        }
+        .buttonStyle(.bordered)
+        .fixedSize()
+        .disabled(!canPerform(.restart))
     }
 
     var body: some View {
@@ -75,8 +66,17 @@ struct ExarotonServerActionSection: View {
             // 小屏（iPhone SE）上"启动服务器 + 停止 + 重启"以前会挤成两行、ControlGroup 还会渲染成
             // 一个没有文字的方块。改成三个普通按钮，各自单行；放不下就整组换行（`ViewThatFits`）。
             ViewThatFits(in: .horizontal) {
-                actionButtons(axis: .horizontal)
-                actionButtons(axis: .vertical)
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
+                    startButton
+                    stopButton
+                    restartButton
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                    startButton
+                    stopButton
+                    restartButton
+                }
             }
             .disabled(model.gate.pendingActions.contains(serverID))
 
