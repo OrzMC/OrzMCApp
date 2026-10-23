@@ -128,6 +128,10 @@ public struct OrzMCTag: View {
         textView
             // `.caption2` 在 macOS 上只有 ~9pt（design 规则里明确「慎用」）：标签正文用 `.caption`。
             .font(.caption.weight(.medium))
+            // 标签是"一个整体"，不许折行：小屏（iPhone SE）上折行会让标签变成两行方框，
+            // 卡片高度跟着跳，读起来像排版错乱。
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(tint == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(resolved))
             .padding(.horizontal, 6)
             .padding(.vertical, 1)

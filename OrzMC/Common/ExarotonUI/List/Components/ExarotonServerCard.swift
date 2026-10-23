@@ -66,6 +66,8 @@ struct ExarotonServerCard: View {
                     .font(OrzMCTheme.Typography.code)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .truncationMode(.middle)
+                    .layoutPriority(-1)      // 窄屏优先保住标签，id 让它截断
             }
             if let software = server.software {
                 OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
