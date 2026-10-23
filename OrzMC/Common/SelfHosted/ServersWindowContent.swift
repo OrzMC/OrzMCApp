@@ -34,7 +34,10 @@ struct ServersWindowContent: View {
         }
     }
 
-    /// 默认落在哪个面：已经配过自建地址就来自建，否则来自托管的账号页。
+    /// 上次看的那个面（跨启动保留）。
+    ///
+    /// 第一次打开时没有记录：配过自建地址就来自建，否则来自托管的账号页。
+    @AppStorage("orzmc.serversWindow.mode") private var storedMode: String = ""
     @State private var mode: Mode = SelfHostedProfilesStore.load().servers.isEmpty ? .managed : .selfHosted
 
     var body: some View {
@@ -59,6 +62,10 @@ struct ServersWindowContent: View {
                 ExarotonContent()
             }
         }
+        .onAppear {
+            if let restored = Mode(rawValue: storedMode) { mode = restored }
+        }
+        .onChange(of: mode) { storedMode = mode.rawValue }
         #if os(macOS)
         // Esc 关闭这个窗口（辅助窗口统一规则，见 `EscapeClosesWindow`）。
         .escapeClosesWindow()

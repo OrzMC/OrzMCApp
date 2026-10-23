@@ -115,7 +115,7 @@ final class SelfHostedServersModel {
             statusError[profile.id] = nil
             lastUpdatedAt[profile.id] = .now
         } catch {
-            statusError[profile.id] = Self.describe(error, address: profile.address)
+            statusError[profile.id] = SelfHostedErrorText.describe(error, address: profile.address)
         }
     }
 
@@ -149,7 +149,7 @@ final class SelfHostedServersModel {
             return true
         } catch {
             let address = profile.rconPort == 25565 ? profile.host : "\(profile.host):\(profile.rconPort)"
-            append(.init(kind: .error, text: Self.describe(error, address: address)), to: profile.id)
+            append(.init(kind: .error, text: SelfHostedErrorText.describe(error, address: address)), to: profile.id)
             return false
         }
     }
@@ -168,29 +168,4 @@ final class SelfHostedServersModel {
         consoleLines[id] = lines
     }
 
-    // MARK: - 错误文案
-
-    /// 把网络/协议错误翻译成"一眼能懂"的一句话。
-    /// 注意：**不要**把端口作为 `Int` 插值进本地化字符串——它会被按地区加千位分隔符
-    /// （实测显示成 `127.0.0.1:25,565`）。这里统一用拼好的 `address` 字符串。
-    private static func describe(_ error: Error, address: String) -> String {
-        switch error {
-        case MCStreamError.connectFailed:
-            return String(localized: "Can't connect to \(address). Check the address, the port and your network.")
-        case MCStreamError.connectionClosed:
-            return String(localized: "The server closed the connection. Check that the port belongs to Minecraft, not another service.")
-        case MCSLPError.pingFailed, MCSLPError.packetMalFormat:
-            return String(localized: "The server answered in an unexpected format. Is it a Minecraft server?")
-        case MCRCONError.authFailed:
-            return String(localized: "RCON password was rejected. Check the password in server.properties.")
-        case MCRCONError.responseInvalid, MCRCONError.packetMalFormat:
-            return String(localized: "RCON answered in an unexpected format.")
-        case MCProbeError.timedOut:
-            return String(localized: "The server didn't answer in time. Check the address and that the port is open.")
-        case is MCStatusError:
-            return String(localized: "This server returned status data this app doesn't understand.")
-        default:
-            return error.localizedDescription
-        }
-    }
 }

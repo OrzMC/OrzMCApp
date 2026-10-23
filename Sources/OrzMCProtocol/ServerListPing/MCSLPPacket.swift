@@ -98,8 +98,10 @@ extension MCSLPPacket {
                 throw MCSLPError.packetMalFormat
             }
             read = nextByte
-            let value = (read & 0b01111111)
-            result |= Int32((value << (7 * numRead)))
+            // **必须先转成 Int32 再移位**：`value` 是 UInt8，`<< 7` 会把高位直接溢出丢掉
+            //（实测长度 278 的 JSON 被读成 22 → 状态解析失败，界面卡在"检查中…"）。
+            let value = Int32(read & 0b01111111)
+            result |= value << (7 * numRead)
             
             numRead += 1
             if (numRead > 5) {

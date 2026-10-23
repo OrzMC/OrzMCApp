@@ -5,6 +5,7 @@
 
 import OrzMCDesignSystem
 import OrzMCLauncher
+import OrzMCProtocol
 import SwiftUI
 
 /// 自建服务器的连接设置：地址 / 端口 / RCON，以及删除这台服务器。
@@ -23,6 +24,15 @@ struct SelfHostedServerSettingsView: View {
     @State private var rconPassword: String
     @State private var errorMessage: String?
     @State private var confirmDelete = false
+    /// 「测试连接」的结果（保存前就能验证地址 / 密码，不用先存一份坏配置）。
+    @State private var testState: TestState = .idle
+
+    enum TestState: Equatable {
+        case idle
+        case running
+        case ok(String)
+        case failed(String)
+    }
 
     private var isNew: Bool {
         // 新建时地址一定为空（`addServer()` 造的是空档案）。
@@ -68,6 +78,43 @@ struct SelfHostedServerSettingsView: View {
                             .keyboardType(.numberPad)
                             #endif
                     }
+                }
+
+                Section {
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
+                        Button {
+                            Task { await testConnection() }
+                        } label: {
+                            if testState == .running {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Test Connection", systemImage: "bolt.horizontal")
+                            }
+                        }
+                        .disabled(testState == .running)
+
+                        Spacer()
+
+                        switch testState {
+                        case .idle:
+                            EmptyView()
+                        case .running:
+                            Text("Checking…").font(.caption).foregroundStyle(.secondary)
+                        case let .ok(message):
+                            Label(message, systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(OrzMCTheme.Palette.success)
+                        case let .failed(message):
+                            Label(message, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(OrzMCTheme.Palette.danger)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                } header: {
+                    Text("Verification")
+                } footer: {
+                    Text("Checks the status port with Server List Ping, and (if RCON is on) runs `list` to verify the password. Nothing is saved.")
                 }
 
                 Section {
@@ -139,6 +186,57 @@ struct SelfHostedServerSettingsView: View {
 #if os(macOS)
         .frame(minWidth: 460, minHeight: 460)
 #endif
+    }
+
+    /// 用**当前草稿**去探一次，不改任何存储。
+    private func testConnection() async {
+        testState = .running
+        let host = draft.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let portText = portText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty, let port = Int(portText), (1...65535).contains(port) else {
+            testState = .failed(String(localized: "Enter a valid address and port first."))
+            return
+        }
+        let address = port == 25565 ? host : "\(host):\(port)"
+
+        let probe = MCServerProbe()
+        do {
+            let summary = try await probe.status(host: host, port: Int32(port))
+            var message = summary.versionName ?? String(localized: "Online")
+            if let online = summary.playersOnline, let max = summary.playersMax {
+                message += " · \(online)/\(max)"
+            }
+            if summary.latencyMilliseconds > 0 {
+                message += " · \(summary.latencyMilliseconds) ms"
+            }
+
+            // RCON 打开且填了密码时，顺手用一条 `list` 验证密码（不费事、也不改状态）。
+            if draft.rconEnabled, !rconPassword.isEmpty,
+               let rconPort = Int(rconPortText.trimmingCharacters(in: .whitespacesAndNewlines)),
+               (1...65535).contains(rconPort) {
+                do {
+                    let reply = try await probe.runRCON(
+                        host: host,
+                        port: Int32(rconPort),
+                        password: rconPassword,
+                        command: "list"
+                    )
+                    let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+                    testState = .ok(trimmed.isEmpty ? message : "\(message) · RCON OK")
+                } catch {
+                    testState = .failed(
+                        SelfHostedErrorText.describe(
+                            error,
+                            address: "\(host):\(rconPort)"
+                        )
+                    )
+                }
+                return
+            }
+            testState = .ok(message)
+        } catch {
+            testState = .failed(SelfHostedErrorText.describe(error, address: address))
+        }
     }
 
     private func save() {

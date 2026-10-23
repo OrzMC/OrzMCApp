@@ -4610,6 +4610,46 @@
           }
         }
       }
+    },
+    "Test Connection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试连接"
+          }
+        }
+      }
+    },
+    "Verification": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连通性"
+          }
+        }
+      }
+    },
+    "Checks the status port with Server List Ping, and (if RCON is on) runs `list` to verify the password. Nothing is saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 Server List Ping 查状态端口；（若打开 RCON）再跑一条 `list` 验证密码。不会保存任何内容。"
+          }
+        }
+      }
+    },
+    "Enter a valid address and port first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先填写有效的地址和端口。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

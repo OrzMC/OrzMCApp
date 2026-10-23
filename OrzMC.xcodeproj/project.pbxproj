@@ -81,6 +81,7 @@
 		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
 		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
 		CE2026102300000000007001 /* ServersWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006001 /* ServersWindowContent.swift */; };
+		CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A100 /* SelfHostedErrorText.swift */; };
 		CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A001 /* SelfHostedCredentials.swift */; };
 		CE202610230000000000B000 /* SelfHostedServersModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A000 /* SelfHostedServersModel.swift */; };
 		2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */; };
@@ -175,6 +176,7 @@
 		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
 		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
 		CE2026102300000000006001 /* ServersWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServersWindowContent.swift"; sourceTree = "<group>"; };
+		CE202610230000000000A100 /* SelfHostedErrorText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedErrorText.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A001 /* SelfHostedCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedCredentials.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A000 /* SelfHostedServersModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedServersModel.swift"; sourceTree = "<group>"; };
 		2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonContent.swift; sourceTree = "<group>"; };
@@ -462,6 +464,7 @@
 				CE2026102300000000001003 /* SelfHostedServerView.swift */,
 				CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */,
 				CE2026102300000000006001 /* ServersWindowContent.swift */,
+				CE202610230000000000A100 /* SelfHostedErrorText.swift */,
 				CE202610230000000000A001 /* SelfHostedCredentials.swift */,
 				CE202610230000000000A000 /* SelfHostedServersModel.swift */,
 			);
@@ -780,6 +783,7 @@
 				CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */,
 				CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */,
 				CE2026102300000000007001 /* ServersWindowContent.swift in Sources */,
+				CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */,
 				CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */,
 				CE202610230000000000B000 /* SelfHostedServersModel.swift in Sources */,
 				2B5ACA5B2BFB28B100397BFC /* ExarotonAPI+.swift in Sources */,
