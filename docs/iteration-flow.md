@@ -103,6 +103,25 @@ xcrun simctl install booted <…>/OrzMC.app && xcrun simctl launch booted com.jo
 xcrun simctl io booted screenshot /tmp/ios.png
 ```
 
+## 4.1 真机验收（真实 Minecraft 服务端）
+
+两件工具，配合起来能在**不改 App 代码**的情况下完成端到端验收：
+
+```bash
+# 1) 给本机服务端打开 RCON（自动备份 server.properties，生成/沿用密码并打印）
+./scripts/dev/accept-real-server.sh --patch
+
+# 2) 重启服务端（在 App 里选中该版本 → 重启服务器），再自动检查
+./scripts/dev/accept-real-server.sh --version 26.3 --wait 240
+```
+
+- `scripts/dev/accept-real-server.sh`：定位 `<游戏目录>/versions/<版本>/server/server.properties`，
+  按需写入 `enable-rcon=true` / `rcon.port` / `rcon.password`（**先备份**），
+  `--wait N` 等服务端起来后自动跑检查。**不会启动/停止服务端**。
+- `scripts/dev/verify-real-server.py`：只用 SLP + RCON 两个协议连真实服务端，
+  打印**原始回复**与解析结果（`list` / `whitelist list` / `banlist list`）。
+  看到新措辞就说明解析器要加兼容——这是 App 里看不到的信息。
+
 ## 5. 发版
 
 1. 改版本：`OrzMC/Configuration/Config.xcconfig` 里 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`

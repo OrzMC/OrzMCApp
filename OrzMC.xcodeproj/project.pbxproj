@@ -81,7 +81,9 @@
 		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
 		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
 		CE2026102300000000007001 /* ServersWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006001 /* ServersWindowContent.swift */; };
+		CE202610230000000000E200 /* ServerStatusNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000E100 /* ServerStatusNotifications.swift */; };
 		CE202610230000000000D100 /* SelfHostedServersModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000C100 /* SelfHostedServersModelTests.swift */; };
+		CE202610230000000000F200 /* ServerStatusNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000F100 /* ServerStatusNotificationTests.swift */; };
 		CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A100 /* SelfHostedErrorText.swift */; };
 		CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A001 /* SelfHostedCredentials.swift */; };
 		CE202610230000000000B000 /* SelfHostedServersModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A000 /* SelfHostedServersModel.swift */; };
@@ -177,7 +179,9 @@
 		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
 		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
 		CE2026102300000000006001 /* ServersWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServersWindowContent.swift"; sourceTree = "<group>"; };
+		CE202610230000000000E100 /* ServerStatusNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerStatusNotifications.swift"; sourceTree = "<group>"; };
 		CE202610230000000000C100 /* SelfHostedServersModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedServersModelTests.swift"; sourceTree = "<group>"; };
+		CE202610230000000000F100 /* ServerStatusNotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerStatusNotificationTests.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A100 /* SelfHostedErrorText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedErrorText.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A001 /* SelfHostedCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedCredentials.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A000 /* SelfHostedServersModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedServersModel.swift"; sourceTree = "<group>"; };
@@ -466,6 +470,7 @@
 				CE2026102300000000001003 /* SelfHostedServerView.swift */,
 				CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */,
 				CE2026102300000000006001 /* ServersWindowContent.swift */,
+				CE202610230000000000E100 /* ServerStatusNotifications.swift */,
 				CE202610230000000000A100 /* SelfHostedErrorText.swift */,
 				CE202610230000000000A001 /* SelfHostedCredentials.swift */,
 				CE202610230000000000A000 /* SelfHostedServersModel.swift */,
@@ -623,6 +628,7 @@
 				C0D000020000000000000002 /* LauncherServicesTests.swift */,
 				C0D000020000000000000003 /* ProtocolPacketTests.swift */,
 				CE202610230000000000C100 /* SelfHostedServersModelTests.swift */,
+				CE202610230000000000F100 /* ServerStatusNotificationTests.swift */,
 			);
 			path = OrzMCTests;
 			sourceTree = "<group>";
@@ -786,6 +792,7 @@
 				CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */,
 				CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */,
 				CE2026102300000000007001 /* ServersWindowContent.swift in Sources */,
+				CE202610230000000000E200 /* ServerStatusNotifications.swift in Sources */,
 				CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */,
 				CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */,
 				CE202610230000000000B000 /* SelfHostedServersModel.swift in Sources */,
@@ -844,6 +851,7 @@
 			files = (
 				C0D000010000000000000002 /* LauncherServicesTests.swift in Sources */,
 				CE202610230000000000D100 /* SelfHostedServersModelTests.swift in Sources */,
+				CE202610230000000000F200 /* ServerStatusNotificationTests.swift in Sources */,
 				C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
