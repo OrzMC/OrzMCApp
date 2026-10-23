@@ -80,6 +80,16 @@ printf '%s' '{"prefix":"/tmp/shots/dark","size":"960x740","appearance":"dark"}' 
 `remote`（打开「服务器」窗口）/ `clickRemote`（在该窗口里点一下 x,y）/ `esc`（投递 Esc 验证关闭）。
 
 其他调试开关：`--test-click "x,y;x,y"`、`--dump-menus`、`--remote-detail`。
+
+自建服务器（RCON）的验收：Keychain 在无 GUI 的会话里写不进去，所以 **DEBUG 构建**允许用
+`ORZMC_DEMO_RCON_PASSWORD=<密码>` 临时代替钥匙串里的密码（发布构建里这段代码不存在）。
+配合 `scripts/test-servers/` 的两个假服务端即可跑通「状态 + 名单 + 控制台」全流程：
+
+```bash
+python3 scripts/test-servers/slp_server.py 25566 &
+python3 scripts/test-servers/rcon_server.py 25575 &
+ORZMC_DEMO_RCON_PASSWORD=testpass "$APP/Contents/MacOS/OrzMC" -ApplePersistenceIgnoreState YES --snapshot-watch /tmp/shots &
+```
 **必须**带 `-ApplePersistenceIgnoreState YES`，否则上次异常退出会让窗口不出现。
 
 iOS 用模拟器：
