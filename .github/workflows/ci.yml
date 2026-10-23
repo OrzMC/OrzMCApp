@@ -20,6 +20,24 @@ jobs:
       - name: Check platform split
         run: ./scripts/check-platform-split.sh
 
+  protocol-live:
+    # 协议层**真 socket** 联调：假 SLP / RCON 服务端起在本机，跑 LiveProbeSmokeTests。
+    # 假字节流单测抓不到 "TCP 分段 / 多字节 VarInt / 超时" 这类真实路径问题
+    # （历史上 VarInt 左移溢出就是靠真 socket 才暴露的）。
+    runs-on: macos-26
+    needs: split
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode 26.3
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Live protocol tests (fake SLP + RCON servers)
+        run: ./scripts/test-servers/run-live-tests.sh
+
   build:
     # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
     runs-on: macos-26
@@ -69,6 +87,26 @@ jobs:
           rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
           rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
           xcodebuild -resolvePackageDependencies -scheme OrzMC -destination '${{ matrix.destination }}'
+
+      - name: Unit tests (SwiftPM + app target)
+        # 两套都跑：SwiftPM 包单测（Sources/*）+ 应用层 target `OrzMCTests`
+        # （后者以前从没进过 CI，所以悄悄腐烂过）。
+        # 只在 macOS 那一格跑：它本身是 macOS destination，iOS 格再跑一遍没有意义。
+        # 注意：**不要**在这里调 `scripts/swift-check.sh`——那脚本属于父仓库 OrzMC，
+        # 不在本仓库里（第一次就踩了这个坑）。
+        if: matrix.cache_key == 'macos'
+        run: |
+          swift test
+          xcodebuild test \
+            -project OrzMC.xcodeproj \
+            -scheme OrzMC \
+            -destination 'platform=macOS' \
+            -only-testing:OrzMCTests \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
       - name: Build (no signing)
         run: |

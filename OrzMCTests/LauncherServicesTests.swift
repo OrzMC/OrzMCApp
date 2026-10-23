@@ -2,32 +2,34 @@
 //  LauncherServicesTests.swift
 //  OrzMCTests
 //
-//  Created by Codex on 2026/5/3.
-//
 
 import MojangAPI
+import OrzMCLauncher
 import XCTest
 @testable import OrzMC
 
+/// 应用层服务（不在 SwiftPM 包里、只能 `@testable import OrzMC` 的那些）。
+///
+/// 注意：这个 target 以前**从没被跑过**（`scripts/swift-check.sh app-test` 只跑 SwiftPM 单测），
+/// 于是它悄悄腐烂了（引用了已经不存在的 `VersionFilterService` / `runningServerPids()`）。
+/// 现在 `app-test` 与 CI 都会跑它，这里保持与当前 API 一致。
 final class LauncherServicesTests: XCTestCase {
+
+    // MARK: - Java
+
     func testJavaRuntimeStatus() {
         let service = JavaRuntimeService()
 
-        XCTAssertEqual(service.status(currentMajorVersion: nil, requiredMajorVersion: 21), .unknown)
-        XCTAssertEqual(service.status(currentMajorVersion: 17, requiredMajorVersion: 21), .invalid)
-        XCTAssertEqual(service.status(currentMajorVersion: 21, requiredMajorVersion: 21), .valid)
-        XCTAssertEqual(service.status(currentMajorVersion: 22, requiredMajorVersion: 21), .valid)
+        XCTAssertEqual(service.status(installedMajorVersions: [], requiredMajorVersion: nil), .unknown)
+        XCTAssertEqual(service.status(installedMajorVersions: [17], requiredMajorVersion: 21), .missing)
+        XCTAssertEqual(service.status(installedMajorVersions: [21], requiredMajorVersion: 21), .valid)
+        // 策略是**精确 major**：装了 22 也不算满足 21（启动前会补装 21，见 `JavaRuntimePolicy`）。
+        XCTAssertEqual(service.status(installedMajorVersions: [22], requiredMajorVersion: 21), .missing)
     }
 
-    func testJavaMajorVersionParsing() {
-        let service = JavaRuntimeService()
+    // MARK: - 服务端进程登记
 
-        XCTAssertEqual(service.majorVersion(from: "21.0.7"), 21)
-        XCTAssertEqual(service.majorVersion(from: "17"), 17)
-        XCTAssertNil(service.majorVersion(from: "not-a-version"))
-    }
-
-    func testServerProcessKeyAndPIDFiltering() {
+    func testServerProcessRegistration() {
         var service = ServerProcessService()
 
         XCTAssertEqual(service.key(versionId: "1.21.5", software: .paper), "1.21.5#Paper")
@@ -38,35 +40,23 @@ final class LauncherServicesTests: XCTestCase {
 
         XCTAssertTrue(service.hasManagedRunningServers)
         XCTAssertEqual(Set(service.pids()), ["100", "200"])
-
-        service.refresh(runningPids: ["200"])
-
-        XCTAssertNil(service.pid(versionId: "1.21.5", software: .paper))
-        XCTAssertEqual(service.pid(versionId: "1.20.6", software: .vanilla), "200")
+        XCTAssertEqual(service.pid(versionId: "1.21.5", software: .paper), "100")
 
         service.remove(versionId: "1.20.6", software: .vanilla)
+        XCTAssertEqual(service.pids(), ["100"])
 
+        service.removeAll()
         XCTAssertFalse(service.hasManagedRunningServers)
     }
 
-    func testServerProcessServiceUsesInjectedCommander() throws {
-        let commander = FakeServerProcessCommander(runningPids: ["300", "400"])
-        let service = ServerProcessService(commander: commander)
-
-        XCTAssertEqual(service.runningServerPids(), ["300", "400"])
-
-        try service.stop(processId: "300")
-        try service.stop(processIds: ["400", "500"])
-
-        XCTAssertEqual(commander.stoppedPids, ["300", "400", "500"])
-    }
+    // MARK: - 版本过滤（`VersionListFilter` 在平台无关层，这里是接线验证）
 
     func testVersionFiltering() throws {
         let versions = try makeVersions()
-        let service = VersionFilterService()
+        let filter = VersionListFilter()
 
-        XCTAssertEqual(service.filter(versions: versions, searchText: "", releaseOnly: true).map(\.id), ["1.21.5"])
-        XCTAssertEqual(service.filter(versions: versions, searchText: "RC", releaseOnly: false).map(\.id), ["1.21.5-rc1"])
+        XCTAssertEqual(filter.filter(versions: versions, searchText: "", releaseOnly: true).map(\.id), ["1.21.5"])
+        XCTAssertEqual(filter.filter(versions: versions, searchText: "RC", releaseOnly: false).map(\.id), ["1.21.5-rc1"])
     }
 
     private func makeVersions() throws -> [Version] {
@@ -90,22 +80,5 @@ final class LauncherServicesTests: XCTestCase {
         """.data(using: .utf8)!
 
         return try JSONDecoder().decode([Version].self, from: jsonData)
-    }
-}
-
-private final class FakeServerProcessCommander: ServerProcessCommanding {
-    let runningPids: [String]
-    var stoppedPids = [String]()
-
-    init(runningPids: [String]) {
-        self.runningPids = runningPids
-    }
-
-    func runningServerPids() throws -> [String] {
-        runningPids
-    }
-
-    func stop(processId: String) throws {
-        stoppedPids.append(processId)
     }
 }

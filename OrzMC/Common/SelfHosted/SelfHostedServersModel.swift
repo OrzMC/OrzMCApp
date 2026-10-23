@@ -17,6 +17,19 @@ import OrzMCProtocol
 @Observable
 final class SelfHostedServersModel {
 
+    /// 一台服务器的三份名单（都来自 RCON 的"人话回复"，由 `PlayerListParser` 解析）。
+    struct PlayerLists: Equatable {
+        var online: [String] = []
+        var whitelisted: [String] = []
+        var banned: [(name: String, reason: String?)] = []
+
+        static func == (lhs: PlayerLists, rhs: PlayerLists) -> Bool {
+            lhs.online == rhs.online
+                && lhs.whitelisted == rhs.whitelisted
+                && lhs.banned.map(\.name) == rhs.banned.map(\.name)
+        }
+    }
+
     struct ConsoleLine: Identifiable, Equatable {
         enum Kind: Equatable { case command, output, error }
         let id = UUID()
@@ -32,16 +45,28 @@ final class SelfHostedServersModel {
     private(set) var statusError: [UUID: String] = [:]
     private(set) var lastUpdatedAt: [UUID: Date] = [:]
     private(set) var consoleLines: [UUID: [ConsoleLine]] = [:]
+    /// 玩家名单（在线 / 白名单 / 封禁），按R CON 查询结果解析，同样按服务器分开存。
+    private(set) var playerLists: [UUID: PlayerLists] = [:]
+    private(set) var isFetchingLists = false
+    private(set) var listError: [UUID: String] = [:]
     private(set) var isProbing = false
     private(set) var isSending = false
     var commandDraft = ""
 
     private let probe: MCServerProbe
     private let defaults: UserDefaults
+    /// RCON 密码来源（默认读 Keychain）。做成可注入是为了**单测**能跑完整流程
+    /// （Keychain 在测试环境不可用，也不该被测试写入）。
+    private let passwordProvider: (UUID) -> String?
 
-    init(probe: MCServerProbe = MCServerProbe(), defaults: UserDefaults = .standard) {
+    init(
+        probe: MCServerProbe = MCServerProbe(),
+        defaults: UserDefaults = .standard,
+        passwordProvider: @escaping (UUID) -> String? = { SelfHostedCredentials.password(for: $0) }
+    ) {
         self.probe = probe
         self.defaults = defaults
+        self.passwordProvider = passwordProvider
         self.profiles = SelfHostedProfilesStore.load(defaults: defaults)
         if let first = profiles.servers.first {
             SelfHostedCredentials.migrateLegacyPasswordIfNeeded(to: first.id)
@@ -55,13 +80,15 @@ final class SelfHostedServersModel {
     var canRunCommands: Bool {
         guard let selected else { return false }
         return selected.rconEnabled && selected.isConfigured
-            && !(SelfHostedCredentials.password(for: selected.id) ?? "").isEmpty
+            && !(passwordProvider(selected.id) ?? "").isEmpty
     }
 
     var currentStatus: MCStatusSummary? { selected.flatMap { status[$0.id] } }
     var currentStatusError: String? { selected.flatMap { statusError[$0.id] } }
     var currentLastUpdatedAt: Date? { selected.flatMap { lastUpdatedAt[$0.id] } }
     var currentConsoleLines: [ConsoleLine] { selected.flatMap { consoleLines[$0.id] } ?? [] }
+    var currentLists: PlayerLists { selected.flatMap { playerLists[$0.id] } ?? PlayerLists() }
+    var currentListError: String? { selected.flatMap { listError[$0.id] } }
 
     var playersText: String? {
         guard let current = currentStatus,
@@ -96,6 +123,8 @@ final class SelfHostedServersModel {
         statusError[id] = nil
         lastUpdatedAt[id] = nil
         consoleLines[id] = nil
+        playerLists[id] = nil
+        listError[id] = nil
     }
 
     private func save() {
@@ -127,7 +156,7 @@ final class SelfHostedServersModel {
         guard let profile = selected else { return false }
         let command = (raw ?? commandDraft).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty, !isSending else { return false }
-        guard let password = SelfHostedCredentials.password(for: profile.id), !password.isEmpty else {
+        guard let password = passwordProvider(profile.id), !password.isEmpty else {
             append(.init(kind: .error, text: String(localized: "RCON password is missing. Add it in Settings.")), to: profile.id)
             return false
         }
@@ -152,6 +181,53 @@ final class SelfHostedServersModel {
             append(.init(kind: .error, text: SelfHostedErrorText.describe(error, address: address)), to: profile.id)
             return false
         }
+    }
+
+    /// 用 RCON 拉三份名单（`list` / `whitelist list` / `banlist list`）。
+    ///
+    /// 失败不打断页面：把原因写进 `listError`，界面上显示"未获取"。
+    func refreshPlayerLists() async {
+        // 没密码就直接跳过：界面已经有"需要密码"的提示，不必再连一次拿一个误导性的"密码被拒绝"。
+        guard let profile = selected, profile.rconEnabled, canRunCommands, !isFetchingLists else { return }
+        isFetchingLists = true
+        defer { isFetchingLists = false }
+
+        var lists = PlayerLists()
+        do {
+            let online = try await runCommand("list", profile: profile)
+            lists.online = PlayerListParser.onlinePlayers(from: online)
+            if let whitelist = try? await runCommand("whitelist list", profile: profile) {
+                lists.whitelisted = PlayerListParser.whitelisted(from: whitelist)
+            }
+            if let bans = try? await runCommand("banlist list", profile: profile) {
+                lists.banned = PlayerListParser.banned(from: bans)
+            }
+            playerLists[profile.id] = lists
+            listError[profile.id] = nil
+        } catch {
+            listError[profile.id] = SelfHostedErrorText.describe(error, address: profile.address)
+        }
+    }
+
+    /// 执行一条命令并返回原始回复（不写控制台记录——名单查询是后台动作）。
+    private func runCommand(_ command: String, profile: SelfHostedServerProfile) async throws -> String {
+        guard let password = passwordProvider(profile.id), !password.isEmpty else {
+            throw MCRCONError.authFailed
+        }
+        return try await probe.runRCON(
+            host: profile.host,
+            port: Int32(profile.rconPort),
+            password: password,
+            command: command
+        )
+    }
+
+    /// 玩家操作（踢出 / OP / 封禁 / 白名单…）：发命令并刷新名单，控制台里也能看到回显。
+    func performPlayerAction(_ command: String) async {
+        guard let profile = selected else { return }
+        await sendCommand(command)
+        await refreshPlayerLists()
+        _ = profile
     }
 
     func clearConsole() {
