@@ -199,6 +199,12 @@ final class AppModel {
                             self?.instanceProgress[cardKey] = state
                         }
                         defer { launch.progressObserver = nil }
+                        // 标记"这种客户端类型在这个版本下被启动过"：
+                        // Vanilla/Fabric 共用同一个目录，详情页靠它决定显示哪张卡。
+                        ClientKindMarkers.mark(
+                            clientDir: GamePlan.layout(root: settings.rootDir, version: version.id).clientDir,
+                            kind: settings.clientType.rawValue
+                        )
                         let console = consoles.model(for: key)
                         let logHandler: @Sendable (String) -> Void = { chunk in
                             console.append(chunk)

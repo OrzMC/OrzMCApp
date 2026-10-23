@@ -14,6 +14,8 @@ struct SidebarSearchBar: View {
     @Binding var searchText: String
     @Binding var releaseOnly: Bool
     let isLoading: Bool
+    /// 搜索框焦点（由 `GameView` 的 ⌘F 控制；Esc/回车交还给列表）。
+    var focused: FocusState<Bool>.Binding
     let onReload: () -> Void
 
     var body: some View {
@@ -38,6 +40,13 @@ struct SidebarSearchBar: View {
                 .textFieldStyle(.plain)
                 .font(.body)
                 .labelsHidden()
+                .focused(focused)
+                // 回车/退出都算"用完了"：交还焦点，方向键立刻回到版本列表。
+                .onSubmit { focused.wrappedValue = false }
+                .onExitCommand {
+                    searchText = ""
+                    focused.wrappedValue = false
+                }
 
             if !searchText.isEmpty {
                 Button {
@@ -91,6 +100,11 @@ struct SidebarSearchBar: View {
 #Preview {
     @Previewable @State var searchText = ""
     @Previewable @State var releaseOnly = true
-    SidebarSearchBar(searchText: $searchText, releaseOnly: $releaseOnly, isLoading: false) {}
+    SidebarSearchBar(
+        searchText: $searchText,
+        releaseOnly: $releaseOnly,
+        isLoading: false,
+        focused: FocusState<Bool>().projectedValue
+    ) {}
         .frame(width: Constants.sidebarWidth)
 }

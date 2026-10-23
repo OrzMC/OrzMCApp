@@ -23,6 +23,7 @@ struct LaunchBar: View {
 
     @Environment(AppModel.self) private var app
     @Environment(ShortcutStore.self) private var shortcuts
+    @State private var keyMonitor: Any?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -62,6 +63,50 @@ struct LaunchBar: View {
                 }
         }
         .focusSection()
+        // ⌘T：循环切换启动目标（客户端 Vanilla/Fabric → 服务端四个核心）。
+        .onAppear { installTargetShortcut() }
+        .onDisappear { removeTargetShortcut() }
+    }
+
+    /// 菜单里的顺序（快捷键按这个顺序走）。
+    private var targetOrder: [LaunchTargetKey] {
+        SettingsModel.ClientKind.allCases.map { .client($0.rawValue) }
+            + SettingsModel.ServerSoftware.allCases.map { .server($0.rawValue) }
+    }
+
+    private func cycleLaunchTarget() {
+        let order = targetOrder
+        guard let current = order.firstIndex(of: targetBinding.wrappedValue), !order.isEmpty else { return }
+        targetBinding.wrappedValue = order[(current + 1) % order.count]
+    }
+
+    private func installTargetShortcut() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // 有弹层/正在输入时不抢键。
+            guard NSApp.keyWindow?.attachedSheet == nil else { return event }
+            if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isFieldEditor {
+                return event
+            }
+            let spec = shortcuts.spec(for: .cycleTarget)
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            var expected: NSEvent.ModifierFlags = []
+            if spec.modifiers.contains(.command) { expected.insert(.command) }
+            if spec.modifiers.contains(.shift) { expected.insert(.shift) }
+            if spec.modifiers.contains(.option) { expected.insert(.option) }
+            if spec.modifiers.contains(.control) { expected.insert(.control) }
+            guard flags == expected,
+                  let typed = event.charactersIgnoringModifiers?.lowercased(),
+                  typed == spec.key.lowercased()
+            else { return event }
+            cycleLaunchTarget()
+            return nil
+        }
+    }
+
+    private func removeTargetShortcut() {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
     }
 
     /// 一次选择搞定「哪一端 + 哪种类型」：菜单分「客户端 / 服务端」两组。

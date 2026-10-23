@@ -222,9 +222,23 @@ struct BasicInfo: View {
         return DetailInstance.servers(versionId: versionId)
     }
 
-    /// 磁盘上确实存在的客户端实例（`<version>/client` 目录在）。
+    /// 显示出来的客户端实例：目录存在 **且** 这种类型被启动过。
+    ///
+    /// Vanilla 与 Fabric 共用 `<version>/client`，只看目录会把两张卡一起放出来
+    /// （用户实测：启动 Vanilla 后 Fabric 卡也冒出来）。类型由 `ClientKindMarkers` 决定。
     private var existingClientInstances: [DetailInstance] {
-        clientInstances.filter(isExisting)
+        clientInstances.filter { isExisting($0) && clientKindIsMarked($0) }
+    }
+
+    /// 该客户端类型是否在这个版本下被启动过（旧安装走兼容推断）。
+    private func clientKindIsMarked(_ instance: DetailInstance) -> Bool {
+        guard let kind = instance.clientKind,
+              let rows = entries[instance.id],
+              let root = rows.first(where: { $0.kind == .root })?.path
+        else { return false }
+        let kinds = ClientKindMarkers.markedKinds(clientDir: root)
+            ?? ClientKindMarkers.legacyKinds(clientDir: root, version: instance.versionId)
+        return kinds.contains(kind.rawValue)
     }
 
     /// 磁盘上确实存在的服务端实例（对应核心目录在）。
