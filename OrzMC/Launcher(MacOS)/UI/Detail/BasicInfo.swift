@@ -25,9 +25,12 @@ import SwiftUI
 struct BasicInfo: View {
 
     @Environment(AppModel.self) private var app
+    @Environment(ShortcutStore.self) private var shortcuts
 
     /// 待确认的高危操作（删除/停止）——统一入口，点按钮只"排队"，确认后才执行。
     @State private var pendingRisky: RiskyAction?
+    /// 详情页内打开控制台页时，⌘← 返回详情（独立窗口那套走 Esc）。
+    @State private var consoleBackMonitor: Any?
     /// 正在执行的实例（`版本#实例`）→ 该实例按钮全禁用（防连点）。
     @State private var busyInstanceId: String?
     /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
@@ -65,6 +68,11 @@ struct BasicInfo: View {
         .onChange(of: allExpanded) {
             expansionOverrides = [:]
         }
+        // 控制台作为**页面**推入时（不是独立窗口），⌘← 返回详情。
+        .onChange(of: consoleTarget != nil) { _, isPushing in
+            if isPushing { installConsoleBackShortcut() } else { removeConsoleBackShortcut() }
+        }
+        .onDisappear { removeConsoleBackShortcut() }
         .navigationTitle(app.detailTitle)
         .navigationDestination(item: $consoleTarget) { target in
             consoleView(for: target)
@@ -199,6 +207,24 @@ struct BasicInfo: View {
     private func clientProgress(_ instance: DetailInstance) -> LaunchProgressState? {
         guard let kind = instance.clientKind else { return nil }
         return app.progress(for: app.clientKey(versionId: instance.versionId, kind: kind))
+    }
+
+    /// ⌘←：从"详情页内的控制台页"返回详情（`consoleTarget = nil` 触发 pop）。
+    private func installConsoleBackShortcut() {
+        guard consoleBackMonitor == nil else { return }
+        consoleBackMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard consoleTarget != nil else { return event }
+            guard !ShortcutEvents.hasSheet, !ShortcutEvents.isComposing else { return event }
+            let spec = shortcuts.spec(for: .consoleBack)
+            guard ShortcutEvents.matches(event, spec) else { return event }
+            consoleTarget = nil
+            return nil
+        }
+    }
+
+    private func removeConsoleBackShortcut() {
+        if let consoleBackMonitor { NSEvent.removeMonitor(consoleBackMonitor) }
+        consoleBackMonitor = nil
     }
 
     private func consoleView(for target: ConsoleTarget) -> some View {

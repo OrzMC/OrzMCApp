@@ -28,35 +28,44 @@ struct ConsoleWindowView: View {
             )
         }
         .frame(minWidth: 720, minHeight: 420)
-        // ⌘←：从控制台回详情页。
+        // Esc：关闭这个独立控制台窗口（⌘← 留给"详情页内导航 → 控制台页"的返回场景）。
         //
         // 为什么不用 `.keyboardShortcut`：这个视图是**独立 Window** 的根，零尺寸按钮
         // 不参与键盘分发（实测完全不触发）。改为本地事件监听 + 关闭当前窗口。
-        .background(WindowReader { window = $0 })
+        .background(WindowReader { newWindow in
+            window = newWindow
+            // 打开控制台就把焦点给这个窗口：否则 Esc/⌘← 这类"本窗口快捷键"不生效，
+            // 用户也会觉得"开了但没在用它"。
+            if let newWindow, newWindow.isVisible, NSApp.keyWindow !== newWindow {
+                newWindow.makeKeyAndOrderFront(nil)
+            }
+        })
         .onAppear { installKeyMonitor() }
         .onDisappear { removeKeyMonitor() }
     }
 }
 
-// MARK: - ⌘← 返回
+// MARK: - Esc 关闭
 
 private extension ConsoleWindowView {
     func installKeyMonitor() {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // 只要**这个控制台窗口还开着**就响应。
-            // 不能要求它是 key window：`openWindow(value:)` 打开后 key 仍可能留在主窗口，
-            // 那样 ⌘← 永远不生效（实测）。主窗口里按 ⌘← 顺带关掉控制台也符合预期。
+            // 不要求这个窗口是 key window：`openWindow(value:)` 打开后 key 常常仍留在主窗口
+            //（实测 `isKey=false`），那样 Esc 永远不生效。只要控制台窗口还开着就响应；
+            // 正在输入文本时让开（主窗口搜索框的 Esc 仍归它自己）。
             guard let window, window.isVisible else { return event }
-            guard !ShortcutEvents.isComposing else { return event }
-            // 输入框里 ⌘← 是"移到行首"（文本编辑语义优先），别抢。
-            if ShortcutEvents.isEditingText { return event }
-            guard ShortcutEvents.matches(event, shortcuts.spec(for: .consoleBack)) else { return event }
+            guard !ShortcutEvents.hasSheet, !ShortcutEvents.isComposing else { return event }
+            if ShortcutEvents.isEditingText, NSApp.keyWindow !== window { return event }
+            // 独立控制台窗口：**Esc** 关闭（用户约定；⌘← 是"详情页内导航"用的，不在这里）。
+            guard event.keyCode == 53, ShortcutEvents.modifiers(of: event).isEmpty else { return event }
             window.performClose(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if window.isVisible { window.orderOut(nil) }
+            }
             return nil
         }
     }
-
     func removeKeyMonitor() {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = nil
