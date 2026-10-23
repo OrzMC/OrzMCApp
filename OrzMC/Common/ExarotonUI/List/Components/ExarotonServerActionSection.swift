@@ -29,27 +29,54 @@ struct ExarotonServerActionSection: View {
 
     private var serverID: String { server.id ?? "" }
 
+    @ViewBuilder
+    private func actionButtons(axis: Axis) -> some View {
+        let stack = axis == .horizontal
+            ? AnyLayout(HStackLayout(spacing: OrzMCTheme.Spacing.sm))
+            : AnyLayout(VStackLayout(alignment: .leading, spacing: OrzMCTheme.Spacing.sm))
+
+        stack {
+            Button {
+                perform(.start)
+            } label: {
+                Label("Start Server", systemImage: "play.fill")
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!canPerform(.start))
+
+            Button {
+                confirmStop = true
+            } label: {
+                Label("Stop", systemImage: "stop.fill")
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!canPerform(.stop))
+
+            Button {
+                confirmRestart = true
+            } label: {
+                Label("Restart", systemImage: "arrow.clockwise")
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!canPerform(.restart))
+
+            if axis == .horizontal { Spacer(minLength: 0) }
+        }
+    }
+
     var body: some View {
         Section("Actions") {
-            HStack(spacing: OrzMCTheme.Spacing.sm) {
-                Button("Start Server", systemImage: "play.fill") {
-                    perform(.start)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!canPerform(.start))
-
-                ControlGroup {
-                    Button("Stop", systemImage: "stop.fill") {
-                        confirmStop = true
-                    }
-                    .disabled(!canPerform(.stop))
-
-                    Button("Restart", systemImage: "arrow.clockwise") {
-                        confirmRestart = true
-                    }
-                    .disabled(!canPerform(.restart))
-                }
-                Spacer(minLength: 0)
+            // 小屏（iPhone SE）上"启动服务器 + 停止 + 重启"以前会挤成两行、ControlGroup 还会渲染成
+            // 一个没有文字的方块。改成三个普通按钮，各自单行；放不下就整组换行（`ViewThatFits`）。
+            ViewThatFits(in: .horizontal) {
+                actionButtons(axis: .horizontal)
+                actionButtons(axis: .vertical)
             }
             .disabled(model.gate.pendingActions.contains(serverID))
 
