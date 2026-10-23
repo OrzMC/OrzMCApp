@@ -103,7 +103,11 @@ extension GameList {
         }
         let badges = state.badges.map(Self.localizedBadge)
         var installed = Array(badges.prefix(2))
-        if badges.count > 2 { installed.append("+\(badges.count - 2)") }   // "+N" 与语言无关，不再翻译
+        // 只有 "Client" 时前面会多出一个「N 天前」；徽标超两项就给一句人话，
+        // 而不是 `+2`（以前 "+N" 看不出是"还有 2 项"）。
+        if badges.count > 2 {
+            installed.append(String(localized: "\(badges.count - 2) more"))
+        }
         parts.append(contentsOf: installed)
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

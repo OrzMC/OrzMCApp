@@ -3910,6 +3910,16 @@
           }
         }
       }
+    },
+    "%lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另 %lld 项"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

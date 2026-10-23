@@ -46,6 +46,11 @@ struct BasicInfo: View {
     @State private var entries: [String: [GameDirectoryEntry]] = [:]
     /// 每个实例的 `path → 是否存在`（同上：body 里不再逐行 `stat`）。
     @State private var entryExists: [String: [String: Bool]] = [:]
+    /// 客户端卡片：这一版**被启动过**的类型（`Instance id → kinds`）。
+    /// 标记文件也要读磁盘，因此和目录存在性一起在后台扫描，body 里不再做 IO。
+    @State private var markedKinds: [String: Set<String>] = [:]
+    /// 正在跑的那一次后台扫描（新一轮开始前取消旧的，避免 1.5s 一轮叠起来）。
+    @State private var scanTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -61,6 +66,7 @@ struct BasicInfo: View {
             pluginSheet = nil
             entries = [:]
             entryExists = [:]
+            markedKinds = [:]
             expansionOverrides = [:]
             refreshInstances()
         }
@@ -257,14 +263,11 @@ struct BasicInfo: View {
     }
 
     /// 该客户端类型是否在这个版本下被启动过（旧安装走兼容推断）。
+    ///
+    /// 结果来自后台扫描的 `markedKinds`（见 `refreshInstances()`），body 里不读磁盘。
     private func clientKindIsMarked(_ instance: DetailInstance) -> Bool {
-        guard let kind = instance.clientKind,
-              let rows = entries[instance.id],
-              let root = rows.first(where: { $0.kind == .root })?.path
-        else { return false }
-        let kinds = ClientKindMarkers.markedKinds(clientDir: root)
-            ?? ClientKindMarkers.legacyKinds(clientDir: root, version: instance.versionId)
-        return kinds.contains(kind.rawValue)
+        guard let kind = instance.clientKind else { return false }
+        return markedKinds[instance.id]?.contains(kind.rawValue) ?? false
     }
 
     /// 磁盘上确实存在的服务端实例（对应核心目录在）。
@@ -499,31 +502,49 @@ struct BasicInfo: View {
     }
 
     /// 重新计算**所有实例**的目录清单与存在性（**唯一的**文件 IO 入口，只在任务里跑）。
+    /// 重算「哪些实例/子目录真的在磁盘上」。
+    ///
+    /// **不在主线程做文件 IO**：主线程只把"要查什么"打包成值类型（纯内存），
+    /// 真正的一堆 `fileExists` / 标记读取交给 `Task.detached`，
+    /// 回来再一次性写进 `@State`（1.5s 一轮，旧的一轮没跑完就先取消）。
     private func refreshInstances() {
         let all = clientInstances + serverInstances
-        guard !all.isEmpty else {
+        guard !all.isEmpty, let versionId = app.catalog.selected?.id else {
+            scanTask?.cancel()
             entries = [:]
             entryExists = [:]
+            markedKinds = [:]
             return
         }
 
+        // 目录行（纯值，不碰磁盘）：body 用它渲染，扫描只关心其中的路径。
         var newEntries: [String: [GameDirectoryEntry]] = [:]
-        var newExistence: [String: [String: Bool]] = [:]
+        var descriptors: [DetailInstanceScan.Instance] = []
         newEntries.reserveCapacity(all.count)
-        newExistence.reserveCapacity(all.count)
-
+        descriptors.reserveCapacity(all.count)
         for instance in all {
             let rows = instance.software.map(directoryEntries(for:)) ?? clientDirectoryEntries(kind: instance.clientKind)
-            var existence: [String: Bool] = [:]
-            existence.reserveCapacity(rows.count)
-            for entry in rows {
-                existence[entry.path] = entry.path.isExist()
-            }
             newEntries[instance.id] = rows
-            newExistence[instance.id] = existence
+            descriptors.append(
+                DetailInstanceScan.Instance(
+                    id: instance.id,
+                    clientKind: instance.clientKind?.rawValue,
+                    rootPath: rows.first(where: { $0.kind == .root })?.path ?? "",
+                    paths: rows.map(\.path)
+                )
+            )
         }
         if newEntries != entries { entries = newEntries }
-        if newExistence != entryExists { entryExists = newExistence }
+
+        scanTask?.cancel()
+        let scanner = DetailInstanceScan()
+        let input = descriptors
+        scanTask = Task {
+            let result = await scanner.scanInBackground(input, version: versionId)
+            guard !Task.isCancelled else { return }
+            if result.entryExists != entryExists { entryExists = result.entryExists }
+            if result.markedKinds != markedKinds { markedKinds = result.markedKinds }
+        }
     }
 }
 
