@@ -27,6 +27,46 @@ public struct LauncherError: Error, Equatable, Sendable, CustomStringConvertible
 
     public var description: String { "\(message) (\(code))" }
 
+    /// 面向用户的中文一句话（按错误码归类；`nil` = 没有额外提示）。
+    ///
+    /// 引擎抛出的 `message` 有时是英文（网络层/第三方库），直接弹出来就成了中英混排。
+    /// 这里按规范错误码给一句中文结论，原始信息原样保留在第二行（便于上报对照）。
+    public var codeHint: String? {
+        Self.hint(for: code)
+    }
+
+    /// 原始信息是否已经是中文（含 CJK 就不再加提示，避免重复）。
+    public var messageIsChinese: Bool {
+        message.unicodeScalars.contains { scalar in
+            (0x4E00...0x9FFF).contains(scalar.value)      // 基本汉字
+                || (0x3400...0x4DBF).contains(scalar.value)
+        }
+    }
+
+    public static func hint(for code: String) -> String? {
+        switch code {
+        case "E_USAGE":
+            return String(localized: "The input isn't valid. Check the settings and try again.")
+        case "E_NETWORK":
+            return String(localized: "Network request failed. Check your connection and try again.")
+        case "E_VERIFY", "E_VERSION_NOT_FOUND", "E_NOT_FOUND":
+            return String(localized: "The requested version or file doesn't exist. Refresh the list and try again.")
+        case "E_AUTH", "E_AUTH_EXPIRED", "E_AUTH_DENIED", "E_AUTH_LOCKED",
+             "E_AUTH_XBOX", "E_AUTH_NO_GAME", "E_AUTH_NOT_CONFIGURED":
+            return String(localized: "Sign-in failed. Complete the Microsoft sign-in again.")
+        case "E_UNSUPPORTED", "E_UNSUPPORTED_TYPE", "E_UNSUPPORTED_OP":
+            return String(localized: "This version or platform doesn't support that action.")
+        case "E_IO":
+            return String(localized: "Reading or writing files failed. Check free space and permissions.")
+        case "E_CANCELLED":
+            return String(localized: "Cancelled.")
+        case "E_RUNTIME", "E_INTERNAL":
+            return String(localized: "Something went wrong while running the game or server.")
+        default:
+            return nil
+        }
+    }
+
     /// 从任意错误提取：能拿到 `code` 就保留，拿不到用调用方给的兜底码。
     ///
     /// 兜底码由调用点决定（启动失败 → `E_RUNTIME`，版本目录拉取失败 → `E_NETWORK`），
