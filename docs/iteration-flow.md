@@ -132,6 +132,10 @@ xcrun simctl io booted screenshot /tmp/ios.png
 - **必须在有图形会话的 Terminal.app 里跑**：`codesign` 要访问登录钥匙串里的私钥，
   锁着的钥匙串会报 `errSecInternalComponent`（ssh / agent 会话就是这种情况）。
   钥匙串锁了就 `security unlock-keychain ~/Library/Keychains/login.keychain-db`。
+- **后台会话（AI agent）想跑真正的签名构建**：`launchctl managername` 会是 `Background`，
+  拿不到 GUI 会话的钥匙串，`launchctl asuser` 也会被拒（Operation not permitted）。
+  可行做法是用 `open -a Terminal xxx.command` 把命令**投递到图形会话**里执行，
+  再把输出重定向到日志文件轮询——AI agent 就是这样完成真机安装的。
 - 首次装开发包，iPhone 上要「设置 → 通用 → VPN与设备管理」信任开发者证书。
 - 脚本用的是开发签名（自动 provision，team `2N62934Y28`），和 TestFlight/App Store 无关。
 
