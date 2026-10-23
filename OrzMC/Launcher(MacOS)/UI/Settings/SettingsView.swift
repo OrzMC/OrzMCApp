@@ -40,7 +40,6 @@ struct SettingsView: View {
     @AppStorage("settingsTab") private var selectedTab: SettingsTab = .general
 
     @State private var window: NSWindow?
-    @State private var escMonitor: Any?
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -69,13 +68,10 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
         }
         .frame(minWidth: 600, idealWidth: 640, minHeight: 440, idealHeight: 520)
-        // Esc 关闭设置窗口。
-        //
-        // 用 `onExitCommand`（而不是给隐藏按钮挂 `keyboardShortcut(.escape)`）：
-        // 文本框先拿到 Esc 做"取消编辑"，没被消费时才轮到关窗口——正是要的行为。
+        // Esc 关闭设置窗口（规则与实现见 `EscapeClosesWindow`）。
+        // 设 `closeWhileEditingText: false`：输入框里按 Esc 先「取消编辑」，再按一次才关窗。
         .background(WindowReader { window = $0 })
-        .onAppear(perform: installEscMonitor)
-        .onDisappear(perform: removeEscMonitor)
+        .escapeClosesWindow()
         // 打开设置时不要抢焦点：SwiftUI 会把光标自动放进第一个输入框，绿色焦点环
         // 在第一眼看上去像“这条校验没通过”。让窗口自己成为第一响应者即可。
         .task {
@@ -466,42 +462,4 @@ private struct AboutSettingsView: View {
 #Preview {
     SettingsView()
         .environment(AppModel())
-}
-
-// MARK: - Esc 关闭设置窗口
-
-private extension SettingsView {
-    /// 设置窗口没有"返回"语义，Esc 应当直接关闭（与系统设置一致）。
-    ///
-    /// 不用 `.onExitCommand`：设置页打开后第一响应者可能为空（我们主动清了焦点），
-    /// Esc 不会进到 SwiftUI 的命令链，实测无效。这里用本地监听 + 自己的窗口判定，
-    /// 且输入框正在编辑/输入法拼写时放行（先让文本框用 Esc 取消编辑）。
-    func installEscMonitor() {
-        guard escMonitor == nil else { return }
-        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard let window, NSApp.keyWindow === window else { return event }
-            // 只关心 ⌘⌥⌃⇧ 四个修饰键：`.function` / `.numericPad` 是键盘/合成事件的附带标记，
-            // 拿 `.deviceIndependentFlagsMask` 判空会把 Esc、方向键全部误判成"有修饰键"。
-            let modifiers = ShortcutEvents.modifiers(of: event)
-            guard event.keyCode == 53, modifiers.isEmpty else { return event }
-            if ShortcutEvents.isComposing { return event }
-            if let editor = NSApp.keyWindow?.firstResponder as? NSTextView,
-               editor.isFieldEditor, editor.window?.firstResponder === editor {
-                // 输入框里按 Esc 先取消编辑（交由字段自己处理），再按一次才关窗口。
-                return event
-            }
-            // SwiftUI 的 `Settings` 场景窗口对 `performClose:` 不总买账（实测无反应），
-            // 兜底 `orderOut`：用户看到的就是"关掉了"，下次 ⌘, 仍能正常打开。
-            window.performClose(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if window.isVisible { window.orderOut(nil) }
-            }
-            return nil
-        }
-    }
-
-    func removeEscMonitor() {
-        if let escMonitor { NSEvent.removeMonitor(escMonitor) }
-        escMonitor = nil
-    }
 }

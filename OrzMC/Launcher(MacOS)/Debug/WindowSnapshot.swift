@@ -94,7 +94,13 @@ enum WindowSnapshot {
     /// 在窗口内容坐标里点一下（`topLeft` 以窗口左上角为原点）。
     @MainActor
     private static func click(atTopLeft topLeft: CGPoint) {
-        guard let window = mainWindow() else { return print("click: no window") }
+        click(atTopLeft: topLeft, in: mainWindow())
+    }
+
+    /// 在指定窗口里点击（次级窗口用）。
+    @MainActor
+    private static func click(atTopLeft topLeft: CGPoint, in window: NSWindow?) {
+        guard let window else { return print("click: no window") }
         let point = NSPoint(x: topLeft.x, y: window.frame.height - topLeft.y)
         log("click: at \(point)")
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
@@ -190,7 +196,10 @@ enum WindowSnapshot {
                         size: sizeValue(in: options["size"] as? String),
                         appearance: options["appearance"] as? String,
                         includeSettings: options["settings"] as? Bool ?? false,
-                        settingsTab: options["settingsTab"] as? String
+                        settingsTab: options["settingsTab"] as? String,
+                        remote: options["remote"] as? Bool ?? false,
+                        clickRemote: (options["clickRemote"] as? String).flatMap(point(from:)),
+                        escape: options["esc"] as? Bool ?? false
                     )
                     let written = capture(to: prefix)
                     log("wrote \(written) file(s) to \(prefix)")
@@ -208,7 +217,10 @@ enum WindowSnapshot {
         size: NSSize?,
         appearance: String?,
         includeSettings: Bool,
-        settingsTab: String? = nil
+        settingsTab: String? = nil,
+        remote: Bool = false,
+        clickRemote: CGPoint? = nil,
+        escape: Bool = false
     ) async {
         if let appearance {
             NSApp.appearance = NSAppearance(named: appearance == "light" ? .aqua : .darkAqua)
@@ -222,6 +234,24 @@ enum WindowSnapshot {
             resize(window, to: size)
             try? await Task.sleep(for: .seconds(0.6))
         }
+        if remote {
+            // 「服务器」窗口是独立 `Window` 场景：只能通过「窗口」菜单打开
+            // （和设置一样发菜单 action），打开后再按需在里面点一下。
+            openRemoteWindow()
+            try? await Task.sleep(for: .seconds(2.5))
+            if let size, let window = remoteWindow() { resize(window, to: size) }
+            // 合成的鼠标事件只被 **key 窗口**的 SwiftUI 命中测试接住 → 先让它成为 key。
+            NSApp.activate(ignoringOtherApps: true)
+            remoteWindow()?.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .seconds(1.0))
+            if let clickRemote { click(atTopLeft: clickRemote, in: remoteWindow()) }
+            try? await Task.sleep(for: .seconds(0.8))
+        }
+        if escape {
+            // 验证「Esc 关闭窗口」：投递一个 Esc，等一拍再截图（窗口没了就等于关了）。
+            await postEscape()
+            try? await Task.sleep(for: .seconds(1.0))
+        }
         if includeSettings {
             // 让「设置」落在指定分页（`@AppStorage("settingsTab")`）。
             if let settingsTab { UserDefaults.standard.set(settingsTab, forKey: "settingsTab") }
@@ -229,6 +259,67 @@ enum WindowSnapshot {
             // Settings 窗口是异步创建 + 首帧渲染，等久一点再抓（否则抓到空白）。
             try? await Task.sleep(for: .seconds(3.0))
         }
+    }
+
+    /// 向本应用投递一个 Esc（走正常分发，本地 `NSEvent` 监听能看到）。
+    @MainActor
+    private static func postEscape() {
+        // Esc 只对**聚焦窗口**生效：先把最上面的辅助窗口设成 key，
+        // 否则测的永远是主窗口（上一版就是这样，什么都没验证到）。
+        // 跳过没有标题的窗口：本应用里有个 500×500 的无标题辅助窗口，会抢在前面。
+        // `NSApp.windows` 是"后→前"，取**最后**一个有标题的可见窗口 = 最上面那个。
+        // （不能靠 `mainWindow()` 排除：主窗口标题会跟着版本变，判定不可靠。）
+        let target = NSApp.windows.last { $0.isVisible && !$0.title.isEmpty && $0.canBecomeKey }
+        target?.makeKeyAndOrderFront(nil)
+        guard let event = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: NSApp.keyWindow?.windowNumber ?? 0,
+            context: nil,
+            characters: "\u{1b}",
+            charactersIgnoringModifiers: "\u{1b}",
+            isARepeat: false,
+            keyCode: 53
+        ) else { return log("postEscape: no event") }
+        log("postEscape -> \(NSApp.keyWindow?.title ?? "-")")
+        NSApp.postEvent(event, atStart: false)
+    }
+
+    private static func point(from raw: String) -> CGPoint? {
+        let parts = raw.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        return parts.count == 2 ? CGPoint(x: parts[0], y: parts[1]) : nil
+    }
+
+    @MainActor
+    private static func remoteWindow() -> NSWindow? {
+        NSApp.windows.first {
+            $0.isVisible && ($0.title.localizedCaseInsensitiveContains("server")
+                || $0.title.contains("服务器"))
+        }
+    }
+
+    /// 打开「服务器」窗口：它在「窗口」菜单里有一项（`Window(id:)` 场景自动注册）。
+    @MainActor
+    private static func openRemoteWindow() {
+        func find(_ menu: NSMenu?) -> NSMenuItem? {
+            guard let menu else { return nil }
+            for item in menu.items {
+                let title = item.title.lowercased()
+                if title.contains("server") || title.contains("服务器"), item.action != nil {
+                    return item
+                }
+                if let submenu = item.submenu, let found = find(submenu) { return found }
+            }
+            return nil
+        }
+        guard let item = find(NSApp.mainMenu), let action = item.action else {
+            log("openRemoteWindow: menu item not found")
+            return
+        }
+        log("openRemoteWindow via \(item.title)")
+        NSApp.sendAction(action, to: item.target, from: item)
     }
 
     @MainActor

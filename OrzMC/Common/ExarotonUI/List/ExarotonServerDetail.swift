@@ -35,8 +35,9 @@ struct ExarotonServerDetail: View {
 
         Form {
 
-            Section("General") {
-                ExarotonServerView(server: server, showStatus: true, showMotd: true)
+            // 顶部摘要卡与列表行同一个组件：同一个窗口里两处"服务器长什么样"必须一致。
+            Section("Overview") {
+                ExarotonServerCard(server: server, showMotd: true, showsDisclosure: false)
             }
 
             if let playlist = server.players?.list, !playlist.isEmpty {

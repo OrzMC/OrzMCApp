@@ -97,25 +97,25 @@ extension ServerStats {
 
     var cpuUsageRange: ClosedRange<Double> { 0...Double(100 * cpu.limit) }
     var cpuUsage: Double { cpu.percent.validValudInRange(cpuUsageRange) }
-    var cpuUsageLabel: String { "CPU x \(cpu.limit)" }
+    var cpuUsageLabel: String { String(localized: "CPU × \(cpu.limit)") }
     var cpuUsageDesc: String { "\(cpu.percent.displayString)%" }
 
     var memUsageRange: ClosedRange<Double> { 0...100 }
     var memUsage: Double { memory.percent.validValudInRange(memUsageRange) }
     var memUsageGB: Double { memory.usage * 100 / memory.percent / Double(1024 * 1024 * 1024)  }
-    var memUsageLabel: String { "Memory(\(memUsageGB.displayString) GB)"  }
+    var memUsageLabel: String { String(localized: "Memory (\(memUsageGB.displayString) GB)") }
     var memUsageDesc: String { "\(memory.percent.displayString)%" }
 
 }
 
 typealias ServerTick = ExarotonWebSocket.Tick
 extension ServerTick {
-    var usageLabel: String { "Tick: \(averageTickTime.displayString)" }
+    var usageLabel: String { String(localized: "Tick: \(averageTickTime.displayString)") }
 }
 
 typealias ServerHeap = ExarotonWebSocket.Heap
 extension ServerHeap {
-    var usageLabel: String { "Heap: \(usageGB.displayString) GB"  }
+    var usageLabel: String { String(localized: "Heap: \(usageGB.displayString) GB") }
     var usageGB: Double { Double(usage) / Double(1024 * 1024 * 1024) }
 }
 extension Double {

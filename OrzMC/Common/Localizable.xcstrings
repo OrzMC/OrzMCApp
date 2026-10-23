@@ -4310,6 +4310,86 @@
           }
         }
       }
+    },
+    "Server type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器类型"
+          }
+        }
+      }
+    },
+    "Actions run on exaroton's side; Stop and Restart disconnect connected players.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些操作在 exaroton 一侧执行；停止和重启会断开在线玩家。"
+          }
+        }
+      }
+    },
+    "Overview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "概览"
+          }
+        }
+      }
+    },
+    "CPU × %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU × %@"
+          }
+        }
+      }
+    },
+    "Memory (%@ GB)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内存（%@ GB）"
+          }
+        }
+      }
+    },
+    "Tick: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tick：%@"
+          }
+        }
+      }
+    },
+    "Heap: %@ GB": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "堆内存：%@ GB"
+          }
+        }
+      }
+    },
+    "Loading remote servers…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载远程服务器…"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

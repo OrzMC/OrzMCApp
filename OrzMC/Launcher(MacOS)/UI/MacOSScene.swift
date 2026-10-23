@@ -111,11 +111,11 @@ struct MacOSScene: Scene {
         }
         .defaultSize(width: 760, height: 480)
 
-        // 远程托管：独立窗口、独立 `ExarotonServerModel`。
+        // 「服务器」窗口：**自建服务器**（SLP 状态 + RCON）与 **exaroton 远程托管**两个面。
         // 这是“多窗口”的正确形态——不是复制启动器，而是打开另一个管理面；
         // 本机进程状态仍只由主窗口的 `AppModel` 持有。
-        Window("Remote Servers", id: "remote") {
-            ExarotonContent()
+        Window("Servers", id: "remote") {
+            ServersWindowContent()
                 .frame(minWidth: 820, minHeight: 560)
                 .environment(shortcuts)
         }
