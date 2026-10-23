@@ -55,6 +55,8 @@ final class SelfHostedServersModel {
 
     private let probe: MCServerProbe
     private let defaults: UserDefaults
+    /// 状态变化通知（在线↔离线）。
+    let notifier = ServerStatusNotifier()
     /// RCON 密码来源（默认读 Keychain）。做成可注入是为了**单测**能跑完整流程
     /// （Keychain 在测试环境不可用，也不该被测试写入）。
     private let passwordProvider: (UUID) -> String?
@@ -135,6 +137,7 @@ final class SelfHostedServersModel {
         consoleLines[id] = nil
         playerLists[id] = nil
         listError[id] = nil
+        notifier.forget(id)
     }
 
     private func save() {
@@ -153,8 +156,11 @@ final class SelfHostedServersModel {
             status[profile.id] = summary
             statusError[profile.id] = nil
             lastUpdatedAt[profile.id] = .now
+            notifier.observe(profile, isOnline: true)
         } catch {
             statusError[profile.id] = SelfHostedErrorText.describe(error, address: profile.address)
+            // 查询失败 = 连不上（离线）。**注意**：第一次查询就失败不弹通知（还没有基准）。
+            notifier.observe(profile, isOnline: false)
         }
     }
 

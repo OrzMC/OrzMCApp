@@ -4970,6 +4970,56 @@
           }
         }
       }
+    },
+    "Server is back online": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器已恢复在线"
+          }
+        }
+      }
+    },
+    "Server went offline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器离线了"
+          }
+        }
+      }
+    },
+    "Notify me when the server goes online or offline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器上下线时通知我"
+          }
+        }
+      }
+    },
+    "Uses system notifications. Only state changes are reported, at most once a minute per server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用系统通知。只在状态变化时提醒，每台服务器最多每分钟一条。"
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

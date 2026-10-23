@@ -26,6 +26,8 @@ struct SelfHostedServerSettingsView: View {
     @State private var confirmDelete = false
     /// 「测试连接」的结果（保存前就能验证地址 / 密码，不用先存一份坏配置）。
     @State private var testState: TestState = .idle
+    /// 通知开关（全局，存在 UserDefaults；打开时才申请系统权限）。
+    @State private var notifyEnabled = ServerStatusNotifier(defaults: .standard).isEnabled
 
     enum TestState: Equatable {
         case idle
@@ -118,6 +120,14 @@ struct SelfHostedServerSettingsView: View {
                 }
 
                 Section {
+                    Toggle("Notify me when the server goes online or offline", isOn: notifyBinding)
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Uses system notifications. Only state changes are reported, at most once a minute per server.")
+                }
+
+                Section {
                     Toggle("Use RCON for console commands", isOn: $draft.rconEnabled)
                     if draft.rconEnabled {
                         LabeledContent("RCON port") {
@@ -184,7 +194,7 @@ struct SelfHostedServerSettingsView: View {
             }
         }
 #if os(macOS)
-        .frame(minWidth: 460, minHeight: 460)
+        .frame(minWidth: 480, minHeight: 560)
 #endif
         #if DEBUG
         // 验收钩子：`ORZMC_DEMO_RUN_TEST=1` 打开设置后自动跑一次「测试连接」，便于截图核对结果样式。
@@ -244,6 +254,20 @@ struct SelfHostedServerSettingsView: View {
         } catch {
             testState = .failed(SelfHostedErrorText.describe(error, address: address))
         }
+    }
+
+    private var notifyBinding: Binding<Bool> {
+        Binding(
+            get: { notifyEnabled },
+            set: { newValue in
+                notifyEnabled = newValue
+                Task {
+                    let notifier = ServerStatusNotifier(defaults: .standard)
+                    await notifier.setEnabled(newValue)
+                    notifyEnabled = notifier.isEnabled
+                }
+            }
+        )
     }
 
     private func save() {
