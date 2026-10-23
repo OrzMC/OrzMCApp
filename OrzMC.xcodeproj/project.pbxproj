@@ -77,6 +77,11 @@
 		2B5BC3D52BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5BC3D42BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift */; };
 		2B5BC3D72BFC527E00348C00 /* ExarotonServerPlayList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5BC3D62BFC527E00348C00 /* ExarotonServerPlayList.swift */; };
 		2B5BC3D92BFC527E00348C00 /* ExarotonServerActionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5BC3D82BFC527E00348C00 /* ExarotonServerActionSection.swift */; };
+		CE2026102300000000002000 /* ExarotonServerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001000 /* ExarotonServerCard.swift */; };
+		CE2026102300000000002001 /* SelfHostedServerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001001 /* SelfHostedServerProfile.swift */; };
+		CE2026102300000000002002 /* SelfHostedServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001002 /* SelfHostedServerModel.swift */; };
+		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
+		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
 		2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */; };
 		2B62C97D2BF7216000387498 /* ExarotonServerDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */; };
 		2B62C9852BF73F0200387498 /* ExarotonServerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C9842BF73F0200387498 /* ExarotonServerList.swift */; };
@@ -87,14 +92,13 @@
 		C0D100030000000000000002 /* OrzMCLauncher in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = C0D100020000000000002 /* OrzMCLauncher */; };
 		C0D100030000000000000003 /* OrzMCDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = C0D100020000000000000003 /* OrzMCDesignSystem */; };
 		C0D100030000000000000004 /* OrzMCRemoteHosting in Frameworks */ = {isa = PBXBuildFile; productRef = C0D100020000000000000004 /* OrzMCRemoteHosting */; };
-		C0D100030000000000000005 /* OrzMCProtocol in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = C0D100020000000000000005 /* OrzMCProtocol */; };
+		C0D100030000000000000005 /* OrzMCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = C0D100020000000000000005 /* OrzMCProtocol */; };
 		C0D100030000000000000006 /* OrzMCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = C0D100020000000000000005 /* OrzMCProtocol */; };
 		2B8AB1CE2DA0CDF700DA6605 /* LinkMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8AB1CD2DA0CDF700DA6605 /* LinkMenu.swift */; };
 		2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA06D732DA2E6500043C0CE /* GameList.swift */; platformFilters = (macos, ); };
 		2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9932CA5848200ED2684 /* SettingsView.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000020 /* AppearanceSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000020 /* AppearanceSync.swift */; platformFilters = (macos, ); };
 		2BA7F9962CA58DFD00ED2684 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */; platformFilters = (macos, ); };
-		2BD03D792907F93200BE1D1F /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BD03D782907F93200BE1D1F /* Model.swift */; platformFilter = ios; };
 		2BD301EF29000B2C00993823 /* LauncherUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BD301EE29000B2C00993823 /* LauncherUI.swift */; platformFilters = (macos, ); };
 		E20C658A2C8AFD8400831909 /* OrzAppUpdater in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = E20C65892C8AFD8400831909 /* OrzAppUpdater */; };
 		E20C658C2C8AFD8F00831909 /* ExarotonHTTP in Frameworks */ = {isa = PBXBuildFile; productRef = E20C658B2C8AFD8F00831909 /* ExarotonHTTP */; };
@@ -165,6 +169,11 @@
 		2B5BC3D42BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonAccountTokenInputView.swift; sourceTree = "<group>"; };
 		2B5BC3D62BFC527E00348C00 /* ExarotonServerPlayList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerPlayList.swift; sourceTree = "<group>"; };
 		2B5BC3D82BFC527E00348C00 /* ExarotonServerActionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerActionSection.swift; sourceTree = "<group>"; };
+		CE2026102300000000001000 /* ExarotonServerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerCard.swift; sourceTree = "<group>"; };
+		CE2026102300000000001001 /* SelfHostedServerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerProfile.swift; sourceTree = "<group>"; };
+		CE2026102300000000001002 /* SelfHostedServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerModel.swift; sourceTree = "<group>"; };
+		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
+		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
 		2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonContent.swift; sourceTree = "<group>"; };
 		2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerDetail.swift; sourceTree = "<group>"; };
 		2B62C9842BF73F0200387498 /* ExarotonServerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerList.swift; sourceTree = "<group>"; };
@@ -176,7 +185,6 @@
 		2BA7F9932CA5848200ED2684 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD2026102200000000000020 /* AppearanceSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSync.swift; sourceTree = "<group>"; };
 		2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
-		2BD03D782907F93200BE1D1F /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		2BD301EE29000B2C00993823 /* LauncherUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherUI.swift; sourceTree = "<group>"; };
 		F30F00EC2BDBDF7000CAA802 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		F30F00F02BDCC6D900CAA802 /* GUIClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GUIClient.swift; sourceTree = "<group>"; };
@@ -262,6 +270,7 @@
 			isa = PBXGroup;
 			children = (
 				2B62C97E2BF73E0D00387498 /* ExarotonUI */,
+				CE2026102300000000003000 /* SelfHosted */,
 				F339F62129038E60003CB50C /* Info.plist */,
 				2B1C799E28FEAB0700D53658 /* Assets.xcassets */,
 				2B1C79A028FEAB0700D53658 /* OrzMC.entitlements */,
@@ -354,6 +363,7 @@
 				2B5BC3D42BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift */,
 				2B5BC3D62BFC527E00348C00 /* ExarotonServerPlayList.swift */,
 				2B5BC3D82BFC527E00348C00 /* ExarotonServerActionSection.swift */,
+				CE2026102300000000001000 /* ExarotonServerCard.swift */,
 				F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */,
 			);
 			path = Components;
@@ -440,6 +450,17 @@
 				2B62C9772BF71FC900387498 /* SideBar */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		CE2026102300000000003000 /* SelfHosted */ = {
+			isa = PBXGroup;
+			children = (
+				CE2026102300000000001001 /* SelfHostedServerProfile.swift */,
+				CE2026102300000000001002 /* SelfHostedServerModel.swift */,
+				CE2026102300000000001003 /* SelfHostedServerView.swift */,
+				CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */,
+			);
+			path = SelfHosted;
 			sourceTree = "<group>";
 		};
 		2B62C97E2BF73E0D00387498 /* ExarotonUI */ = {
@@ -560,7 +581,6 @@
 		F3B4D0E12A1A778B0095B108 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				2BD03D782907F93200BE1D1F /* Model.swift */,
 				F3B4D0B82A1A76EF0095B108 /* Views */,
 			);
 			path = App;
@@ -750,6 +770,11 @@
 				46228BE703D70151C1108076 /* Version+MinecraftVersionSummary.swift in Sources */,
 				2B5BC3D72BFC527E00348C00 /* ExarotonServerPlayList.swift in Sources */,
 				2B5BC3D92BFC527E00348C00 /* ExarotonServerActionSection.swift in Sources */,
+				CE2026102300000000002000 /* ExarotonServerCard.swift in Sources */,
+				CE2026102300000000002001 /* SelfHostedServerProfile.swift in Sources */,
+				CE2026102300000000002002 /* SelfHostedServerModel.swift in Sources */,
+				CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */,
+				CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */,
 				2B5ACA5B2BFB28B100397BFC /* ExarotonAPI+.swift in Sources */,
 				2B5ACA6A2BFB5C8A00397BFC /* ExarotonTradeMarkView.swift in Sources */,
 				F310C7A02C8B6B5D00590F32 /* documentation.docc in Sources */,
@@ -770,7 +795,6 @@
 				2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,
 				2B54E0872BDDFB16001B6877 /* Version+.swift in Sources */,
-				2BD03D792907F93200BE1D1F /* Model.swift in Sources */,
 				2B5BC3D52BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift in Sources */,
 				F3B18FAC2BE242A2002C7851 /* Constants.swift in Sources */,
 				2B79DCF629066BBC000C21A1 /* ContentView.swift in Sources */,

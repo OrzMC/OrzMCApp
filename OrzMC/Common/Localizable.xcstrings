@@ -3920,6 +3920,396 @@
           }
         }
       }
+    },
+    "(no output)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（没有输出）"
+          }
+        }
+      }
+    },
+    "Add Server Address…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器地址…"
+          }
+        }
+      }
+    },
+    "Address": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地址"
+          }
+        }
+      }
+    },
+    "Check the server status now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即检查服务器状态"
+          }
+        }
+      }
+    },
+    "Checking…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查中…"
+          }
+        }
+      }
+    },
+    "Commands and replies show up here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令和返回会显示在这里。"
+          }
+        }
+      }
+    },
+    "Connect a server you run yourself": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接你自己运行的服务器"
+          }
+        }
+      }
+    },
+    "Console (RCON)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台（RCON）"
+          }
+        }
+      }
+    },
+    "Enter the RCON password, or turn RCON off.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写 RCON 密码，或者关掉 RCON。"
+          }
+        }
+      }
+    },
+    "Enter the address and port of a Minecraft server you host (for example one started with `orzmc` in server mode). The app checks its status with Server List Ping; turn on RCON to run console commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填写你自己服务器（比如用 `orzmc` 服务端模式起的那个）的地址和端口。本应用用 Server List Ping 查状态；想发控制台命令就再打开 RCON。"
+          }
+        }
+      }
+    },
+    "Enter the server address.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写服务器地址。"
+          }
+        }
+      }
+    },
+    "My Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的服务器"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Optional, e.g. Home": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选，例如「家里的」"
+          }
+        }
+      }
+    },
+    "Port": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口"
+          }
+        }
+      }
+    },
+    "Port must be a number between 1 and 65535.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口必须是 1–65535 之间的数字。"
+          }
+        }
+      }
+    },
+    "Ports and the password come from `server.properties` (`rcon.port`, `rcon.password`, `enable-rcon=true`). The password is stored in the system keychain.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口和密码来自 `server.properties` 的 `rcon.port` / `rcon.password` / `enable-rcon=true`。密码保存在系统钥匙串里。"
+          }
+        }
+      }
+    },
+    "RCON answered in an unexpected format.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 返回了无法识别的格式。"
+          }
+        }
+      }
+    },
+    "RCON needs a password. Add it in Settings to send commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 需要密码，先在设置里填好才能发命令。"
+          }
+        }
+      }
+    },
+    "RCON password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 密码"
+          }
+        }
+      }
+    },
+    "RCON password is missing. Add it in Settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 RCON 密码，请在设置里填写。"
+          }
+        }
+      }
+    },
+    "RCON password was rejected. Check the password in server.properties.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 密码被拒绝，请核对 server.properties 里的密码。"
+          }
+        }
+      }
+    },
+    "RCON port": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 端口"
+          }
+        }
+      }
+    },
+    "RCON port must be a number between 1 and 65535.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 端口必须是 1–65535 之间的数字。"
+          }
+        }
+      }
+    },
+    "Say something or run a command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入命令，或说一句话"
+          }
+        }
+      }
+    },
+    "Server Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器设置"
+          }
+        }
+      }
+    },
+    "Server address, port and RCON": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器地址、端口与 RCON"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "TOKEN": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token"
+          }
+        }
+      }
+    },
+    "The server answered in an unexpected format. Is it a Minecraft server?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端返回了无法识别的数据，确认这是 Minecraft 服务器吗？"
+          }
+        }
+      }
+    },
+    "The server closed the connection. Check that the port belongs to Minecraft, not another service.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端断开了连接，确认这个端口确实是 Minecraft，而不是别的服务。"
+          }
+        }
+      }
+    },
+    "This server returned status data this app doesn't understand.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个服务端返回的状态数据本应用无法识别。"
+          }
+        }
+      }
+    },
+    "Updated %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新于 %@"
+          }
+        }
+      }
+    },
+    "Use RCON for console commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 RCON 发送控制台命令"
+          }
+        }
+      }
+    },
+    "Can't connect to %@:%lld. Check the address, the port and your network.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连不上 %@:%lld，请检查地址、端口和网络。"
+          }
+        }
+      }
+    },
+    "Players online (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线玩家（%lld）"
+          }
+        }
+      }
+    },
+    "%lld ms": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 毫秒"
+          }
+        }
+      }
+    },
+    "mc.example.com or 192.168.0.10": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mc.example.com 或 192.168.0.10"
+          }
+        }
+      }
+    },
+    "Remote Hosting": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程托管"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum MCSLPError: Error {
+public enum MCSLPError: Error, Equatable {
     
     case socketCreateFailed
     case VarIntTooBig

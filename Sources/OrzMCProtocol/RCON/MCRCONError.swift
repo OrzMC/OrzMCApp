@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum MCRCONError: Error {
+public enum MCRCONError: Error, Equatable {
     case packetMalFormat
     case authFailed
     case responseInvalid
