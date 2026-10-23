@@ -30,6 +30,7 @@ struct ExarotonServerCard: View {
         HStack(alignment: .top, spacing: OrzMCTheme.Spacing.sm) {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
                 header
+                idLine
                 tags
                 addresses
                 motd
@@ -59,16 +60,21 @@ struct ExarotonServerCard: View {
         }
     }
 
+    /// 服务器 id **单独一行**：和版本/玩家标签挤在一行时，窄屏上必然被截断（真机反馈）。
+    @ViewBuilder
+    private var idLine: some View {
+        if let id = server.id {
+            Text(id)
+                .font(OrzMCTheme.Typography.code)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+        }
+    }
+
     private var tags: some View {
         HStack(spacing: OrzMCTheme.Spacing.xs) {
-            if let id = server.id {
-                Text(id)
-                    .font(OrzMCTheme.Typography.code)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .layoutPriority(-1)      // 窄屏优先保住标签，id 让它截断
-            }
             if let software = server.software {
                 OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
             }

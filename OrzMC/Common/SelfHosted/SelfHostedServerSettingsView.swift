@@ -27,7 +27,7 @@ struct SelfHostedServerSettingsView: View {
     /// 「测试连接」的结果（保存前就能验证地址 / 密码，不用先存一份坏配置）。
     @State private var testState: TestState = .idle
     /// 通知开关（全局，存在 UserDefaults；打开时才申请系统权限）。
-    @State private var notifyEnabled = ServerStatusNotifier(defaults: .standard).isEnabled
+    @State private var notifyEnabled = UserDefaults.standard.bool(forKey: ServerStatusNotifier.enabledKey)
 
     enum TestState: Equatable {
         case idle
@@ -47,7 +47,9 @@ struct SelfHostedServerSettingsView: View {
         _draft = State(initialValue: profile)
         _portText = State(initialValue: String(profile.port))
         _rconPortText = State(initialValue: String(profile.rconPort))
-        _rconPassword = State(initialValue: SelfHostedCredentials.password(for: profile.id) ?? "")
+        // 密码**不在这里读**：Keychain 读取是同步 IO，会拖慢 sheet 出现（真机反馈"偶现加载很久"）。
+        // 打开后再到后台读一次（见 body 里的 .task）。
+        _rconPassword = State(initialValue: "")
     }
 
     var body: some View {
@@ -196,13 +198,17 @@ struct SelfHostedServerSettingsView: View {
 #if os(macOS)
         .frame(minWidth: 480, minHeight: 560)
 #endif
-        #if DEBUG
-        // 验收钩子：`ORZMC_DEMO_RUN_TEST=1` 打开设置后自动跑一次「测试连接」，便于截图核对结果样式。
         .task {
-            guard ProcessInfo.processInfo.environment["ORZMC_DEMO_RUN_TEST"] == "1" else { return }
-            await testConnection()
+            // 密码在后台读，避免阻塞 sheet 首帧。
+            let stored = SelfHostedCredentials.password(for: profile.id) ?? ""
+            if rconPassword.isEmpty { rconPassword = stored }
+            #if DEBUG
+            // 验收钩子：`ORZMC_DEMO_RUN_TEST=1` 打开设置后自动跑一次「测试连接」。
+            if ProcessInfo.processInfo.environment["ORZMC_DEMO_RUN_TEST"] == "1" {
+                await testConnection()
+            }
+            #endif
         }
-        #endif
     }
 
     /// 用**当前草稿**去探一次，不改任何存储。

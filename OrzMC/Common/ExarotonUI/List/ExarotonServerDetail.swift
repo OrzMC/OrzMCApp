@@ -142,18 +142,12 @@ struct ExarotonServerDetail: View {
                         if let id = server.id { model.startConnect(for: id) }
                     }
                     .help(reason)
-                } else if wsServerReady {
-                    Label("Connected", systemImage: "checkmark.icloud.fill")
-                        .foregroundStyle(OrzMCTheme.Palette.success)
-                } else {
+                } else if !wsServerReady {
                     ProgressView().controlSize(.small)
                         .accessibilityLabel("Connecting")
                 }
-
-                if let serverStatus = server.serverStatus {
-                    ExarotonServerStatusView(status: serverStatus)
-                        .frame(width: 25, height: 25)
-                }
+                // 连接正常时不再往工具栏塞绿色图标，服务器状态也已经由「概览」卡里的徽章表达——
+                // 工具栏两个方块图标（云勾 + 状态圆点）在真机上看着像两个不明按钮。
             }
         }
         .sheet(isPresented: $showConsoleCommandInput) {

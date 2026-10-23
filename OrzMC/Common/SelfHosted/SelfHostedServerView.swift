@@ -17,8 +17,10 @@ import SwiftUI
 /// 同一份代码 macOS / iOS 都能用；macOS 上它和远程托管合并在「服务器」窗口里。
 struct SelfHostedServerView: View {
     @State private var model = SelfHostedServersModel()
+    /// 正在编辑的服务器档案。**用 `.sheet(item:)` 而不是 `isPresented + 可选值`**：
+    /// 后者在"同一帧里既设值又置 true"时会用旧值（nil）构建内容，表现为 sheet 里一片空白
+    /// （真机/模拟器都复现到过）。
     @State private var editing: SelfHostedServerProfile?
-    @State private var showSettings = false
     @FocusState private var commandFocused: Bool
     @State private var playerListTab: PlayerListTab = .online
     @State private var playerNameDraft = ""
@@ -61,17 +63,15 @@ struct SelfHostedServerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await model.refreshStatus() }
         #endif
-        .sheet(isPresented: $showSettings) {
-            if let editing {
-                SelfHostedServerSettingsView(profile: editing) { updated, password, delete in
-                    if delete {
-                        model.remove(updated.id)
-                    } else {
-                        model.save(updated, rconPassword: password)
-                        Task { await model.refreshStatus() }
-                    }
-                    self.editing = nil
+        .sheet(item: $editing) { profile in
+            SelfHostedServerSettingsView(profile: profile) { updated, password, delete in
+                if delete {
+                    model.remove(updated.id)
+                } else {
+                    model.save(updated, rconPassword: password)
+                    Task { await model.refreshStatus() }
                 }
+                editing = nil
             }
         }
         #if DEBUG
@@ -86,9 +86,9 @@ struct SelfHostedServerView: View {
                 default: playerListTab = .online
                 }
             }
-            if args.contains("--selfhosted-settings") {
+            if args.contains("--selfhosted-settings")
+                || ProcessInfo.processInfo.environment["ORZMC_DEMO_SETTINGS"] == "1" {
                 editing = model.selected ?? SelfHostedServerProfile()
-                showSettings = true
             }
         }
         #endif
@@ -125,7 +125,6 @@ struct SelfHostedServerView: View {
                         }
                     }
                     Divider()
-                    Button("Add Server…") { addServer() }
                     if let selected = model.selected {
                         Button("Edit…") { edit(selected) }
                         Button("Delete…", role: .destructive) { edit(selected) }
@@ -133,9 +132,12 @@ struct SelfHostedServerView: View {
                 } label: {
                     Label(model.selected?.displayName ?? String(localized: "Select Server"), systemImage: "server.rack")
                         .font(.callout)
+                        // 名字可能很长（"我的-超长-服务器名"）：截断，别把右边按钮挤没了。
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
                 .menuStyle(.borderlessButton)
-                .fixedSize()
+                .frame(maxWidth: 170, alignment: .leading)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(OrzMCTheme.Palette.controlFill, in: Capsule())
@@ -148,6 +150,7 @@ struct SelfHostedServerView: View {
                 Task { await model.refreshStatus() }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
+                    .labelStyle(.iconOnly)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -172,6 +175,7 @@ struct SelfHostedServerView: View {
                 }
             } label: {
                 Label("Settings", systemImage: "slider.horizontal.3")
+                    .labelStyle(.iconOnly)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -181,12 +185,10 @@ struct SelfHostedServerView: View {
 
     private func addServer() {
         editing = SelfHostedServerProfile()
-        showSettings = true
     }
 
     private func edit(_ profile: SelfHostedServerProfile) {
         editing = profile
-        showSettings = true
     }
 
     // MARK: - 状态卡
