@@ -10,7 +10,7 @@ import Foundation
 public enum AppShortcut: String, CaseIterable, Identifiable, Sendable {
     /// 启动当前目标（客户端/服务端，取决于启动卡）。
     case start
-    /// 控制台窗口返回详情页。
+    /// **详情页内的控制台页**返回详情（独立控制台窗口用 Esc 关闭，不占这个键）。
     case consoleBack
     /// 切换启动目标（客户端 Vanilla/Fabric → 服务端四个核心，循环）。
     case cycleTarget
@@ -57,7 +57,7 @@ public enum AppShortcut: String, CaseIterable, Identifiable, Sendable {
     public var title: String {
         switch self {
         case .start: return String(localized: "Start current target")
-        case .consoleBack: return String(localized: "Console: back to detail")
+        case .consoleBack: return String(localized: "Console page: back to detail")
         case .cycleTarget: return String(localized: "Switch launch target")
         case .focusSearch: return String(localized: "Focus version search")
         case .jumpNewest: return String(localized: "Version list: jump to newest")

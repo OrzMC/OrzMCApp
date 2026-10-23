@@ -131,6 +131,7 @@ struct ShortcutsSettingsView: View {
         ("Show/Hide Sidebar", "⌃⌘S"),
         ("Show Main Window", "⌘0"),
         ("Check for Updates…", "⌘U"),
+        ("Close Window (settings, console)", "Esc"),
         ("Quit OrzMC", "⌘Q"),
     ]
 }
