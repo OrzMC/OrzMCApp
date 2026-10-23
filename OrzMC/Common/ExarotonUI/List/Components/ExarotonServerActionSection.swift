@@ -39,7 +39,6 @@ struct ExarotonServerActionSection: View {
             perform(.start)
         }
         .buttonStyle(.borderedProminent)
-        .fixedSize()
         .disabled(!canPerform(.start))
     }
 
@@ -48,7 +47,6 @@ struct ExarotonServerActionSection: View {
             confirmStop = true
         }
         .buttonStyle(.bordered)
-        .fixedSize()
         .disabled(!canPerform(.stop))
     }
 
@@ -57,28 +55,29 @@ struct ExarotonServerActionSection: View {
             confirmRestart = true
         }
         .buttonStyle(.bordered)
-        .fixedSize()
         .disabled(!canPerform(.restart))
     }
 
     var body: some View {
         Section("Actions") {
-            // 小屏（iPhone SE）上"启动服务器 + 停止 + 重启"以前会挤成两行、ControlGroup 还会渲染成
-            // 一个没有文字的方块。改成三个普通按钮，各自单行；放不下就整组换行（`ViewThatFits`）。
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: OrzMCTheme.Spacing.sm) {
-                    startButton
-                    stopButton
-                    restartButton
-                    Spacer(minLength: 0)
-                }
-                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-                    startButton
-                    stopButton
-                    restartButton
-                }
+            // iPhone 上横排三个带文字的按钮必然挤（iOS 26 会把标题压没、只剩图标）：
+            // 直接竖排，每个按钮独占一行；macOS 窗口够宽，保持横排。
+            #if os(iOS)
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                startButton
+                stopButton
+                restartButton
             }
             .disabled(model.gate.pendingActions.contains(serverID))
+            #else
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                startButton
+                stopButton
+                restartButton
+                Spacer(minLength: 0)
+            }
+            .disabled(model.gate.pendingActions.contains(serverID))
+            #endif
 
             feedback
 

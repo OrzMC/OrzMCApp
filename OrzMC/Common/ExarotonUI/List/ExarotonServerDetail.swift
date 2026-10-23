@@ -40,6 +40,12 @@ struct ExarotonServerDetail: View {
                 ExarotonServerCard(server: server, showMotd: true, showsDisclosure: false)
             }
 
+            // 生命周期动作紧跟概览：这是用户进来最想做的事，别让它排在内存/指标后面
+            // （小屏上会滚不到、还容易被浮动 TabBar 压住）。
+            if let serverStatus = server.serverStatus {
+                ExarotonServerActionSection(server: server, status: serverStatus)
+            }
+
             if let playlist = server.players?.list, !playlist.isEmpty {
                 Section("Playlist") {
                     ExarotonServerPlayList(playlist: playlist)
@@ -91,8 +97,6 @@ struct ExarotonServerDetail: View {
                     onReload: { await loadMemory() }
                 )
 
-                ExarotonServerActionSection(server: server, status: serverStatus)
-
                 if model.isConnected {
 
                     Section("Console") {
@@ -131,6 +135,13 @@ struct ExarotonServerDetail: View {
         }
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow)
+        #if os(iOS)
+        // iOS 26 的浮动 TabBar 会盖住最后一行（实测把「重启」压住了）。
+        // `contentMargins` 对 Form/List 不生效，用 `safeAreaInset` 在底部真正留出空白。
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 56)
+        }
+        #endif
         .navigationTitle(server.name ?? String(localized: "Server Detail"))
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
