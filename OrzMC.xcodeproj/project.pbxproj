@@ -103,6 +103,8 @@
 		F30F00F12BDCC6D900CAA802 /* GUIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30F00F02BDCC6D900CAA802 /* GUIClient.swift */; platformFilters = (macos, ); };
 		F30F00F32BDCCBD300CAA802 /* GUIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30F00F22BDCCBD300CAA802 /* GUIServer.swift */; platformFilters = (macos, ); };
 		C0D300010000000000000001 /* CommandLineToolModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D300020000000000000001 /* CommandLineToolModel.swift */; platformFilters = (macos, ); };
+		CE2026102300000000000030 /* ShortcutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000030 /* ShortcutStore.swift */; platformFilters = (macos, ); };
+		CE2026102300000000000031 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102300000000000031 /* ShortcutsSettingsView.swift */; platformFilters = (macos, ); };
 		C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D300020000000000000002 /* CommandLineSettingsSection.swift */; platformFilters = (macos, ); };
 		F310C79E2C8B535700590F32 /* ExarotonCopyableText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */; };
 		F310C7A02C8B6B5D00590F32 /* documentation.docc in Sources */ = {isa = PBXBuildFile; fileRef = F310C79F2C8B6B5D00590F32 /* documentation.docc */; };
@@ -178,6 +180,8 @@
 		F30F00F02BDCC6D900CAA802 /* GUIClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GUIClient.swift; sourceTree = "<group>"; };
 		F30F00F22BDCCBD300CAA802 /* GUIServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIServer.swift; sourceTree = "<group>"; };
 		C0D300020000000000000001 /* CommandLineToolModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolModel.swift; sourceTree = "<group>"; };
+		CD2026102300000000000030 /* ShortcutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShortcutStore.swift"; sourceTree = "<group>"; };
+		CD2026102300000000000031 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShortcutsSettingsView.swift"; sourceTree = "<group>"; };
 		C0D300020000000000000002 /* CommandLineSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineSettingsSection.swift; sourceTree = "<group>"; };
 		F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonCopyableText.swift; sourceTree = "<group>"; };
 		F310C79F2C8B6B5D00590F32 /* documentation.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = documentation.docc; sourceTree = "<group>"; };
@@ -415,6 +419,7 @@
 				2B54E0862BDDFB16001B6877 /* Version+.swift */,
 				F3B18FAB2BE242A2002C7851 /* Constants.swift */,
 				C0D300020000000000000001 /* CommandLineToolModel.swift */,
+				CD2026102300000000000030 /* ShortcutStore.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -457,6 +462,7 @@
 			isa = PBXGroup;
 			children = (
 				2BA7F9932CA5848200ED2684 /* SettingsView.swift */,
+				CD2026102300000000000031 /* ShortcutsSettingsView.swift */,
 				CD2026102200000000000020 /* AppearanceSync.swift */,
 				C0D300020000000000000002 /* CommandLineSettingsSection.swift */,
 			);
@@ -776,6 +782,8 @@
 				2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */,
 				CE2026102200000000000020 /* AppearanceSync.swift in Sources */,
 				C0D300010000000000000001 /* CommandLineToolModel.swift in Sources */,
+				CE2026102300000000000030 /* ShortcutStore.swift in Sources */,
+				CE2026102300000000000031 /* ShortcutsSettingsView.swift in Sources */,
 				C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */,
 				2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */,
 				F310C79E2C8B535700590F32 /* ExarotonCopyableText.swift in Sources */,

@@ -25,6 +25,8 @@ struct FormSectionHeader: View {
     var isCurrentType: Bool = false
     /// 该实例有操作在进行（启动/停止/重启中）→ **全部按钮禁用**，防连点。
     var isBusy: Bool = false
+    /// 该实例的启动/下载进度：有值时在标题区显示「下载中 42%」这类**确定性**进度。
+    var progress: LaunchProgressState?
     /// 生命周期按钮的可用性（`nil` = 该实例不提供生命周期控制，例如客户端）。
     var availability: InstanceActionAvailability?
     /// 打开该实例自己的控制台（客户端 + 四种核心各一个，入口就在自己这一栏）。
@@ -50,6 +52,12 @@ struct FormSectionHeader: View {
     /// 动作区实际可用宽度（由背景 `GeometryReader` 测出）。
     /// DEBUG 可用 `ORZMC_ACTION_SPACE=<pt>` 强制一个宽度，回归"窗口太窄时进 ⋯ 菜单"的排布。
     @State private var actionSpace: CGFloat = .infinity
+
+    /// 「42%」；`nil` = 没有确定进度（不定长时不显示假百分比）。
+    private var progressPercent: String? {
+        guard let progress, let fraction = progress.fraction else { return nil }
+        return "\(Int((fraction * 100).rounded()))%"
+    }
 
     /// 实际用于排版的宽度：DEBUG 下可用 `ORZMC_ACTION_SPACE` 强制（回归"窄窗口 → ⋯ 菜单"）。
     private var effectiveActionSpace: CGFloat {
@@ -80,7 +88,15 @@ struct FormSectionHeader: View {
             .help(isExpanded ? "Collapse this instance" : "Expand this instance")
             .accessibilityLabel(Text(isExpanded ? "Collapse this instance" : "Expand this instance"))
             if let statusText {
-                OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
+                HStack(spacing: 4) {
+                    OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
+                    // 进度只在这一栏出现（启动/下载都是**这个实例**在做）。
+                    if let percent = progressPercent {
+                        Text(percent)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             // 右：动作区。宽度由 `HStack` 剩余空间决定，先用 `HeaderActionPlan` 估算

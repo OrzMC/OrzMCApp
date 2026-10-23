@@ -18,9 +18,17 @@ public struct ConsoleInstanceKey: Hashable, Sendable, CustomStringConvertible {
         self.instanceId = instanceId
     }
 
-    /// 客户端实例（`版本#Client`）。
+    /// 客户端实例（`版本#Client`）——**控制台**用这个键（同一版本共用一个客户端控制台）。
     public static func client(versionId: String) -> ConsoleInstanceKey {
         ConsoleInstanceKey(versionId: versionId, instanceId: clientInstanceId)
+    }
+
+    /// 客户端**某个类型**的实例键（`版本#Client-Fabric`）。
+    ///
+    /// 只用于**状态/进度**：详情页把 Vanilla 与 Fabric 两张卡片并列展示，
+    /// 启动其中一个时不能把 Another 也点亮成"启动中"（控制台仍按版本共用）。
+    public static func client(versionId: String, kind: String) -> ConsoleInstanceKey {
+        ConsoleInstanceKey(versionId: versionId, instanceId: "\(clientInstanceId)-\(kind)")
     }
 
     /// 与 `ManagedServerKey` 的 `rawValue` 同构（`版本#核心`），便于两个登记表对齐。

@@ -70,6 +70,9 @@ final class LaunchModel {
         )
     }
 
+    /// 进度外发（按**实例**记进度用）：`AppModel` 在每次启动前设置，结束后清空。
+    var progressObserver: ((LaunchProgressState) -> Void)?
+
     /// 引擎的结构化进度 → 单一状态。
     func update(_ event: LaunchProgress) {
         progress = LaunchProgressState(
@@ -79,6 +82,7 @@ final class LaunchModel {
             unit: event.kind == .bytes ? .bytes : .items,
             fraction: event.fraction
         )
+        progressObserver?(progress)
     }
 
     var progressHandler: LaunchProgressHandler {

@@ -16,6 +16,9 @@ struct OrzMCApp: App {
 #if os(macOS)
     /// 整个 macOS 应用**唯一**的组合根：主窗口与 Settings 共享同一份状态。
     @State private var app = AppModel()
+
+    /// 快捷键（用户可改，设置页「快捷键」页读写它）。
+    @State private var shortcuts = ShortcutStore()
 #endif
 
 #if canImport(OrzAppUpdater)
@@ -30,7 +33,7 @@ struct OrzMCApp: App {
 
     var body: some Scene {
 #if os(macOS)
-        MacOSScene(app: app)
+        MacOSScene(app: app, shortcuts: shortcuts)
             // 标题由应用提供（依赖里的默认值是硬编码英文）；`String(localized:)` 走应用自己的
             // Localizable.xcstrings，中文界面显示「检查更新…」。
             .addCheckUpdatesCommand(

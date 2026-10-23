@@ -24,6 +24,12 @@ struct GUIClient: Client {
     mutating func startWithProcess() async throws -> ManagedProcess? {
         // 下载启动器启动所需要的文件、资源及依赖
         try await self.download()
+        // Fabric 附加库：CLI 的 `Launcher.run()` 里有这一步，之前 GUI 漏了 →
+        // classpath 里有 loader 主类、库却不在，启动直接失败（或静默跑成原版）。
+        let handler = progressHandler
+        try await self.downloadFabric(onEvent: { event in
+            Task { await handler(event) }
+        })
         // 分析参数并启动客户端
         return try await self.launch()
     }
