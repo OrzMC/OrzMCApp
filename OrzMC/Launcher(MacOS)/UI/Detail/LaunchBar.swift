@@ -83,22 +83,9 @@ struct LaunchBar: View {
     private func installTargetShortcut() {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // 有弹层/正在输入时不抢键。
-            guard NSApp.keyWindow?.attachedSheet == nil else { return event }
-            if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isFieldEditor {
-                return event
-            }
-            let spec = shortcuts.spec(for: .cycleTarget)
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            var expected: NSEvent.ModifierFlags = []
-            if spec.modifiers.contains(.command) { expected.insert(.command) }
-            if spec.modifiers.contains(.shift) { expected.insert(.shift) }
-            if spec.modifiers.contains(.option) { expected.insert(.option) }
-            if spec.modifiers.contains(.control) { expected.insert(.control) }
-            guard flags == expected,
-                  let typed = event.charactersIgnoringModifiers?.lowercased(),
-                  typed == spec.key.lowercased()
-            else { return event }
+            guard !ShortcutEvents.hasSheet, !ShortcutEvents.isComposing else { return event }
+            // ⌘ 组合属于"命令"：即使正在搜索框里打字也要生效（macOS 习惯）。
+            guard ShortcutEvents.matches(event, shortcuts.spec(for: .cycleTarget)) else { return event }
             cycleLaunchTarget()
             return nil
         }

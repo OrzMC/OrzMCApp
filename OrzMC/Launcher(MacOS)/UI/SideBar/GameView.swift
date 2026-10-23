@@ -86,18 +86,8 @@ struct GameView: View {
     private func installFocusShortcut() {
         guard focusMonitor == nil else { return }
         focusMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard NSApp.keyWindow?.attachedSheet == nil else { return event }
-            let spec = shortcuts.spec(for: .focusSearch)
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            var expected: NSEvent.ModifierFlags = []
-            if spec.modifiers.contains(.command) { expected.insert(.command) }
-            if spec.modifiers.contains(.shift) { expected.insert(.shift) }
-            if spec.modifiers.contains(.option) { expected.insert(.option) }
-            if spec.modifiers.contains(.control) { expected.insert(.control) }
-            guard flags == expected,
-                  let typed = event.charactersIgnoringModifiers?.lowercased(),
-                  typed == spec.key.lowercased()
-            else { return event }
+            guard !ShortcutEvents.hasSheet, !ShortcutEvents.isComposing else { return event }
+            guard ShortcutEvents.matches(event, shortcuts.spec(for: .focusSearch)) else { return event }
             searchFocused = true
             return nil
         }
