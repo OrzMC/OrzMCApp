@@ -48,6 +48,15 @@ struct ShortcutsSettingsView: View {
             } footer: {
                 Text("These are handled by macOS and cannot be changed here.")
             }
+
+            Section {
+                Text("OrzMC 处于活跃状态时，应用内快捷键先于文本输入生效；正在用输入法拼写时一律让位给候选词。")
+                Text("系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。")
+            } header: {
+                Text("Priority and conflicts")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow(labelWidth: 150))

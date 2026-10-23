@@ -40,12 +40,17 @@ struct VersionListKeyboardNavigation: ViewModifier {
             // 只有**多行编辑器**（TextEditor）才让开方向键；单行输入框（搜索框、用户名…）
             // 里按 ↑/↓ 本来就是无用操作，交给列表导航更符合 Finder / Xcode 的习惯，
             // 而且我们 consume 事件，输入内容与光标都不受影响。
+            // 输入法正在拼写：候选词也用方向键，绝不能拦。
+            if ShortcutEvents.isComposing {
+                Self.debugLog("skip: IME composing")
+                return event
+            }
             if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, !editor.isFieldEditor {
                 Self.debugLog("skip: multi-line editor (keyCode \(event.keyCode))")
                 return event
             }
             // 有 sheet（确认框、令牌输入…）时放行，别和弹层抢方向键。
-            guard NSApp.keyWindow?.attachedSheet == nil else {
+            guard !ShortcutEvents.hasSheet else {
                 Self.debugLog("skip: sheet up")
                 return event
             }

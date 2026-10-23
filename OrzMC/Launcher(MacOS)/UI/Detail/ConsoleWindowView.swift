@@ -41,22 +41,6 @@ struct ConsoleWindowView: View {
 // MARK: - ⌘← 返回
 
 private extension ConsoleWindowView {
-    /// 匹配当前生效的 `consoleBack` 组合（可在设置里改）。
-    func matchesBackShortcut(_ event: NSEvent) -> Bool {
-        let spec = shortcuts.spec(for: .consoleBack)
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        var mods: Set<ShortcutSpec.Modifier> = []
-        if flags.contains(.command) { mods.insert(.command) }
-        if flags.contains(.shift) { mods.insert(.shift) }
-        if flags.contains(.option) { mods.insert(.option) }
-        if flags.contains(.control) { mods.insert(.control) }
-        return spec.matches(
-            keyCode: event.keyCode,
-            characters: event.charactersIgnoringModifiers,
-            modifiers: mods
-        )
-    }
-
     func installKeyMonitor() {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -64,7 +48,10 @@ private extension ConsoleWindowView {
             // 不能要求它是 key window：`openWindow(value:)` 打开后 key 仍可能留在主窗口，
             // 那样 ⌘← 永远不生效（实测）。主窗口里按 ⌘← 顺带关掉控制台也符合预期。
             guard let window, window.isVisible else { return event }
-            guard matchesBackShortcut(event) else { return event }
+            guard !ShortcutEvents.isComposing else { return event }
+            // 输入框里 ⌘← 是"移到行首"（文本编辑语义优先），别抢。
+            if ShortcutEvents.isEditingText { return event }
+            guard ShortcutEvents.matches(event, shortcuts.spec(for: .consoleBack)) else { return event }
             window.performClose(nil)
             return nil
         }
@@ -73,20 +60,5 @@ private extension ConsoleWindowView {
     func removeKeyMonitor() {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = nil
-    }
-}
-
-/// 读到自己所在的 `NSWindow`（用于"只在这个窗口是 key 时响应快捷键"）。
-private struct WindowReader: NSViewRepresentable {
-    let onChange: (NSWindow?) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { onChange(view.window) }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { onChange(nsView.window) }
     }
 }
