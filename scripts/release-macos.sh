@@ -473,11 +473,17 @@ publish_github_release() {
     [ "${PUBLISH_GITHUB:-0}" = "1" ] || return 0
     require_command gh
 
+    # 发版说明：优先用显式传入的文件，否则自动找 `docs/release-notes/<版本>.md`。
+    # （release-please 只渲染 commit 列表，**不会**告诉用户"要不要手动做什么"，
+    #   所以每个版本都要有一份面向用户的说明，见父仓库 AGENTS.md §7。）
     local notes_args=()
-    if [ -n "${RELEASE_NOTES_FILE:-}" ] && [ -f "$RELEASE_NOTES_FILE" ]; then
-        notes_args=(--notes-file "$RELEASE_NOTES_FILE")
+    local notes_file="${RELEASE_NOTES_FILE:-$ROOT_DIR/docs/release-notes/$MARKETING_VERSION.md}"
+    if [ -n "$notes_file" ] && [ -f "$notes_file" ]; then
+        notes_args=(--notes-file "$notes_file")
+        log "Release notes: $notes_file"
     else
         notes_args=(--notes "Release $MARKETING_VERSION ($BUILD_VERSION)")
+        log "WARNING: no release notes at $notes_file; falling back to a one-liner"
     fi
 
     log "Publishing GitHub release $RELEASE_TAG"
