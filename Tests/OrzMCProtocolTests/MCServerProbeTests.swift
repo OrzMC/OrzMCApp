@@ -144,6 +144,19 @@ final class MCServerProbeTests: XCTestCase {
         XCTAssertTrue(stream.closed)
     }
 
+    /// 回归：JSON 长度 > 127 时字符串长度是 **多字节 varint**。
+    /// 以前 `value` 用 UInt8 左移 7 位会溢出丢掉高位（278 被读成 22），解析直接失败。
+    func testStatusWithLongReplyUsesMultiByteVarint() async throws {
+        let longMotd = String(repeating: "a", count: 400)
+        let json = #"{"version":{"name":"1.21.9","protocol":770},"players":{"max":10,"online":0},"description":"\#(longMotd)"}"#
+        XCTAssertGreaterThan(json.utf8.count, 127, "用例前提：回复要超过 127 字节")
+
+        let stream = FakeStream(incoming: Self.slpStringPacket(id: 0x00, json) + Self.slpPongPacket())
+        let summary = try await MCServerProbe(streamFactory: { stream }).status(host: "h", port: 1)
+        XCTAssertEqual(summary.versionName, "1.21.9")
+        XCTAssertEqual(summary.motd?.count, 400)
+    }
+
     func testStatusPropagatesConnectFailure() async {
         struct Boom: Error {}
         let probe = MCServerProbe(streamFactory: { FakeStream(connectError: Boom()) })

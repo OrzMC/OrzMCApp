@@ -13,6 +13,7 @@ Minecraft 服务端查状态、发控制台命令。
 | 在线状态（在线/离线、版本、玩家 0/20、延迟、MOTD） | Server List Ping | 和游戏里「多人游戏」列表看到的是同一份数据 |
 | 在线玩家列表 | SLP 的 `players.sample` | 服务端可能隐藏，隐藏时整块不显示 |
 | 控制台命令 | RCON | 需要在服务端 `server.properties` 打开 `enable-rcon=true` |
+| 保存前自检 | SLP + RCON | 设置页有「测试连接」：先查状态，RCON 打开时再跑一条 `list` 验证密码；**不保存**任何内容 |
 | 常用命令 | RCON | 「列出玩家 / 保存世界 / 广播 / 踢出 / 封禁 / OP / 白名单」——**要参数的先填好开头**，不用背语法 |
 | 玩家快捷动作 | RCON | 玩家列表每行有「踢出」「OP」，点一下填进输入框 |
 
@@ -56,6 +57,10 @@ Sources/OrzMCProtocol/            协议层（可单测，无 UI）
 3. **超时不能用 `withThrowingTaskGroup` 竞速**：结构化并发要求作用域退出前所有子任务结束，
    「超时先抛」之后仍要等被卡住的子任务。→ `RaceWithTimeout`：一次性令牌 + continuation，
    超时立刻返回，并回调 `onTimeout` 关 socket 让阻塞线程退出。
+4. **VarInt 解码必须在 Int 上移位**：老的 `MCSLPPacket.readVarInt` 用 `UInt8` 左移 7 位，
+   高位直接溢出丢掉——长度 278 的 JSON 被读成 22，状态解析失败、界面永远"检查中…"。
+   短包（<128 字节）碰巧正常，所以这个问题藏了很久。→ 先 `Int32(...)` 再移位，
+   并有 `testStatusWithLongReplyUsesMultiByteVarint` 兜底。
 
 ## 4. 验证方式
 
@@ -80,6 +85,7 @@ xcrun simctl install booted <…>/OrzMC.app && xcrun simctl launch booted com.jo
 
 - RCON 多包响应：已支持（第一包必读，之后 120ms 内还有数据就继续读，最后按行拼接）。
 - 多服务器档案：目前只有一个地址（P3 最小闭环）。
-- `OrzMCProtocol` 里老的 `MCSLP` / `MCRCON`（BlueSocket 同步封装）已不被应用使用，
-  但保留了分包实现；后续可整体并入 `MCServerProbe` 后删除。
+- 老的同步 `MCSLP` / `MCRCON` / `MCQuery`（以及配套的 `MCServerInfo`、`MCSLPStatus`、
+  几个 `Utils` 扩展）已删除：应用只走 `MCServerProbe`，留着只会让后来者误以为有两套实现。
+  分包编解码 `MCSLPPacket` / `RCONPacket` 保留复用。
 - macOS 入口、玩家管理快捷命令（kick/ban）等留给后续。
