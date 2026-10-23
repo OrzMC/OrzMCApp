@@ -134,7 +134,38 @@ extension ExarotonServerList {
     /// 与主窗口的"启动卡"同一套外观语言（面板底 + accent 薄渐变），
     /// 让这个窗口看起来是同一个 app 的另一个面，而不是另一个工具。
     private var summaryCard: some View {
-        HStack(alignment: .center, spacing: OrzMCTheme.Spacing.md) {
+        // 窄屏（iPhone SE ~375pt）时"图标 + 说明 + 两个按钮"挤在一行会把说明压成每行几个字，
+        // 卡片变得又高又难读。`ViewThatFits` 优先用一行布局，放不下就自动换成"按钮另起一行"。
+        ViewThatFits(in: .horizontal) {
+            summaryLayout(vertical: false)
+            summaryLayout(vertical: true)
+        }
+        .padding(OrzMCTheme.Spacing.md)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: OrzMCTheme.Radius.lg, style: .continuous)
+            shape
+                .fill(OrzMCTheme.Palette.panelFill)
+                .overlay {
+                    shape.fill(
+                        LinearGradient(
+                            colors: [
+                                OrzMCTheme.Palette.accent.opacity(0.10),
+                                OrzMCTheme.Palette.accent.opacity(0.0),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
+                .overlay {
+                    shape.strokeBorder(OrzMCTheme.Palette.accent.opacity(0.22), lineWidth: 1)
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func summaryLayout(vertical: Bool) -> some View {
+        let header = HStack(alignment: .center, spacing: OrzMCTheme.Spacing.md) {
             Image(systemName: "server.rack")
                 .font(.title2)
                 .foregroundStyle(OrzMCTheme.Palette.accent)
@@ -149,17 +180,16 @@ extension ExarotonServerList {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
 
-            Spacer(minLength: OrzMCTheme.Spacing.sm)
+        let actions = HStack(spacing: OrzMCTheme.Spacing.sm) {
+            // 加载指示器常驻占位，避免刷新时卡片高度跳动。
+            ProgressView()
+                .controlSize(.small)
+                .opacity(model.isLoadingList ? 1 : 0)
+                .frame(width: 16, height: 16)
+                .accessibilityLabel(Text("Loading remote servers…"))
 
-            if model.isLoadingList {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(Text("Loading remote servers…"))
-            }
-
-            // 这两个动作以前是工具栏里两个裸图标（箭头 / 钥匙）：功能都在，但看不出干什么。
-            // 挪到卡里带文字后，一眼就知道是"刷新列表"和"换账号 Token"。
             Button {
                 Task { await model.reloadList() }
             } label: {
@@ -184,26 +214,19 @@ extension ExarotonServerList {
             .disabled(model.isLoadingList || model.gate.isBusy)
             .help("Change exaroton account token")
         }
-        .padding(OrzMCTheme.Spacing.md)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: OrzMCTheme.Radius.lg, style: .continuous)
-            shape
-                .fill(OrzMCTheme.Palette.panelFill)
-                .overlay {
-                    shape.fill(
-                        LinearGradient(
-                            colors: [
-                                OrzMCTheme.Palette.accent.opacity(0.10),
-                                OrzMCTheme.Palette.accent.opacity(0.0),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                }
-                .overlay {
-                    shape.strokeBorder(OrzMCTheme.Palette.accent.opacity(0.22), lineWidth: 1)
-                }
+
+        if vertical {
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                header
+                actions
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: .center, spacing: OrzMCTheme.Spacing.md) {
+                header
+                Spacer(minLength: OrzMCTheme.Spacing.sm)
+                actions
+            }
         }
     }
 

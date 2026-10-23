@@ -155,6 +155,16 @@ struct SelfHostedServerView: View {
             .help("Check the server status now")
 
             Button {
+                addServer()
+            } label: {
+                Label("Add Server", systemImage: "plus")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Add another server")
+
+            Button {
                 if let selected = model.selected {
                     edit(selected)
                 } else {
@@ -189,9 +199,13 @@ struct SelfHostedServerView: View {
                     .lineLimit(1)
                 OrzMCStatusBadge(verbatim: statusText, style: statusStyle)
                 Spacer(minLength: 0)
-                if model.isProbing {
-                    ProgressView().controlSize(.small)
-                }
+                // 加载指示器**常驻占位**（只改透明度）：以前是条件插入，一出现就把卡片撑高、
+                // 刷新时整块内容上下抖（真机反馈）。
+                ProgressView()
+                    .controlSize(.small)
+                    .opacity(model.isProbing ? 1 : 0)
+                    .frame(width: 16, height: 16)
+                    .accessibilityHidden(!model.isProbing)
             }
 
             Text(profile.address)
@@ -219,11 +233,13 @@ struct SelfHostedServerView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let updated = model.currentLastUpdatedAt {
-                Text("Updated \(updated.formatted(date: .omitted, time: .standard))")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            // 同理：这一行始终存在（没有更新时间就显示占位），否则首次加载完成后卡片会突然长高一行。
+            Text(model.currentLastUpdatedAt.map {
+                String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
+            } ?? " ")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(height: 14, alignment: .leading)
         }
         .padding(OrzMCTheme.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -276,9 +292,10 @@ struct SelfHostedServerView: View {
                 Label("Players", systemImage: "person.2")
                     .font(.subheadline.weight(.semibold))
                 Spacer(minLength: 0)
-                if model.isFetchingLists {
-                    ProgressView().controlSize(.small)
-                }
+                ProgressView()
+                    .controlSize(.small)
+                    .opacity(model.isFetchingLists ? 1 : 0)
+                    .frame(width: 16, height: 16)
                 Button {
                     Task { await model.refreshPlayerLists() }
                 } label: {
