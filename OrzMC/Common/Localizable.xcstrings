@@ -3610,6 +3610,26 @@
           }
         }
       }
+    },
+    "Switch launch target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换启动目标"
+          }
+        }
+      }
+    },
+    "Focus version search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聚焦版本搜索"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

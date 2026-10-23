@@ -5,6 +5,7 @@
 //  Created by joker on 4/26/24.
 //
 
+import AppKit
 import Game
 import MojangAPI
 import OrzMCDesignSystem
@@ -21,7 +22,12 @@ import SwiftUI
 struct GameView: View {
 
     @Environment(AppModel.self) private var app
+    @Environment(ShortcutStore.self) private var shortcuts
     @Environment(\.openWindow) private var openWindow
+
+    /// 搜索框焦点（⌘F 聚焦、Esc/回车失焦）。
+    @FocusState private var searchFocused: Bool
+    @State private var focusMonitor: Any?
 
     var body: some View {
         @Bindable var catalog = app.catalog
@@ -47,6 +53,17 @@ struct GameView: View {
             guard catalog.versions.isEmpty else { return }
             await app.loadVersions()
         }
+        .onAppear {
+            installFocusShortcut()
+            // 启动时不要把光标塞进搜索框（否则紧跟的方向键/⌘F 手感都不对）。
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isFieldEditor {
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
+            }
+        }
+        .onDisappear { removeFocusShortcut() }
         .toolbar {
             // 窗口级入口：外部链接 + 远程服务器，与系统的侧边栏开关同一排。
             ToolbarItem {
@@ -65,6 +82,32 @@ struct GameView: View {
         }
     }
 
+    /// ⌘F：聚焦版本筛选框（组合可在设置里改）。
+    private func installFocusShortcut() {
+        guard focusMonitor == nil else { return }
+        focusMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard NSApp.keyWindow?.attachedSheet == nil else { return event }
+            let spec = shortcuts.spec(for: .focusSearch)
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            var expected: NSEvent.ModifierFlags = []
+            if spec.modifiers.contains(.command) { expected.insert(.command) }
+            if spec.modifiers.contains(.shift) { expected.insert(.shift) }
+            if spec.modifiers.contains(.option) { expected.insert(.option) }
+            if spec.modifiers.contains(.control) { expected.insert(.control) }
+            guard flags == expected,
+                  let typed = event.charactersIgnoringModifiers?.lowercased(),
+                  typed == spec.key.lowercased()
+            else { return event }
+            searchFocused = true
+            return nil
+        }
+    }
+
+    private func removeFocusShortcut() {
+        if let focusMonitor { NSEvent.removeMonitor(focusMonitor) }
+        focusMonitor = nil
+    }
+
     /// 侧边栏顶部：搜索行 + 清单更新时间。
     ///
     /// 不画分隔线、不加不透明背景：让"搜索 → 更新时间 → 列表"读起来是**一整块**，
@@ -76,7 +119,8 @@ struct GameView: View {
             SidebarSearchBar(
                 searchText: $catalog.searchText,
                 releaseOnly: $catalog.releaseOnly,
-                isLoading: catalog.isLoading
+                isLoading: catalog.isLoading,
+                focused: $searchFocused
             ) {
                 Task { await app.loadVersions() }
             }

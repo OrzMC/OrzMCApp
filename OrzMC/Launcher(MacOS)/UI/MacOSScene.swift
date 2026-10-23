@@ -106,6 +106,7 @@ struct MacOSScene: Scene {
             if let target {
                 ConsoleWindowView(target: target)
                     .environment(app)
+                    .environment(shortcuts)
             }
         }
         .defaultSize(width: 760, height: 480)
@@ -116,6 +117,7 @@ struct MacOSScene: Scene {
         Window("Remote Servers", id: "remote") {
             ExarotonContent()
                 .frame(minWidth: 820, minHeight: 560)
+                .environment(shortcuts)
         }
         .defaultSize(width: 900, height: 620)
         .windowResizability(.contentMinSize)
