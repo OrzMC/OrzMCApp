@@ -4820,6 +4820,156 @@
           }
         }
       }
+    },
+    "Check your own server and manage exaroton servers in a separate window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在独立窗口里查看自己的服务器，或管理 exaroton 远程服务器"
+          }
+        }
+      }
+    },
+    "Clear search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空搜索"
+          }
+        }
+      }
+    },
+    "Collapse or expand every instance card": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有实例卡片"
+          }
+        }
+      }
+    },
+    "Delete every instance folder of this version (asks for confirmation)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个版本的全部实例目录（会先确认）"
+          }
+        }
+      }
+    },
+    "Delete this instance's folder (asks for confirmation)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个实例的目录（会先确认）"
+          }
+        }
+      }
+    },
+    "Exaroton server URL is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exaroton 服务器地址无效。"
+          }
+        }
+      }
+    },
+    "More actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        }
+      }
+    },
+    "More actions (do not fit in this window width)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作（当前窗口宽度放不下）"
+          }
+        }
+      }
+    },
+    "Prefilled on every client launch; required before starting a client.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次启动客户端都会预填；启动客户端前必填。"
+          }
+        }
+      }
+    },
+    "Restart…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重启…"
+          }
+        }
+      }
+    },
+    "Runtimes are managed by the engine under <game folder>/java/<major>. A missing version is downloaded on launch, so this never blocks you.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行时由引擎管理在 <游戏目录>/java/<主版本> 下。缺哪个版本，启动时会自动下载，所以不会卡住你。"
+          }
+        }
+      }
+    },
+    "Same as the CLI's --root-dir. One folder per instance — switching it switches every instance.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等同于命令行的 --root-dir。每个实例一个目录——换目录就是换全部实例。"
+          }
+        }
+      }
+    },
+    "Stop…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止…"
+          }
+        }
+      }
+    },
+    "Terminate the process (may lose unsaved progress)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束进程（可能丢失未保存的进度）"
+          }
+        }
+      }
+    },
+    "The instance folder is not known yet.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还不知道这个实例的目录。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

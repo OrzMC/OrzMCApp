@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# 推之前先跑本地门禁：纯文档改动放行，源码改动至少跑静态检查。
+#
+# 为什么：CI 一轮 3~5 分钟，而"忘了登记 pbxproj / 漏了中文翻译"这类问题本地 1 秒就能发现。
+# 逃生阀：SKIP_PREPUSH=1 git push
+set -euo pipefail
+
+[ "${SKIP_PREPUSH:-0}" = "1" ] && { echo "[pre-push] SKIP_PREPUSH=1，跳过本地检查"; exit 0; }
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# 推送区间（stdin 是 "<local ref> <local sha> <remote ref> <remote sha>"）
+changed="$(git diff --name-only "$(git rev-parse origin/main 2>/dev/null || echo HEAD~1)"...HEAD 2>/dev/null || true)"
+[ -z "$changed" ] && changed="$(git diff --name-only HEAD~1 2>/dev/null || true)"
+
+if [ -n "$changed" ] && ! grep -qE '\.(swift|pbxproj|xcstrings|yml|sh|py)$' <<<"$changed"; then
+  echo "[pre-push] 只有文档/资源改动，跳过本地检查"
+  exit 0
+fi
+
+if [ "${PREPUSH_FULL:-0}" = "1" ]; then
+  exec ./scripts/dev/check.sh
+fi
+
+echo "[pre-push] 跑静态检查（完整门禁用 PREPUSH_FULL=1，或手动 scripts/dev/check.sh）"
+./scripts/dev/check.sh --fast

@@ -17,8 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check platform split
-        run: ./scripts/check-platform-split.sh
+      - name: Check platform split + project registration + localization
+        run: |
+          ./scripts/check-platform-split.sh
+          python3 scripts/dev/check-pbxproj.py
+          python3 scripts/dev/check-localization.py
 
   protocol-live:
     # 协议层**真 socket** 联调：假 SLP / RCON 服务端起在本机，跑 LiveProbeSmokeTests。
