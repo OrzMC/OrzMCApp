@@ -64,47 +64,6 @@ struct LaunchBar: View {
         .focusSection()
     }
 
-    /// 目标控件在窗口里的位置（`.global` = 窗口坐标系，原点左上）。
-    @State private var targetFrame: CGRect = .zero
-    @State private var scrollMonitor: Any?
-
-    /// 菜单里的顺序（滚轮按这个顺序走，含"换到另一端"）。
-    private var targetOrder: [LaunchTargetKey] {
-        SettingsModel.ClientKind.allCases.map { .client($0.rawValue) }
-            + SettingsModel.ServerSoftware.allCases.map { .server($0.rawValue) }
-    }
-
-    /// 滚轮切换启动目标（向下 = 下一个）。
-    private func stepLaunchTarget(by delta: Int) {
-        let order = targetOrder
-        guard let current = order.firstIndex(of: targetBinding.wrappedValue), !order.isEmpty else { return }
-        let next = ((current + delta) % order.count + order.count) % order.count
-        targetBinding.wrappedValue = order[next]
-    }
-
-    /// 只在鼠标位于目标控件上时响应滚轮：全局监控 + 坐标命中，避免吞掉列表/页面的滚动。
-    private func installScrollMonitor() {
-        guard scrollMonitor == nil else { return }
-        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-            guard let window = event.window, window == NSApp.keyWindow else { return event }
-            // `locationInWindow` 原点在左下，SwiftUI `.global` 原点在左上 → 翻转 y。
-            let height = window.contentView?.bounds.height ?? window.frame.height
-            let point = CGPoint(x: event.locationInWindow.x, y: height - event.locationInWindow.y)
-            guard targetFrame.contains(point) else { return event }
-            let delta = event.scrollingDeltaY == 0 ? event.deltaY : event.scrollingDeltaY
-            guard delta != 0 else { return event }
-            stepLaunchTarget(by: delta > 0 ? -1 : 1)
-            return nil     // 吞掉这次滚动，别让页面跟着滚
-        }
-    }
-
-    private func removeScrollMonitor() {
-        if let scrollMonitor { NSEvent.removeMonitor(scrollMonitor) }
-        scrollMonitor = nil
-    }
-
-    // MARK: - 启动目标（客户端/服务端 + 类型）
-
     /// 一次选择搞定「哪一端 + 哪种类型」：菜单分「客户端 / 服务端」两组。
     private var targetMenu: some View {
         Menu {
@@ -138,14 +97,6 @@ struct LaunchBar: View {
         .padding(.vertical, 5)
         .background(OrzMCTheme.Palette.controlFill, in: Capsule())
         // 鼠标滚轮切换启动目标（不动键盘也能换）。
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(key: LaunchTargetFrameKey.self, value: proxy.frame(in: .global))
-            }
-        }
-        .onPreferenceChange(LaunchTargetFrameKey.self) { targetFrame = $0 }
-        .onAppear { installScrollMonitor() }
-        .onDisappear { removeScrollMonitor() }
         .disabled(app.launch.isLaunching)
         .help("Choose what to launch: client (Vanilla / Fabric) or a server core")
         .accessibilityLabel(Text("Launch target"))
@@ -318,13 +269,4 @@ struct LaunchBar: View {
 enum LaunchTargetKey: Hashable {
     case client(String)
     case server(String)
-}
-
-/// 目标控件的窗口内位置（滚轮命中判定）。
-private struct LaunchTargetFrameKey: PreferenceKey {
-    static let defaultValue: CGRect = .zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        if next != .zero { value = next }
-    }
 }

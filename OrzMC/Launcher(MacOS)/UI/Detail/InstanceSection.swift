@@ -133,13 +133,16 @@ struct InstanceSection: View {
                 isBusy: isBusy,
                 progress: progress,
                 consoleBtnAction: {
-                    consoleTarget = ConsoleTarget(versionId: instance.versionId, software: nil)
+                    if let kind = instance.clientKind {
+                        consoleTarget = ConsoleTarget(versionId: instance.versionId, clientKind: kind)
+                    }
                 },
                 consoleIsLive: consoleIsLive,
                 isExpanded: isExpanded,
                 toggleAction: toggleAction,
                 deleteBtnAction: {
-                    pendingRisky = .deleteClient(versionId: instance.versionId, path: rootPath)
+                    guard let kind = instance.clientKind else { return }
+                    pendingRisky = .deleteClient(versionId: instance.versionId, kind: kind, path: rootPath)
                 }
             )
         }

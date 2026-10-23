@@ -3570,6 +3570,46 @@
           }
         }
       }
+    },
+    "Delete All Instances": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部实例"
+          }
+        }
+      }
+    },
+    "Delete all %lld instance folders?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部 %lld 个实例目录？"
+          }
+        }
+      }
+    },
+    "No instances yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有任何实例"
+          }
+        }
+      }
+    },
+    "Pick a launch target above and press Start — the folder and its cards appear here once created.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在上面选好启动目标并按启动 —— 目录建好后，对应的卡片会出现在这里。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

@@ -7,8 +7,10 @@ import SwiftUI
 enum RiskyAction: Identifiable {
     /// 删除某服务端实例的文件（不可恢复）。
     case deleteServer(versionId: String, software: SettingsModel.ServerSoftware, path: String)
-    /// 删除客户端文件（不可恢复）。
-    case deleteClient(versionId: String, path: String)
+    /// 删除**某个类型**的客户端文件（不可恢复）。
+    case deleteClient(versionId: String, kind: SettingsModel.ClientKind, path: String)
+    /// 删除该版本下**所有已存在的实例**目录（不可恢复）。
+    case deleteAllInstances(versionId: String, paths: [String])
     /// 优雅停止正在运行的服务端（送 `stop`，让服务端自己存档退出）。
     case stopServer(versionId: String, software: SettingsModel.ServerSoftware)
     /// 重启服务端（先停后起；玩家会掉线再连）。
@@ -20,8 +22,10 @@ enum RiskyAction: Identifiable {
         switch self {
         case let .deleteServer(versionId, software, _):
             return "delete-server-\(versionId)-\(software.rawValue)"
-        case let .deleteClient(versionId, _):
-            return "delete-client-\(versionId)"
+        case let .deleteClient(versionId, kind, _):
+            return "delete-client-\(versionId)-\(kind.rawValue)"
+        case let .deleteAllInstances(versionId, _):
+            return "delete-all-\(versionId)"
         case let .stopServer(versionId, software):
             return "stop-server-\(versionId)-\(software.rawValue)"
         case let .restartServer(versionId, software):
@@ -36,8 +40,10 @@ enum RiskyAction: Identifiable {
         switch self {
         case let .deleteServer(versionId, software, _):
             return "\(versionId)#\(software.rawValue)"
-        case let .deleteClient(versionId, _):
-            return "\(versionId)#Client"
+        case let .deleteClient(versionId, kind, _):
+            return "\(versionId)#Client-\(kind.rawValue)"
+        case let .deleteAllInstances(versionId, _):
+            return "\(versionId)#All"
         case let .stopServer(versionId, software):
             return "\(versionId)#\(software.rawValue)"
         case let .restartServer(versionId, software):
@@ -49,10 +55,12 @@ enum RiskyAction: Identifiable {
 
     var confirmTitle: String {
         switch self {
+        case let .deleteAllInstances(_, paths):
+            return String(localized: "Delete all \(paths.count) instance folders?")
         case let .deleteServer(_, software, _):
             return String(localized: "Delete \(software.rawValue) Server Files?")
-        case .deleteClient:
-            return String(localized: "Delete Client Files?")
+        case let .deleteClient(_, kind, _):
+            return String(localized: "Delete \(kind.rawValue) Client Files?")
         case let .stopServer(_, software):
             return String(localized: "Stop \(software.rawValue) Server?")
         case let .restartServer(_, software):
@@ -74,14 +82,25 @@ enum RiskyAction: Identifiable {
 
             Worlds, configs and plugins inside it are gone. This cannot be undone.
             """
-        case let .deleteClient(_, path):
+        case let .deleteClient(_, kind, path):
             return """
-            This permanently deletes the client folder for \
+            This permanently deletes the \(kind.rawValue) client folder for \
             \(selectedVersionId ?? "this version"):
 
             \(path)
 
             Downloaded assets, mods and options inside it are gone. This cannot be undone.
+            """
+        case let .deleteAllInstances(_, paths):
+            let list = paths.map { "- \($0)" }.joined(separator: "\n")
+            return """
+            This permanently deletes every existing instance folder for \
+            \(selectedVersionId ?? "this version"):
+
+            \(list)
+
+            Client assets, worlds, configs and plugins inside them are gone. \
+            This cannot be undone.
             """
         case let .stopServer(_, software):
             return """
@@ -104,7 +123,7 @@ enum RiskyAction: Identifiable {
 
     var confirmButtonTitle: String {
         switch self {
-        case .deleteServer, .deleteClient: return String(localized: "Delete")
+        case .deleteServer, .deleteClient, .deleteAllInstances: return String(localized: "Delete")
         case .stopServer: return String(localized: "Stop")
         case .restartServer: return String(localized: "Restart")
         case .terminateServer: return String(localized: "Terminate")
@@ -114,7 +133,7 @@ enum RiskyAction: Identifiable {
     /// 只有真正"破坏性"的动作才用红色按钮（停止是橙色/普通破坏性）。
     var isDestructive: Bool {
         switch self {
-        case .deleteServer, .deleteClient: return true
+        case .deleteServer, .deleteClient, .deleteAllInstances: return true
         case .stopServer: return true
         case .restartServer: return false
         case .terminateServer: return true
