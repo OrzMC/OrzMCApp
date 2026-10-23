@@ -29,8 +29,18 @@ struct LauncherUI: View {
         ) {
             Button("OK", role: .cancel) { app.error = nil }
         } message: {
-            // 文案 + 规范错误码（`E_VERIFY` 之类），便于用户搜索/上报。
-            Text(app.error?.description ?? "")
+            // 第一行给中文结论（按错误码），第二行原始信息 + 错误码：
+            // 引擎的 `message` 有时是英文，直接显示会变成中英混排。
+            if let error = app.error {
+                if let hint = error.codeHint, !error.messageIsChinese {
+                    Text(hint)
+                    Text(verbatim: "\(error.message) (\(error.code))")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(verbatim: error.description)
+                }
+            }
         }
         // 「停止全部」的唯一确认入口：菜单和详情页工具栏都只设置这个标志，
         // 避免同一个快捷键注册两个 alert（以前 Game 菜单和工具栏各有一个 ⌘K）。

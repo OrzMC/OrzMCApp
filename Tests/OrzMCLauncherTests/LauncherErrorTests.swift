@@ -33,4 +33,24 @@ final class LauncherErrorTests: XCTestCase {
         XCTAssertEqual(error.code, "E_RUNTIME")
         XCTAssertEqual(error.message, "磁盘满了")
     }
+
+    // MARK: - 错误码 → 中文提示（`Operation Failed` 弹窗用）
+
+    func testKnownCodesHaveHints() {
+        for code in [
+            "E_USAGE", "E_NETWORK", "E_VERIFY", "E_AUTH", "E_AUTH_EXPIRED",
+            "E_UNSUPPORTED", "E_IO", "E_CANCELLED", "E_RUNTIME", "E_INTERNAL",
+        ] {
+            XCTAssertNotNil(LauncherError.hint(for: code), "missing hint for \(code)")
+        }
+    }
+
+    func testUnknownCodeHasNoHint() {
+        XCTAssertNil(LauncherError.hint(for: "E_SOMETHING_NEW"))
+    }
+
+    func testChineseMessageDetection() {
+        XCTAssertTrue(LauncherError(code: "E_NETWORK", message: "无法获取最新版本信息").messageIsChinese)
+        XCTAssertFalse(LauncherError(code: "E_NETWORK", message: "The request timed out.").messageIsChinese)
+    }
 }

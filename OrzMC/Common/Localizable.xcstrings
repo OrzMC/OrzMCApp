@@ -3830,6 +3830,86 @@
           }
         }
       }
+    },
+    "The input isn't valid. Check the settings and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入不合法，请检查设置后重试。"
+          }
+        }
+      }
+    },
+    "Network request failed. Check your connection and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络请求失败，请检查网络后重试。"
+          }
+        }
+      }
+    },
+    "The requested version or file doesn't exist. Refresh the list and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本或文件不存在，刷新列表后重试。"
+          }
+        }
+      }
+    },
+    "Sign-in failed. Complete the Microsoft sign-in again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录失败，请重新完成 Microsoft 登录。"
+          }
+        }
+      }
+    },
+    "This version or platform doesn't support that action.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个版本或平台不支持该操作。"
+          }
+        }
+      }
+    },
+    "Reading or writing files failed. Check free space and permissions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读写文件失败，请检查磁盘空间和权限。"
+          }
+        }
+      }
+    },
+    "Cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消。"
+          }
+        }
+      }
+    },
+    "Something went wrong while running the game or server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行游戏/服务端时出错。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
