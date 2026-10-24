@@ -63,7 +63,7 @@ struct SelfHostedServerSettingsView: View {
                             .multilineTextAlignment(.leading)
                     }
                     LabeledContent("Address") {
-                        TextField("", text: $draft.host, prompt: Text("mc.example.com or 192.168.0.10"))
+                        TextField("", text: $draft.host, prompt: Text("mc.example.com"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.leading)

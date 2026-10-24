@@ -5011,6 +5011,16 @@
         }
       }
     },
+    "mc.example.com": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mc.example.com"
+          }
+        }
+      }
+    },
     "mc.example.com or 192.168.0.10": {
       "localizations": {
         "zh-Hans": {

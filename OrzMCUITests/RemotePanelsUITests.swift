@@ -67,12 +67,12 @@ final class RemotePanelsUITests: XCTestCase {
         // 三个名单页签都能切（数据来自假 RCON：list / whitelist list / banlist list）
         XCTAssertTrue(app.staticTexts["alice"].waitForExistence(timeout: 10), "在线名单应来自 RCON list")
 
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH '白名单'")).firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["carol"].waitForExistence(timeout: 5), "白名单应来自 whitelist list")
+        selectPlayerTab(app, matching: "白名单")
+        XCTAssertTrue(app.staticTexts["carol"].waitForExistence(timeout: 10), "白名单应来自 whitelist list")
 
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH '封禁'")).firstMatch.tap()
+        selectPlayerTab(app, matching: "封禁")
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'dave'")).firstMatch
-            .waitForExistence(timeout: 5), "封禁列表应来自 banlist list（带原因）")
+            .waitForExistence(timeout: 10), "封禁列表应来自 banlist list（带原因）")
 
         XCTAssertTrue(app.staticTexts["控制台（RCON）"].exists, "开了 RCON 应有控制台卡")
         keep(XCTAttachment(screenshot: app.screenshot()))
@@ -229,6 +229,28 @@ final class RemotePanelsUITests: XCTestCase {
         add(attachment)
     }
 
+    /// iOS 26 的浮动 TabBar 会盖住滚动内容底部。这条用**几何断言**守它：
+    /// 滚到底后，控制台输入框（页面最后一行）不能和 TabBar 相交。
+    func testConsoleInputNotCoveredByTabBar() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        let input = app.textFields["selfHosted.consoleInput"]
+        for _ in 0..<8 where !input.exists { app.swipeUp() }
+        XCTAssertTrue(input.waitForExistence(timeout: 15), "应能看到控制台输入框")
+
+        // 继续滚到页面最底部（到底后 swipeUp 不再改变位置）
+        for _ in 0..<6 { app.swipeUp() }
+
+        let tabBar = app.tabBars.firstMatch
+        guard tabBar.exists else { return }   // 没有 TabBar（iPad 分栏等）时无需检查
+        XCTAssertFalse(
+            input.frame.intersects(tabBar.frame),
+            "控制台输入框被浮动 TabBar 盖住了：input=\(input.frame) tabBar=\(tabBar.frame)"
+        )
+    }
+
     // MARK: - 视觉巡检（截图）
 
     /// 走一遍主要界面，把每个状态截成附件，用于人工/模型一起看视觉问题。
@@ -301,6 +323,23 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "12-remote-detail-mid")
         app.swipeUp()
         snap(app, "13-remote-detail-bottom")
+    }
+
+    /// 点玩家卡的名单页签。分段控件的 tap 偶尔会落在控件本身而不是分段上，
+    /// 所以重试到 `isSelected` 为真再继续（否则后续断言会在"没切过去"的旧列表上失败）。
+    private func selectPlayerTab(_ app: XCUIApplication, matching prefix: String) {
+        // 必须限定在**分段控件内部**找：玩家行的操作按钮里也有「封禁」「踢出」这种同名文字，
+        // 全局 firstMatch 会点到一个完全不同的按钮上（实测「封禁」页签永远选不中）。
+        let segments = app.segmentedControls.firstMatch
+        let container: XCUIElement = segments.exists ? segments : app
+        let tab = container.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        XCTAssertTrue(tab.waitForExistence(timeout: 20), "应能看到「\(prefix)」页签")
+        for _ in 0..<3 {
+            tab.tap()
+            if tab.isSelected { return }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
     private func snap(_ app: XCUIApplication, _ name: String) {

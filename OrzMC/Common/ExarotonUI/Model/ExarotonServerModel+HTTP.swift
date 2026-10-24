@@ -147,6 +147,15 @@ extension ExarotonServerModel {
     // MARK: - 内存
 
     func getRAM(serverId: String) async -> Int32? {
+        #if DEBUG
+        // 界面验收用的假服务器没有真实 HTTP 客户端，直接给一个可用值，
+        // 否则演示详情页永远挂着「无法读取服务器内存大小」。
+        if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SERVER"] == "1" {
+            savedMemory[serverId] = 4
+            memoryLoadErrors[serverId] = nil
+            return 4
+        }
+        #endif
         // 内存变更在途时不要把服务端的旧值读回来覆盖。
         if gate.pendingMemoryChanges.contains(serverId) { return savedMemory[serverId] }
         let revision = memoryRevision[serverId, default: 0]
@@ -177,6 +186,13 @@ extension ExarotonServerModel {
     }
 
     func changeRAM(serverId: String, ramGB: Int32) async -> Int32? {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SERVER"] == "1" {
+            savedMemory[serverId] = ramGB
+            memoryErrors[serverId] = nil
+            return ramGB
+        }
+        #endif
         guard let httpClient = clientOrReportError() else { return nil }
         guard gate.beginMemoryChange(serverID: serverId) else { return nil }
         memoryRevision[serverId, default: 0] += 1
