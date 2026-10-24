@@ -35,24 +35,44 @@ struct ExarotonServerActionSection: View {
     /// 主按钮还会变成"蓝底蓝字"的空白色块——真机截图复现过）。`fixedSize()` 保证不换行，
     /// 放不下时由外层 `ViewThatFits` 换成竖排。
     private var startButton: some View {
-        Button("Start Server", systemImage: "play.fill") {
+        Button {
             perform(.start)
+        } label: {
+            // 用 System 图片 + Text 自己排（不要 `Label`：Form 行里会被渲染成图标-only/he 文字-only）。
+            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                Image(systemName: "play.fill")
+                Text("Start Server")
+            }
+            .frame(maxWidth: .infinity)      // 撑满整行，胶囊等宽
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .disabled(!canPerform(.start))
     }
 
     private var stopButton: some View {
-        Button("Stop", systemImage: "stop.fill") {
+        Button {
             confirmStop = true
+        } label: {
+            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                Image(systemName: "stop.fill")
+                Text("Stop")
+            }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .disabled(!canPerform(.stop))
     }
 
     private var restartButton: some View {
-        Button("Restart", systemImage: "arrow.clockwise") {
+        Button {
             confirmRestart = true
+        } label: {
+            HStack(spacing: OrzMCTheme.Spacing.xs) {
+                Image(systemName: "arrow.clockwise")
+                Text("Restart")
+            }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .disabled(!canPerform(.restart))
@@ -63,10 +83,12 @@ struct ExarotonServerActionSection: View {
             // iPhone 上横排三个带文字的按钮必然挤（iOS 26 会把标题压没、只剩图标）：
             // 直接竖排，每个按钮独占一行；macOS 窗口够宽，保持横排。
             #if os(iOS)
-            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+            VStack(spacing: OrzMCTheme.Spacing.sm) {
                 startButton
-                stopButton
-                restartButton
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
+                    stopButton
+                    restartButton
+                }
             }
             .disabled(model.gate.pendingActions.contains(serverID))
             #else
