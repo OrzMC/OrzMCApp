@@ -73,6 +73,23 @@ final class SelfHostedServersModel {
         if let first = profiles.servers.first {
             SelfHostedCredentials.migrateLegacyPasswordIfNeeded(to: first.id)
         }
+        #if DEBUG
+        // UI 测试 / 截图验收用：`ORZMC_DEMO_SEED_PROFILE="名称|host|port|rconPort|0|1"` 注入一份内存档案
+        // （不写 UserDefaults，避免污染真实配置）。配合 `scripts/test-servers/` 的假服务端即可断言整页。
+        if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_SEED_PROFILE"], !raw.isEmpty {
+            let parts = raw.split(separator: "|").map(String.init)
+            if parts.count >= 5 {
+                let profile = SelfHostedServerProfile(
+                    name: parts[0],
+                    host: parts[1],
+                    port: Int(parts[2]) ?? 25565,
+                    rconPort: Int(parts[3]) ?? 25575,
+                    rconEnabled: parts[4] == "1"
+                )
+                self.profiles = SelfHostedProfiles(servers: [profile], selectedID: profile.id)
+            }
+        }
+        #endif
     }
 
     // MARK: - 派生

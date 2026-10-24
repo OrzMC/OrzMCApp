@@ -156,6 +156,7 @@ struct SelfHostedServerView: View {
             .controlSize(.small)
             .disabled(model.selected?.isConfigured != true || model.isProbing)
             .help("Check the server status now")
+            .accessibilityIdentifier("selfHosted.refresh")
 
             Button {
                 addServer()
@@ -166,6 +167,7 @@ struct SelfHostedServerView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .help("Add another server")
+            .accessibilityIdentifier("selfHosted.addServer")
 
             Button {
                 if let selected = model.selected {
@@ -180,6 +182,7 @@ struct SelfHostedServerView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .help("Server address, port and RCON")
+            .accessibilityIdentifier("selfHosted.settings")
         }
     }
 

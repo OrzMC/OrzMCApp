@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		CD20261024A0000000000001 /* OrzMCUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrzMCUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD20261024A0000000000003 /* RemotePanelsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePanelsUITests.swift; sourceTree = "<group>"; };
 		CD2026102200000000000016 /* LaunchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchBar.swift"; sourceTree = "<group>"; };
 		CD2026102200000000000015 /* VersionListScrollProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionListScrollProbe.swift"; sourceTree = "<group>"; };
 		CD2026102200000000000014 /* VersionListKeyboardNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VersionListKeyboardNavigation.swift"; sourceTree = "<group>"; };
@@ -27,6 +29,7 @@
 		CA2026102200000000000000 /* ConsoleScrollObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConsoleScrollObserver.swift"; sourceTree = "<group>"; };
 		96425CA405E530D0C5FC7A44 /* RiskyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RiskyAction.swift"; sourceTree = "<group>"; };
 /* Begin PBXBuildFile section */
+		CD20261024A0000000000004 /* RemotePanelsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024A0000000000003 /* RemotePanelsUITests.swift */; };
 		CE2026102200000000000016 /* LaunchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000016 /* LaunchBar.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000015 /* VersionListScrollProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000015 /* VersionListScrollProbe.swift */; platformFilters = (macos, ); };
 		CE2026102200000000000014 /* VersionListKeyboardNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102200000000000014 /* VersionListKeyboardNavigation.swift */; platformFilters = (macos, ); };
@@ -133,6 +136,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CD20261024A000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B1C798A28FEAB0600D53658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B1C799128FEAB0600D53658;
+			remoteInfo = OrzMC;
+		};
 		C0D000090000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2B1C798A28FEAB0600D53658 /* Project object */;
@@ -243,6 +253,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CD20261024A0000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B1C798F28FEAB0600D53658 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -298,6 +315,7 @@
 				2B8442F82E17D38800CB0EA0 /* README.md */,
 				2B1C799428FEAB0600D53658 /* OrzMC */,
 				C0D000030000000000000001 /* OrzMCTests */,
+				CD20261024A0000000000002 /* OrzMCUITests */,
 				2B1C799328FEAB0600D53658 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -307,6 +325,7 @@
 			children = (
 				2B1C799228FEAB0600D53658 /* OrzMC.app */,
 				C0D000020000000000000004 /* OrzMCTests.xctest */,
+				CD20261024A0000000000001 /* OrzMCUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -633,6 +652,14 @@
 			path = OrzMCTests;
 			sourceTree = "<group>";
 		};
+		CD20261024A0000000000002 /* OrzMCUITests */ = {
+			isa = PBXGroup;
+			children = (
+				CD20261024A0000000000003 /* RemotePanelsUITests.swift */,
+			);
+			path = OrzMCUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -685,6 +712,24 @@
 			productReference = C0D000020000000000000004 /* OrzMCTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		CD20261024A0000000000008 /* OrzMCUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD20261024A000000000000B /* Build configuration list for PBXNativeTarget "OrzMCUITests" */;
+			buildPhases = (
+				CD20261024A0000000000005 /* Sources */,
+				CD20261024A0000000000006 /* Frameworks */,
+				CD20261024A0000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD20261024A0000000000009 /* PBXTargetDependency */,
+			);
+			name = OrzMCUITests;
+			productName = OrzMCUITests;
+			productReference = CD20261024A0000000000001 /* OrzMCUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -697,6 +742,10 @@
 				TargetAttributes = {
 					2B1C799128FEAB0600D53658 = {
 						CreatedOnToolsVersion = 14.1;
+					};
+					CD20261024A0000000000008 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 2B1C799128FEAB0600D53658;
 					};
 					C0D000050000000000000001 = {
 						CreatedOnToolsVersion = 17.4;
@@ -728,11 +777,19 @@
 			targets = (
 				2B1C799128FEAB0600D53658 /* OrzMC */,
 				C0D000050000000000000001 /* OrzMCTests */,
+				CD20261024A0000000000008 /* OrzMCUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CD20261024A0000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B1C799028FEAB0600D53658 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -753,6 +810,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CD20261024A0000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD20261024A0000000000004 /* RemotePanelsUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B1C798E28FEAB0600D53658 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -859,6 +924,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CD20261024A0000000000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B1C799128FEAB0600D53658 /* OrzMC */;
+			targetProxy = CD20261024A000000000000A /* PBXContainerItemProxy */;
+		};
 		C0D0000A0000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 2B1C799128FEAB0600D53658 /* OrzMC */;
@@ -867,6 +937,52 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CD20261024A000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2N62934Y28;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMCUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OrzMC;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CD20261024A000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2N62934Y28;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMCUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OrzMC;
+			};
+			name = Release;
+		};
 		2B1C79BA28FEAB0700D53658 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F3FFCD152C45856100414587 /* Config.xcconfig */;
@@ -1123,6 +1239,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CD20261024A000000000000B /* Build configuration list for PBXNativeTarget "OrzMCUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD20261024A000000000000C /* Debug */,
+				CD20261024A000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		2B1C798D28FEAB0600D53658 /* Build configuration list for PBXProject "OrzMC" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
