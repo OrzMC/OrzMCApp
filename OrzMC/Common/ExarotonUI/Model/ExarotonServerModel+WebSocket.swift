@@ -137,15 +137,13 @@ extension ExarotonServerModel {
     func socketDidReceiveStatus(_ info: ExarotonWebSocket.Server?) {
         statusChangedServer = info
         statusVersion &+= 1
-
         guard let info else { return }
-        let previous = liveStatuses[info.id]
-        liveStatuses[info.id] = info.status
-        // 只在**状态真的变化**时刷新列表：一次启动会推好几条，逐条 reload 既浪费也容易打架。
-        if previous != info.status {
-            Task { await reloadList() }
-        }
+        // 统一入口：WS 与 HTTP 都从这里更新状态、发事件（重复状态不会打扰订阅者）。
+        publishStatus(info.status, for: info.id, source: .webSocket)
     }
+
+    /// 每次 socket 收到消息（含 keep-alive）都算"WS 还活着"，轮询据此判断要不要兜底。
+    func socketDidReceiveAnyMessage() { noteWebSocketActivity() }
 
     func socketDidStartStream(_ stream: StreamCategory?) {
         streamStarted = stream

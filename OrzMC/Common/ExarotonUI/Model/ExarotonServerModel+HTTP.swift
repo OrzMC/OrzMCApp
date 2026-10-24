@@ -14,7 +14,11 @@ extension ExarotonServerModel {
         let requestedToken = token
         isLoadingList = true
         listLoadError = nil
-        defer { isLoadingList = false }
+        refreshStartedAt = Date()
+        defer {
+            isLoadingList = false
+            lastRefreshFinished = Date()
+        }
         do {
             async let serversResponse = httpClient.getServers()
             async let poolsResponse = httpClient.getCreditPools()
@@ -31,6 +35,11 @@ extension ExarotonServerModel {
                 servers = serverData.data ?? []
                 creditPools = poolData.data ?? []
                 hasLoadedList = true
+                // 轮询结果也走同一个状态入口：业务侧只看事件，不用管数据从哪来。
+                for server in servers {
+                    guard let id = server.id, let status = server.serverStatus else { continue }
+                    publishStatus(status, for: id, source: .polling)
+                }
             default:
                 listLoadError = String(localized: "Could not load remote servers. Check your account token and try again.")
             }

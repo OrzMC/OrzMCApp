@@ -43,7 +43,7 @@ final class ExarotonSocketDelegate: @preconcurrency ExarotonServerEventHandlerPr
     }
 
     func onKeepAlive() {
-        // 心跳不需要处理。
+        forward { $0.socketDidReceiveAnyMessage() }
     }
 
     func onStatusChanged(_ info: ExarotonWebSocket.Server?) {
@@ -75,7 +75,14 @@ final class ExarotonSocketDelegate: @preconcurrency ExarotonServerEventHandlerPr
     }
 
     func didReceive(event: Starscream.WebSocketEvent, client: any Starscream.WebSocketClient) {
-        // 由 `onConnected` / `onDisconnected` 等语义回调承载，这里不需要额外处理。
+        // 语义回调由 onConnected / onStatusChanged 等承载；这里只记"WS 收到了东西"，
+        // 供 `RemoteStatusRefreshPolicy` 判断 WS 是否还活着（安静 30 秒就由轮询接管）。
+        switch event {
+        case .text, .ping, .pong, .viabilityChanged:
+            forward { $0.socketDidReceiveAnyMessage() }
+        default:
+            break
+        }
     }
 
     // MARK: - 转发
