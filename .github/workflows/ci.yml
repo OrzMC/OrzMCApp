@@ -89,6 +89,10 @@ jobs:
           # 缓存里的 SourcePackages 解析状态/checkout 也钉着旧 revision，清掉让 Xcode 重新取
           rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
           rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
+          # Clang 模块缓存不能跟着 DerivedData 缓存走：runner 镜像升级 SDK 后 mtime 变了，
+          # 复用旧 .pcm 会报 "has been modified since the module file … was built" 直接构建失败。
+          # 重新编译模块只要几秒，比修缓存 key 稳。
+          rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
           xcodebuild -resolvePackageDependencies -scheme OrzMC -destination '${{ matrix.destination }}'
 
       - name: Unit tests (SwiftPM + app target)
