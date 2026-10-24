@@ -55,12 +55,6 @@ struct ExarotonServerCard: View {
                 .lineLimit(1)
             if let status = server.serverStatus {
                 OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
-                if status.isTransitional {
-                    // 过渡态加转圈：用户能看出"它正在动"，也会明白按钮为什么是灰的。
-                    ProgressView()
-                        .controlSize(.mini)
-                        .accessibilityHidden(true)
-                }
             }
             Spacer(minLength: 0)
         }

@@ -152,7 +152,9 @@ struct ExarotonServerDetail: View {
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow)
         // 破坏性/会断线的远程操作先确认（与本地服务端 Stop/Restart 同一套交互）。
-        .confirmationDialog("Stop Server?", isPresented: $confirmStop, titleVisibility: .visible) {
+        // 用 alert 而不是 confirmationDialog：后者在 iPhone 上是"贴着触发控件"的 popover/action sheet，
+        // 列表滚动后箭头锚点会指到奇怪的位置（真机两次反馈）。alert 居中、无锚点，语义也更硬。
+        .alert("Stop Server?", isPresented: $confirmStop) {
             Button("Stop", role: .destructive) {
                 if let id = server.id { Task { _ = await model.stopServer(serverId: id) } }
             }
@@ -160,7 +162,7 @@ struct ExarotonServerDetail: View {
         } message: {
             Text("The server saves and shuts down; connected players are disconnected.")
         }
-        .confirmationDialog("Restart Server?", isPresented: $confirmRestart, titleVisibility: .visible) {
+        .alert("Restart Server?", isPresented: $confirmRestart) {
             Button("Restart") {
                 if let id = server.id { Task { _ = await model.restartServer(serverId: id) } }
             }
@@ -235,6 +237,17 @@ struct ExarotonServerDetail: View {
             .presentationCornerRadius(OrzMCTheme.Radius.md)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
+        // 服务器在线却没连上 WS 时自动重连（节流 10 秒）：真机反馈"已经在线，控制台还是连不上"。
+        .task(id: server.serverStatus) {
+            while !Task.isCancelled {
+                if server.serverStatus == .ONLINE,
+                   !model.isConnected || model.readyServerID != server.id,
+                   let id = server.id {
+                    model.startConnect(for: id)
+                }
+                try? await Task.sleep(for: .seconds(10))
+            }
+        }
         .task {
             guard let serverID = server.id else {
                 model.errorMessage = String(localized: "Server ID is missing.")
@@ -248,19 +261,12 @@ struct ExarotonServerDetail: View {
         .onDisappear {
             model.stopConnect()
         }
-        .onChange(of: model.savedMemory[server.id ?? ""]) { _, newValue in
-            guard let newValue else { return }
-            if let requested = lastRequestedRAM,
-               let until = ignoreMemoryEchoUntil,
-               Date() < until,
-               newValue != requested {
-                return       // 保存刚完成，这是滞后回传的旧值，忽略之
-            }
-            if let requested = lastRequestedRAM, newValue == requested {
-                lastRequestedRAM = nil
-                ignoreMemoryEchoUntil = nil
-            }
-            memory.loaded(newValue)
+        // **不再**用 `savedMemory` 的回传驱动界面：保存成功后会先来一条滞后旧值、再来一条新值，
+        // 无论怎么过滤都会闪一下（真机两次反馈"跳变"）。界面只信三处：
+        //   ① 首次/手动重试的 `loadMemory()`；② 保存成功的返回值；③ 失败时保留草稿。
+        .onChange(of: model.memoryRevision[server.id ?? ""]) { _, _ in
+            guard !memory.isLoaded else { return }     // 只在"还没读到过"时补一次
+            Task { await loadMemory() }
         }
         .onChange(of: model.readyServerID) { _, newValue in
             wsServerReady = newValue == server.id
