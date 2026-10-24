@@ -151,14 +151,23 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 ./scripts/dev/check.sh --ui                       # 等价入口
 ```
 
-脚本会：起假 SLP/RCON 服务端 → 构建 App → `build-for-testing` → 预装 App → `test-without-building`。
+脚本会：起假 SLP/RCON 服务端 → 构建 App → `build-for-testing` → 修 xctestrun →（真机额外装 App）→
+`test-without-building`。
 
-**真机跑 XCUITest 的前置条件**（不满足时 runner 会以 code 74 退出，报
-"test runner exited before establishing connection"）：
+**真机前置条件**
 
-1. iPhone 解锁（不能锁屏）；
-2. 设置 → 开发者 → **打开「Enable UI Automation」**；
-3. 在 Terminal.app 里跑（需要钥匙串签名）。
+1. iPhone **解锁**（锁屏时 Xcode 会卡 600 秒然后报一个误导性的错误）；
+2. 设置 → 开发者 → 打开 **「Enable UI Automation」**；
+3. 在 Terminal.app 里跑（要钥匙串里的开发签名）；
+4. 数据线插上更稳（无线隧道也能跑，但诊断信息少）。
+
+**真机调试时踩过的三个坑（都已修，别再踩一遍）**
+
+| 现象 | 真正原因 | 处理 |
+|---|---|---|
+| `runner exited with code 74 before establishing connection` + `peer refused channel request for dtxproxy:XCTestDriverInterface` | xctestrun 里 `UITargetAppPath` 少了 `.app`（本项目 pbxproj 手工维护，Xcode 27 会写错），runner 找不到目标 App | `scripts/dev/patch-xctestrun.py` 补 `UITargetAppPath` + `UITargetAppBundleIdentifier` |
+| 界面点不动、断言全红 | 首次联网弹「允许 OrzMC 查找本地网络中的设备?」，不点掉整个 UI 都不响应 | 用例里 `allowSystemPrompts()` 去 SpringBoard 点「允许」 |
+| 假服务端在真机上"连不上" | 真机访问的是 Mac 的局域网地址：iOS 本地网络权限 + macOS 防火墙 + python 未签名都会被拦 | 默认走应用内假数据 `ORZMC_DEMO_FAKE_SELFHOSTED=1`；要测真链路才用 `ORZMC_UITEST_USE_NETWORK=1` |
 
 覆盖的用例（`OrzMCUITests/RemotePanelsUITests.swift`）：
 
@@ -168,6 +177,7 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 | 设置 sheet | 点 `设置` 后 **2 秒内**出现（回归"偶现加载很久/空白"） |
 | 添加服务器 | 点 `＋` 立刻出现新建 sheet |
 | 远程详情（假服务器） | 三个动作按钮存在（`启动服务器`/`停止`/`重启`） |
+| 真实账号（真机，`TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1`） | 点真服务器卡进详情 → 滚到「控制台」→ 若出现 `WS:` 诊断行则判失败并附上诊断 |
 
 写用例时注意：
 - 用 `accessibilityIdentifier`（如 `selfHosted.settings`），不要依赖本地化文案——文案一改测试就红；

@@ -117,15 +117,19 @@ final class RemotePanelsUITests: XCTestCase {
         allowSystemPrompts()
 
         // 列表第一行（真实账号里的服务器）
-        let firstServer = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'PaperMC'")).firstMatch
+        // 只认"服务器卡"，不要点成额度池卡（真实账号里额度池也叫 PaperMC …）。
+        let firstServer = app.buttons.matching(identifier: "remote.serverCard").firstMatch
         XCTAssertTrue(firstServer.waitForExistence(timeout: 20), "应能看到真实账号下的服务器卡片")
         firstServer.tap()
+        add(XCTAttachment(screenshot: app.screenshot(), quality: .original))
 
         // 控制台区块必须存在（未连接时应显示占位 + 重连，而不是整块消失）
-        let consoleTitle = app.staticTexts["控制台（RCON）"]
-        let consoleFallback = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '控制台'")).firstMatch
-        XCTAssertTrue(consoleTitle.waitForExistence(timeout: 15) || consoleFallback.exists,
-                      "详情页应有控制台区块")
+        // 控制台在页面下方（懒加载），需要滚动才会进入可访问性树。
+        let consoleTitle = app.staticTexts["控制台"]
+        for _ in 0..<6 where !consoleTitle.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(consoleTitle.waitForExistence(timeout: 10), "详情页应有控制台区块")
         add(XCTAttachment(screenshot: app.screenshot()))
 
         // 等 15 秒，看是否出现 WS 诊断行（connected / disconnected）

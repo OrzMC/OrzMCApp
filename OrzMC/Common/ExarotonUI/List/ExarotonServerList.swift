@@ -58,6 +58,8 @@ struct ExarotonServerList: View {
                             }
                             .buttonStyle(.plain)
                             .orzMCPointerHover()
+                            // UI 测试要能区分"服务器卡"与"额度池卡"（两者标题都可能带 PaperMC）。
+                            .accessibilityIdentifier("remote.serverCard")
                         }
                     }
                     if !model.creditPools.isEmpty {
