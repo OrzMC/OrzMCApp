@@ -197,7 +197,7 @@ enum SelfHostedFakeServer {
         switch trimmed {
         case "list": return "There are 2 of a max of 20 players online: alice, bob"
         case "whitelist list": return "There are 2 whitelisted players: alice, carol"
-        case "banlist list": return "There are 1 ban(s): dave (griefing)"
+        case "banlist": return "There are 1 ban(s): dave (griefing)"
         default: return "假服务器收到了：\(trimmed)"
         }
     }
@@ -276,7 +276,7 @@ enum SelfHostedFakeServer {
         }
     }
 
-    /// 用 RCON 拉三份名单（`list` / `whitelist list` / `banlist list`）。
+    /// 用 RCON 拉三份名单（`list` / `whitelist list` / `banlist`）。
     ///
     /// 失败不打断页面：把原因写进 `listError`，界面上显示"未获取"。
     func refreshPlayerLists() async {
@@ -299,7 +299,7 @@ enum SelfHostedFakeServer {
             if let whitelist = try? await runCommand("whitelist list", profile: profile) {
                 lists.whitelisted = PlayerListParser.whitelisted(from: whitelist)
             }
-            if let bans = try? await runCommand("banlist list", profile: profile) {
+            if let bans = try? await runCommand("banlist", profile: profile) {
                 lists.banned = PlayerListParser.banned(from: bans)
             }
             playerLists[profile.id] = lists

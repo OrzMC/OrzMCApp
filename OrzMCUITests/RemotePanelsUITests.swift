@@ -342,6 +342,25 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
+    /// 远程详情 · 控制台（假"已连接"）：专门看控制台日志区 + 下方按钮的排版。
+    func testSnapshotRemoteConsole() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
+                           "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_LIVE": "1"])
+        app.launch()
+        allowSystemPrompts()
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+        _ = app.buttons["启动服务器"].waitForExistence(timeout: 20)
+        for _ in 0..<4 { app.swipeUp() }
+        snap(app, "20-remote-console")
+        app.swipeUp()
+        snap(app, "21-remote-console-2")
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

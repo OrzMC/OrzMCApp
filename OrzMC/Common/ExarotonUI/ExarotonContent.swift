@@ -43,6 +43,7 @@ struct ExarotonContent: View {
                 "liveStatus": Self.describe(model.servers.first?.serverStatus),
                 "startError": model.actionErrors[id] ?? "-",
                 "startResult": startResult,
+                "actionLog": ExarotonServerModel.debugActionLog.joined(separator: " | "),
             ])
         }
         let json = try? JSONSerialization.data(withJSONObject: report, options: .prettyPrinted)

@@ -84,6 +84,12 @@ extension ExarotonServerModel {
     }
 
     /// 三个生命周期端点共用同一套「占用 → 请求 → 判定 → 释放」，避免三份实现漂移。
+    #if DEBUG
+    /// 记录生命周期请求（谁在什么时候发的），供诊断钩子导出。
+    /// 起因：用户反馈"进详情页就自动启动了服务器"，光看 UI 无法判断是不是 App 发的请求。
+    static var debugActionLog: [String] = []
+    #endif
+
     private func performLifecycleAction<Output, OK>(
         serverId: String,
         requesting: String,
@@ -93,6 +99,10 @@ extension ExarotonServerModel {
         okCase: (Output) -> OK?,
         success: (OK) throws -> Bool?
     ) async -> Bool {
+        #if DEBUG
+        let stamp = Date().formatted(date: .omitted, time: .standard)
+        Self.debugActionLog.append("\(stamp) request server=\(serverId) msg=\(requesting)")
+        #endif
         guard let httpClient = clientOrReportError() else { return false }
         guard gate.beginAction(serverID: serverId) else { return false }
         actionMessages[serverId] = requesting

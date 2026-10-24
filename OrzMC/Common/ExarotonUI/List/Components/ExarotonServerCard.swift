@@ -16,6 +16,9 @@ import SwiftUI
 /// `名称 + 状态徽标` → `软件 / 玩家` 标签 → `地址（可复制）` → `MOTD`。
 struct ExarotonServerCard: View {
     let server: ExarotonServer
+    /// 实际状态（WebSocket 推送优先）。列表/详情页传 `model.effectiveStatus(for:)`，
+    /// 卡片本身不依赖 `ExarotonServerModel`，保持纯展示、可预览可单测。
+    var status: ServerStatus?
     /// 列表行不显示 MOTD（太长）；详情页顶部的摘要显示三行。
     var showMotd = false
     /// 列表行右侧给一个指示箭头；详情页里不需要。
@@ -53,7 +56,7 @@ struct ExarotonServerCard: View {
             Text(server.name ?? String(localized: "Server"))
                 .font(.headline)
                 .lineLimit(1)
-            if let status = server.serverStatus {
+            if let status {
                 OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
             }
             Spacer(minLength: 0)

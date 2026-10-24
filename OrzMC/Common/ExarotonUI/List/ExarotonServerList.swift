@@ -51,7 +51,11 @@ struct ExarotonServerList: View {
                             Button {
                                 model.path.append(server)
                             } label: {
-                                ExarotonServerCard(server: server, showsCopy: false)
+                                ExarotonServerCard(
+                                    server: server,
+                                    status: model.effectiveStatus(for: server),
+                                    showsCopy: false
+                                )
                                     .padding(OrzMCTheme.Spacing.md)
                                     .orzMCPanel()
                                     .contentShape(Rectangle())
