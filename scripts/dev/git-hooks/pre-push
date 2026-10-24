@@ -14,8 +14,11 @@ cd "$ROOT"
 changed="$(git diff --name-only "$(git rev-parse origin/main 2>/dev/null || echo HEAD~1)"...HEAD 2>/dev/null || true)"
 [ -z "$changed" ] && changed="$(git diff --name-only HEAD~1 2>/dev/null || true)"
 
+# 秘密扫描对**任何**改动都跑：凭据最容易随手写进 docs / HANDOFF / 提交信息里。
+python3 scripts/dev/check-secrets.py || exit 1
+
 if [ -n "$changed" ] && ! grep -qE '\.(swift|pbxproj|xcstrings|yml|sh|py)$' <<<"$changed"; then
-  echo "[pre-push] 只有文档/资源改动，跳过本地检查"
+  echo "[pre-push] 只有文档/资源改动，跳过其余本地检查"
   exit 0
 fi
 

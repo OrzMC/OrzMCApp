@@ -169,6 +169,40 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 | 界面点不动、断言全红 | 首次联网弹「允许 OrzMC 查找本地网络中的设备?」，不点掉整个 UI 都不响应 | 用例里 `allowSystemPrompts()` 去 SpringBoard 点「允许」 |
 | 假服务端在真机上"连不上" | 真机访问的是 Mac 的局域网地址：iOS 本地网络权限 + macOS 防火墙 + python 未签名都会被拦 | 默认走应用内假数据 `ORZMC_DEMO_FAKE_SELFHOSTED=1`；要测真链路才用 `ORZMC_UITEST_USE_NETWORK=1` |
 
+### 日常迭代跑模拟器，发版前跑真机
+
+| 时机 | 命令 | 耗时 | 覆盖 |
+|---|---|---|---|
+| 每次改动 | `./scripts/dev/run-ios-ui-tests.sh`（默认模拟器） | 约 1–1.5 分钟 | 假数据：自建页、设置、添加、远程详情 |
+| 每次改动 | `./scripts/dev/check.sh --ui` | 同上 | 同上（等价入口） |
+| **发版前** | `./scripts/dev/run-ios-ui-tests.sh --device <UDID>` | 约 2–3 分钟 | 上述 + 真实账号控制台 |
+| **发版前（更狠）** | 再加 `POWER_CYCLE=1` 环境 | 约 90 秒/次 | 真实启停 + 控制台日志流 |
+
+**模拟器够用**：它跑在 Mac 上，能直接走真实网络（真实自建服务器、真实 exaroton 账号都能连），
+所以"真实服务器 + 真实账号"这两类**不必上真机**——真机只在发版前验证签名/安装/权限/手感差异。
+
+### 真实凭据怎么放（敏感信息）
+
+模板：`scripts/dev/uitest-secrets.example.env`；真值放 `scripts/dev/uitest-secrets.env`（**已 gitignore**）。
+
+```bash
+cp scripts/dev/uitest-secrets.example.env scripts/dev/uitest-secrets.env
+# 填 HOST / PORT / RCON_PORT / RCON_PASSWORD / EXAROTON_TOKEN
+./scripts/dev/run-ios-ui-tests.sh      # 自动加载，日志里只说"已提供/未提供"，不回显值
+```
+
+安全网（三道）：
+
+1. `scripts/dev/check-secrets.py` 把凭据值当"敏感字面量"扫描**所有已跟踪文件 + 暂存区**，
+   命中就失败 —— 已接进 `check.sh --fast` 与 **pre-push 钩子（文档改动也扫）**。
+   报"文件:行号 + 长度 + 哈希前缀"，不回显原值。
+2. `.gitignore` 忽略 `scripts/dev/uitest-secrets.env`，模板文件里只有空值。
+3. runner 只通过 `TEST_RUNNER_*` 环境变量传给测试进程，**不写日志、不写文件**；
+   截图附件留在本机 `-resultBundlePath`，不进仓库、不进 CI。
+
+> 万一已经推上去：**先在服务端轮换**（改 `rcon.password` / 重置 exaroton Token），再清理历史。
+> 换密码比改历史快得多，也彻底。
+
 覆盖的用例（`OrzMCUITests/RemotePanelsUITests.swift`）：
 
 | 用例 | 断言 |

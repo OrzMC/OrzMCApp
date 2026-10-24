@@ -482,6 +482,7 @@ struct SelfHostedServerView: View {
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .focused($commandFocused)
+                    .accessibilityIdentifier("selfHosted.consoleInput")
                     #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .submitLabel(.send)
@@ -490,6 +491,7 @@ struct SelfHostedServerView: View {
 
                 Button("Send") { send() }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("selfHosted.consoleSend")
                     .disabled(model.isSending || model.commandDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 

@@ -39,6 +39,36 @@ done
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
+# ── 本地凭据（可选）──────────────────────────────────────────────
+# 真实服务器 / 真实 exaroton 账号的用例需要凭据。凭据只从**未入库**的
+# scripts/dev/uitest-secrets.env 读取（模板见同名 .example.env），
+# 这里只做"有没有"，**从不打印值**。
+SECRETS_FILE="${UI_TEST_SECRETS:-$ROOT/scripts/dev/uitest-secrets.env}"
+if [[ -f "$SECRETS_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a; source "$SECRETS_FILE"; set +a
+  step "已加载本地凭据（${SECRETS_FILE#"$ROOT"/}，值不回显）"
+else
+  step "没有本地凭据文件：真实服务器 / 真实账号的用例会自动跳过"
+fi
+
+# 把可用的凭据转成传给测试进程的环境变量（TEST_RUNNER_ 前缀由 xcodebuild 剥掉）
+RUNNER_SECRETS=()
+add_secret() { # add_secret <测试侧变量名> <值>
+  [[ -n "${2:-}" ]] && RUNNER_SECRETS+=("TEST_RUNNER_$1=$2")
+}
+add_secret ORZMC_UITEST_SELFHOSTED_HOST          "${ORZMC_UITEST_SELFHOSTED_HOST:-}"
+add_secret ORZMC_UITEST_SELFHOSTED_PORT          "${ORZMC_UITEST_SELFHOSTED_PORT:-}"
+add_secret ORZMC_UITEST_SELFHOSTED_RCON_PORT     "${ORZMC_UITEST_SELFHOSTED_RCON_PORT:-}"
+add_secret ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD "${ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD:-}"
+add_secret ORZMC_UITEST_SELFHOSTED_NAME          "${ORZMC_UITEST_SELFHOSTED_NAME:-}"
+add_secret ORZMC_DEMO_TOKEN                      "${ORZMC_UITEST_EXAROTON_TOKEN:-}"
+if [[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]]; then
+  RUNNER_SECRETS+=("TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1")
+fi
+echo "  真实自建服务器：$([[ -n "${ORZMC_UITEST_SELFHOSTED_HOST:-}" ]] && echo 已提供 || echo 未提供)" \
+     "· exaroton Token：$([[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]] && echo 已提供 || echo 未提供)"
+
 step "启动假 SLP / RCON 服务端"
 python3 scripts/test-servers/slp_server.py "$SLP_PORT" >/dev/null 2>&1 & PIDS+=("$!")
 python3 scripts/test-servers/rcon_server.py "$RCON_PORT" >/dev/null 2>&1 & PIDS+=("$!")
@@ -112,7 +142,7 @@ if [[ -n "$DEVICE" ]]; then
   step "执行 UI 测试（真机）"
   echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac；默认测试用应用内假数据）"
   TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
-    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" 2>&1 \
+    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" "${RUNNER_SECRETS[@]:-}" 2>&1 \
     | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
   exit ${PIPESTATUS[0]}
 fi
