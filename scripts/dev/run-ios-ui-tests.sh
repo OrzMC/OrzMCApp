@@ -49,7 +49,7 @@ done
 
 if [[ -n "$DEVICE" ]]; then
   DESTINATION="platform=iOS,id=$DEVICE"
-  step "目标：真机 $DEVICE（需要开发签名与已解锁的钥匙串）"
+  step "目标：真机 ${DEVICE}（需要开发签名与已解锁的钥匙串）"
 else
   UDID="$(xcrun simctl list devices available | grep -F "$SIM_NAME (" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')"
   if [[ -z "$UDID" ]]; then

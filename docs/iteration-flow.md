@@ -151,7 +151,14 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 ./scripts/dev/check.sh --ui                       # 等价入口
 ```
 
-脚本会：起假 SLP/RCON 服务端 → `build-for-testing` → 预装 App → `test-without-building`。
+脚本会：起假 SLP/RCON 服务端 → 构建 App → `build-for-testing` → 预装 App → `test-without-building`。
+
+**真机跑 XCUITest 的前置条件**（不满足时 runner 会以 code 74 退出，报
+"test runner exited before establishing connection"）：
+
+1. iPhone 解锁（不能锁屏）；
+2. 设置 → 开发者 → **打开「Enable UI Automation」**；
+3. 在 Terminal.app 里跑（需要钥匙串签名）。
 
 覆盖的用例（`OrzMCUITests/RemotePanelsUITests.swift`）：
 
