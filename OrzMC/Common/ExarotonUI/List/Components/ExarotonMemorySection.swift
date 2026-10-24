@@ -52,7 +52,7 @@ struct ExarotonMemorySection: View {
                     }
                     .disabled(isBusy || serverStatus != .OFFLINE)
 
-                    if memory.isDirty {
+                    if memory.isDirty || memory.isSaving {
                         HStack(spacing: OrzMCTheme.Spacing.sm) {
                             Button("Save Memory", action: onSave)
                                 .disabled(!canSave)

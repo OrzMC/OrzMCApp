@@ -62,14 +62,14 @@ public struct OrzMCStatusBadge: View {
     public var body: some View {
         HStack(spacing: 6) {
             // 用 SF Symbol 而不是 Circle：进行态可以复用同一个视觉语言（箭头/对勾/感叹号）。
-            Image(systemName: style == .idle ? "circle.fill" : style.symbolName)
-                .font(.caption2.weight(.semibold))
-                .imageScale(.small)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(style.tint)
-                // 进行态：让**徽章里的图标**动起来（旋转 + 脉冲），而不是在旁边再加一个转圈。
-                .modifier(BusyIconAnimation(isActive: style == .busy))
-                .accessibilityHidden(true)
+            // 进行态：让**徽章里的图标**一直转（用显式 rotationEffect + repeatForever；
+            // `symbolEffect(.rotate)` 在徽章文案更新导致局部重绘时会停下——真机反馈"转一会儿不转了"）。
+            SpinningStatusIcon(
+                systemName: style == .idle ? "circle.fill" : style.symbolName,
+                isSpinning: style == .busy,
+                tint: style.tint
+            )
+            .accessibilityHidden(true)
 
             textView
                 .font(.caption)
@@ -94,16 +94,35 @@ public struct OrzMCStatusBadge: View {
     }
 }
 
-/// 进行态图标的动画：iOS 18+/macOS 15+ 用 `.rotate`（转起来最直观），老系统退回 `.pulse` 脉冲。
-private struct BusyIconAnimation: ViewModifier {
-    let isActive: Bool
+/// 状态徽章里的图标：进行态持续旋转。
+///
+/// 为什么不用 `symbolEffect(.rotate)`：那个效果依赖"符号被重新插入"，徽章文案更新引起局部重绘时
+/// 动画会停住（真机反馈"转一下就停了"）。这里用 `rotationEffect` + `repeatForever`，
+/// 与重绘无关，直到 `isSpinning` 变回 false 才停。
+private struct SpinningStatusIcon: View {
+    let systemName: String
+    let isSpinning: Bool
+    let tint: Color
 
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            content.symbolEffect(.rotate, options: .repeating, isActive: isActive)
-        } else {
-            content.symbolEffect(.pulse, options: .repeating, isActive: isActive)
-        }
+    @State private var angle: Double = 0
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.caption2.weight(.semibold))
+            .imageScale(.small)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .rotationEffect(.degrees(angle))
+            .onAppear { angle = isSpinning ? 360 : 0 }
+            .onChange(of: isSpinning) { _, newValue in
+                if newValue {
+                    withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                        angle = 360
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) { angle = 0 }
+                }
+            }
     }
 }
 

@@ -12,6 +12,8 @@ public struct ServerMemoryState: Equatable, Sendable {
     public private(set) var confirmed: Int32?
     public private(set) var isSaving = false
     public private(set) var lastSaveFailed = false
+    /// 保存中记住"提交前的确认值"，失败时回滚到它。
+    private var confirmedBeforeSave: Int32?
 
     public init() {}
 
@@ -51,6 +53,10 @@ public struct ServerMemoryState: Equatable, Sendable {
         guard canSave, let draft else { return nil }
         isSaving = true
         lastSaveFailed = false
+        // **乐观更新**：界面立刻停在"用户设置的值"，不等服务端回传。
+        // 否则保存成功后服务端还会回一条旧值，界面就会"先跳回改前、再跳到改后"（真机多次反馈）。
+        confirmedBeforeSave = confirmed
+        confirmed = draft
         return draft
     }
 
@@ -59,11 +65,15 @@ public struct ServerMemoryState: Equatable, Sendable {
         confirmed = ram
         draft = ram
         lastSaveFailed = false
+        confirmedBeforeSave = nil
     }
 
     /// 失败：确认值不变、草稿保留，界面仍显示未保存。
     public mutating func saveFailed() {
         isSaving = false
         lastSaveFailed = true
+        // 回滚到提交前的确认值，草稿保留（界面继续显示"未保存"）。
+        if let previous = confirmedBeforeSave { confirmed = previous }
+        confirmedBeforeSave = nil
     }
 }

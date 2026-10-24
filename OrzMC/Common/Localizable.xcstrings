@@ -5070,6 +5070,16 @@
           }
         }
       }
+    },
+    "Connected, waiting for the server handshake…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接，正在等待服务器握手…"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

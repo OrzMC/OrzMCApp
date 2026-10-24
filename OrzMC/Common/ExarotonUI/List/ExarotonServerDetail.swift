@@ -237,15 +237,18 @@ struct ExarotonServerDetail: View {
             .presentationCornerRadius(OrzMCTheme.Radius.md)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
         }
-        // 服务器在线却没连上 WS 时自动重连（节流 10 秒）：真机反馈"已经在线，控制台还是连不上"。
+        // 服务器在线、但 **WS 本身掉线** 时自动重连（15 秒一次，最多 20 次）。
+        //
+        // 注意：**不能**用 `readyServerID != server.id` 作为重连条件——拿不到 ready 时那样会每 10 秒
+        // 把一条好连接拆掉重连，永远握手不成功（真机反馈"在线但控制台连不上"很可能就是这个）。
         .task(id: server.serverStatus) {
+            var attempts = 0
             while !Task.isCancelled {
-                if server.serverStatus == .ONLINE,
-                   !model.isConnected || model.readyServerID != server.id,
-                   let id = server.id {
+                if server.serverStatus == .ONLINE, !model.isConnected, attempts < 20, let id = server.id {
+                    attempts += 1
                     model.startConnect(for: id)
                 }
-                try? await Task.sleep(for: .seconds(10))
+                try? await Task.sleep(for: .seconds(15))
             }
         }
         .task {
@@ -324,7 +327,9 @@ extension ExarotonServerDetail {
     private var consolePlaceholder: some View {
         Section("Console") {
             HStack(spacing: OrzMCTheme.Spacing.sm) {
-                Text("Console needs a live connection to the server.")
+                Text(model.isConnected
+                    ? String(localized: "Connected, waiting for the server handshake…")
+                    : String(localized: "Console needs a live connection to the server."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
@@ -332,6 +337,10 @@ extension ExarotonServerDetail {
                     if let id = server.id { model.startConnect(for: id) }
                 }
             }
+            // 把连接细节摊开，便于用户（和排查）判断卡在哪一步。
+            Text(verbatim: "WS: \(model.isConnected ? "connected" : "disconnected") · ready: \(model.readyServerID ?? "-") · server: \(server.id ?? "-")")
+                .font(.caption.monospaced())
+                .foregroundStyle(.tertiary)
             if let reason = model.disconnectedReason {
                 Text(verbatim: reason)
                     .font(.caption)
