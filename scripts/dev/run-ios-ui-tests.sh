@@ -167,6 +167,9 @@ SIM_XCTESTRUN="$(ls -t "$DERIVED_DATA"/Build/Products/*_iphonesimulator*.xctestr
 
 step "预装 App（双保险：某些 Xcode 版本没装过 App 会读不到 bundle identifier）"
 xcrun simctl install "$UDID" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/OrzMC.app"
+# 模拟器里已经装过旧版 test runner 时，xcodebuild 会**沿用旧包**（测试代码改了却不生效，
+# 症状是"Executed 0 tests"或跑到已经不存在的用例）。跑之前强制卸掉，让它必须装新的。
+xcrun simctl uninstall "$UDID" com.joker.OrzMCUITests.xctrunner 2>/dev/null || true
 
 step "执行 UI 测试（模拟器）"
 # 必须显式 -xctestrun：用 -scheme 时 xcodebuild 会自己**重新生成** xctestrun，
