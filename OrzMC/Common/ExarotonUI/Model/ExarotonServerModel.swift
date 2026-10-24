@@ -30,6 +30,14 @@ final class ExarotonServerModel {
     @ObservationIgnored
     var token: String {
         get {
+            #if DEBUG
+            // UI 测试 / 截图验收：`ORZMC_DEMO_TOKEN` 直接注入账号 Token，不写 Keychain。
+            // 真机与模拟器都能用；模拟器上没法手动登录，这是跑"真实账号"用例的唯一路径。
+            // 值只放在本地 secret 文件里（见 scripts/dev/uitest-secrets.example.env），不进仓库。
+            if let demo = ProcessInfo.processInfo.environment["ORZMC_DEMO_TOKEN"], !demo.isEmpty {
+                return demo
+            }
+            #endif
             if let token = KeychainTokenStore.load(key: Self.accountTokenPersistentKey) {
                 return token
             }

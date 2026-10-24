@@ -231,4 +231,50 @@ final class RemotePanelsUITests: XCTestCase {
         }
         return condition()
     }
+
+    /// **真实自建服务器**（模拟器 / 真机都能跑）：真实 SLP + 真实 RCON 命令。
+    ///
+    /// 凭据来自**未入库**的 `scripts/dev/uitest-secrets.env`（模板见 `.example.env`），
+    /// 没有就自动跳过。断言三件事：状态真的在线、RCON 真的通、命令真的能执行。
+    func testRealSelfHostedServerResponds() throws {
+        let environment = ProcessInfo.processInfo.environment
+        let host = environment["ORZMC_UITEST_SELFHOSTED_HOST"] ?? ""
+        try XCTSkipIf(host.isEmpty, "没有本地凭据（scripts/dev/uitest-secrets.env）")
+
+        let port = environment["ORZMC_UITEST_SELFHOSTED_PORT"] ?? "25565"
+        let rconPort = environment["ORZMC_UITEST_SELFHOSTED_RCON_PORT"] ?? "25575"
+        let password = environment["ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD"] ?? ""
+        let name = environment["ORZMC_UITEST_SELFHOSTED_NAME"] ?? "真实服务器"
+
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launchEnvironment["ORZMC_DEMO_TAB"] = "selfHosted"
+        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "\(name)|\(host)|\(port)|\(rconPort)|\(password.isEmpty ? "0" : "1")"
+        if !password.isEmpty { app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = password }
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 20), "服务器名应显示")
+        XCTAssertTrue(waitUntil(timeout: 40) { app.staticTexts["在线"].exists }, "真实服务器应探测为在线")
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '连不上'")).firstMatch.exists,
+                       "不应出现连接失败提示")
+
+        // RCON：发一条 list，等真实回复（Paper/Vanilla 都会说 "There are … players online"）
+        let input = app.textFields["selfHosted.consoleInput"]
+        for _ in 0..<4 where !input.exists { app.swipeUp() }
+        guard input.waitForExistence(timeout: 10) else {
+            XCTFail("应能看到控制台输入框（滚到底部）")
+            return
+        }
+        input.tap()
+        input.typeText("list")
+        app.buttons["selfHosted.consoleSend"].tap()
+
+        XCTAssertTrue(waitUntil(timeout: 30) {
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'players online'")).firstMatch.exists
+        }, "RCON 应执行 list 并返回真实在线人数")
+
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+    }
 }
+

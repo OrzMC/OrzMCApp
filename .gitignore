@@ -23,3 +23,6 @@ Packaging.log
 *.zip
 *.p8
 sparkle_private_key
+
+# 本地 UI 测试凭据（永不入库）
+scripts/dev/uitest-secrets.env
