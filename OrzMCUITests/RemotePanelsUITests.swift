@@ -50,6 +50,11 @@ final class RemotePanelsUITests: XCTestCase {
                 app.launchEnvironment[key] = value
             }
         }
+        // 用假服务器的用例**不能**同时带真实 Token：否则后台轮询会用真实账号的列表
+        // 把假数据覆盖掉（服务器列表变了、状态也变成真实值），断言就会随机失败。
+        if environment["ORZMC_DEMO_FAKE_SERVER"] == "1" {
+            app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_TOKEN")
+        }
         return app
     }
 

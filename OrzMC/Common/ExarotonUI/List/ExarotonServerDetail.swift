@@ -319,8 +319,14 @@ struct ExarotonServerDetail: View {
         .onChange(of: model.isConnected) {
             syncStreams()
         }
-        .onChange(of: model.liveStatuses) {
-            syncStreams()
+        // 状态事件订阅示例（业务侧统一入口）：只关心"我这一台"的状态变化，
+        // 不再各自比较快照。WS 推送和 HTTP 轮询都会走到这里。
+        .task(id: server.id) {
+            guard let id = server.id else { return }
+            for await event in model.statusEvents() where event.serverID == id {
+                if Task.isCancelled { return }
+                syncStreams()
+            }
         }
     }
 }

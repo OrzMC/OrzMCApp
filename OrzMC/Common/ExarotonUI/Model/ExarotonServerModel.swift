@@ -93,9 +93,29 @@ final class ExarotonServerModel {
     @ObservationIgnored
     var backgroundRefreshTask: Task<Void, Never>?
 
-    /// App 是否在前台（由场景驱动）。后台时不轮询，省电也省额度无关。
+    /// App 是否在前台（由场景驱动）。后台时不轮询。
     @ObservationIgnored
     var isSceneActive = true
+
+    // MARK: - 状态中心（唯一来源，见 ExarotonStatusCenter.swift）
+
+    /// 状态订阅者（每个 `statusEvents()` 一条）。
+    @ObservationIgnored
+    var statusSubscribers: [UUID: AsyncStream<RemoteStatusEvent>.Continuation] = [:]
+    /// 最近一次 WebSocket 收到任何消息的时间；`nil` = 从未连上。
+    @ObservationIgnored
+    var lastWebSocketActivity: Date?
+    /// 最近一次状态来自哪一路（排查用）。
+    @ObservationIgnored
+    var lastStatusSource: [String: RemoteStatusEvent.Source] = [:]
+    /// 每个服务器的最近一次状态变化时间。
+    @ObservationIgnored
+    var lastStatusChangeAt: [String: Date] = [:]
+    /// 最近一次列表刷新完成的时间 / 开始时间。
+    @ObservationIgnored
+    var lastRefreshFinished: Date?
+    @ObservationIgnored
+    var refreshStartedAt: Date?
 
     /// WebSocket 推送来的**权威状态**（`id → 状态`）。
     ///

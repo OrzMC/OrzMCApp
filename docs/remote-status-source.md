@@ -28,6 +28,36 @@ model.effectiveStatus(for: server)   // 唯一入口
   （一次启动会推好几条，逐条 reload 既浪费也容易打架）；
 - 列表卡片、详情概览、动作可用性、流订阅、自动重连、额度池详情，**全部**走这个入口。
 
+## 统一入口（2026-10-25 起）
+
+WebSocket 与 HTTP 轮询**不是二选一**，而是同一件事的两个来源，现在收敛到一个"状态中心"：
+
+```swift
+// 唯一写下状态的入口（WS 推送 / HTTP 轮询 / 调试注入都走这里）
+model.publishStatus(.ONLINE, for: serverID, source: .webSocket)
+
+// 业务侧统一订阅（只在该服务器状态**真的变化**时收到）
+for await event in model.statusEvents() where event.serverID == id {
+    // event.previous / event.status / event.source / event.at
+}
+
+// 界面读快照
+model.effectiveStatus(for: server)
+```
+
+轮询节奏由 `RemoteStatusRefreshPolicy` 决定，关键判据是 **WebSocket 是否安静**：
+
+| 条件 | 行为 |
+|---|---|
+| WS 最近 30 秒内有任何消息（含 keep-alive） | 不轮询，靠推送 |
+| WS 静默 ≥ 30 秒 / 从未连上 / 已掉线 | 轮询接管（最快 5 秒一次心跳判断，实际 10 秒一次请求） |
+| App 在后台 | 不轮询 |
+| 上次刷新还没结束 | 等它；卡住超过 25 秒允许重来 |
+
+⚠️ 早前的实现用 `isLive`（`isConnected || readyServerID != nil`）判断"有 WS 就别轮询"。
+`readyServerID` 在 WS 掉线后不会清空 → 轮询被**永久跳过** → 状态卡死在「加载中」
+（真机反馈）。现在完全以"WS 是否还有消息"为准，不再依赖那个布尔值。
+
 ## 各自负责什么
 
 | 场景 | 谁提供状态 |
