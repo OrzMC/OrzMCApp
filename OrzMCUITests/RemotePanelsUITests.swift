@@ -251,6 +251,48 @@ final class RemotePanelsUITests: XCTestCase {
         )
     }
 
+    /// 内存：调大 → 「未保存」→ 点「还原」必须回到原值。
+    ///
+    /// 回归真机反馈：「还原」和「保存」表现相同、点还原不复原 —— 根因是 Form 行里多个
+    /// 默认样式 Button 被合并成一个点击区域，点「还原」实际触发的是第一个按钮。
+    func testMemoryRevertRestoresValue() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+
+        // 滚到内存区
+        let allocated = app.staticTexts["分配内存"]
+        for _ in 0..<4 where !allocated.exists { app.swipeUp() }
+        XCTAssertTrue(allocated.waitForExistence(timeout: 10), "详情页应有内存区")
+
+        let stepper = app.steppers.firstMatch
+        XCTAssertTrue(stepper.waitForExistence(timeout: 10), "应有内存步进器")
+        XCTAssertTrue(memoryValue(app).contains("4 GB"), "假服务器内存初始值应为 4 GB，实际：\(memoryValue(app))")
+
+        stepper.buttons.element(boundBy: 1).tap()      // 加大
+        XCTAssertTrue(waitUntil(timeout: 10) { memoryValue(app).contains("5 GB") },
+                      "步进器应改到 5 GB，实际：\(memoryValue(app))")
+        XCTAssertTrue(app.staticTexts["尚未保存的更改"].exists, "改过就应提示未保存")
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+
+        let revert = app.buttons["还原"]
+        XCTAssertTrue(revert.waitForExistence(timeout: 5), "应出现「还原」")
+        revert.tap()
+        XCTAssertTrue(waitUntil(timeout: 10) { memoryValue(app).contains("4 GB") },
+                      "点「还原」应回到已确认的 4 GB，实际：\(memoryValue(app))")
+        XCTAssertFalse(app.staticTexts["尚未保存的更改"].exists, "还原后不应再有未保存提示")
+    }
+
+    /// 内存行显示的值 —— `LabeledContent` 会把标签和值合成一个可访问性元素
+    /// （实测 label 是「分配内存、4 GB」），所以按"包含 GB 的文本"取再到里面找数字。
+    private func memoryValue(_ app: XCUIApplication) -> String {
+        app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'GB'")).firstMatch.label
+    }
+
     // MARK: - 视觉巡检（截图）
 
     /// 走一遍主要界面，把每个状态截成附件，用于人工/模型一起看视觉问题。
@@ -383,6 +425,7 @@ final class RemotePanelsUITests: XCTestCase {
     func testRealSelfHostedServerShowsOnline() throws {
         let config = try selfHostedConfig()
         let app = makeApp()
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_FAKE_SELFHOSTED")   // 必须走真实网络
         app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] =
             "\(config.name)|\(config.host)|\(config.port)|\(config.rconPort)|\(config.password.isEmpty ? "0" : "1")"
         if !config.password.isEmpty { app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = config.password }
@@ -410,6 +453,7 @@ final class RemotePanelsUITests: XCTestCase {
                           "RCON 用例需要显式开启（UI_TEST_RCON=1）")
 
         let app = makeApp()
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_FAKE_SELFHOSTED")   // 必须走真实网络
         app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "\(config.name)|\(config.host)|\(config.port)|\(config.rconPort)|1"
         app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = config.password
         app.launch()
@@ -427,8 +471,25 @@ final class RemotePanelsUITests: XCTestCase {
         input.typeText("list")
         app.buttons["selfHosted.consoleSend"].tap()
 
-        let replied = waitUntil(timeout: 30) {
+        var replied = waitUntil(timeout: 30) {
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'players online'")).firstMatch.exists
+        }
+        // 也发一次 `banlist`，把服务端**原样回复**打出来（排查"封禁列表是一段文本"这种问题）。
+        if replied {
+            input.tap()
+            input.typeText("banlist")
+            app.buttons["selfHosted.consoleSend"].tap()
+            _ = waitUntil(timeout: 15) { false }
+            let lines = app.staticTexts.allElementsBoundByIndex.map { $0.label }
+                .filter { $0.contains("ban") || $0.contains("--[HERE]") }
+            let dump = XCTAttachment(string: lines.joined(separator: "\n"))
+            dump.name = "banlist-dump"
+            keep(dump)
+
+            // 真实封禁名单的渲染：回到玩家卡，切到「封禁」页签截图（原因很长，最考验排版）。
+            for _ in 0..<8 { app.swipeDown() }
+            selectPlayerTab(app, matching: "封禁")
+            keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
         }
         if !replied {
             // 把界面上的错误文案一起报出来，省得再跑一趟去猜。

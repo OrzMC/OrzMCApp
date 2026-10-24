@@ -53,10 +53,17 @@ struct ExarotonMemorySection: View {
                     .disabled(isBusy || serverStatus != .OFFLINE)
 
                     if memory.isDirty || memory.isSaving {
+                        // ⚠️ 按钮必须各自加 `.borderless`：在 Form 行里，多个默认样式 Button 会被
+                        // 合并成一个点击区域，点「还原」实际触发的还是第一个按钮（保存）——
+                        // 真机反馈"还原和保存表现相同、点还原不复原"就是这个。
                         HStack(spacing: OrzMCTheme.Spacing.sm) {
-                            Button("Save Memory", action: onSave)
+                            Button("Save", action: onSave)
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
                                 .disabled(!canSave)
                             Button("Revert", action: onRevert)
+                                .buttonStyle(.borderless)
+                                .controlSize(.small)
                                 .disabled(memory.isSaving)
                             if !memory.isSaving {
                                 Text("Unsaved changes")
