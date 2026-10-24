@@ -55,7 +55,10 @@ fi
 # 把可用的凭据转成传给测试进程的环境变量（TEST_RUNNER_ 前缀由 xcodebuild 剥掉）
 RUNNER_SECRETS=()
 add_secret() { # add_secret <测试侧变量名> <值>
-  [[ -n "${2:-}" ]] && RUNNER_SECRETS+=("TEST_RUNNER_$1=$2")
+  # 注意：必须用 if 而不是 `[[ … ]] && …` —— 后者在值为空时返回 1，配合 set -e 会直接终止脚本。
+  if [[ -n "${2:-}" ]]; then
+    RUNNER_SECRETS+=("TEST_RUNNER_$1=$2")
+  fi
 }
 add_secret ORZMC_UITEST_SELFHOSTED_HOST          "${ORZMC_UITEST_SELFHOSTED_HOST:-}"
 add_secret ORZMC_UITEST_SELFHOSTED_PORT          "${ORZMC_UITEST_SELFHOSTED_PORT:-}"
@@ -142,7 +145,7 @@ if [[ -n "$DEVICE" ]]; then
   step "执行 UI 测试（真机）"
   echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac；默认测试用应用内假数据）"
   TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
-    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" "${RUNNER_SECRETS[@]:-}" 2>&1 \
+    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" ${RUNNER_SECRETS[@]+"${RUNNER_SECRETS[@]}"} 2>&1 \
     | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
   exit ${PIPESTATUS[0]}
 fi
@@ -150,18 +153,16 @@ fi
 step "构建测试（build-for-testing）"
 xcodebuild build-for-testing "${COMMON[@]}" 2>&1 | tail -8
 
-if [[ -z "$DEVICE" ]]; then
-  step "预装 App（规避 Xcode 的 bundle identifier 读取 bug）"
-  xcrun simctl install "$UDID" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/OrzMC.app"
-fi
+# 同一个坑在模拟器上也存在（Xcode 27 把 UITargetAppPath 写成不带 .app 的路径），
+# 所以两条路径都修一遍；修完就不再依赖"预先装 App"这个 workaround。
+SIM_XCTESTRUN="$(ls -t "$DERIVED_DATA"/Build/Products/*_iphonesimulator*.xctestrun 2>/dev/null | head -1 || true)"
+[[ -n "$SIM_XCTESTRUN" ]] && python3 scripts/dev/patch-xctestrun.py "$SIM_XCTESTRUN"
 
-step "执行 UI 测试"
-# 真机上 127.0.0.1 是手机自己：把 Mac 的局域网地址通过 TEST_RUNNER_ 前缀传给测试 bundle。
-RUNNER_ENV=()
-if [[ -n "$DEVICE" ]]; then
-  LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
-  [[ -n "$LAN_IP" ]] && RUNNER_ENV+=(TEST_RUNNER_UITEST_HOST="$LAN_IP")
-  echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac）"
-fi
-xcodebuild test-without-building "${COMMON[@]}" "${RUNNER_ENV[@]:-}" 2>&1 \
+step "预装 App（双保险：某些 Xcode 版本没装过 App 会读不到 bundle identifier）"
+xcrun simctl install "$UDID" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/OrzMC.app"
+
+step "执行 UI 测试（模拟器）"
+# 空数组要用 ${arr[@]+"${arr[@]}"} 展开成"零个参数"；
+# 写成 "${arr[@]:-}" 会变成一个空字符串参数，xcodebuild 会报 `Unknown build action ''`。
+xcodebuild test-without-building "${COMMON[@]}" ${RUNNER_SECRETS[@]+"${RUNNER_SECRETS[@]}"} 2>&1 \
   | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
