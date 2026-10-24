@@ -9,6 +9,38 @@ import SwiftUI
 
 struct ExarotonContent: View {
     @State private var model = ExarotonServerModel()
+
+    #if DEBUG
+    /// **诊断钩子**（仅 DEBUG）：`ORZMC_DEMO_DIAGNOSE=1` 启动后自动连第一台服务器，把 WS/ready/流/控制台
+    /// 状态写成 `Documents/orzmc-diagnose.json`。用于真机排查"在线但控制台连不上"——
+    /// 真机不能点屏幕，但可以用 `devicectl device copy` 把这个文件取回来。
+    private func runDiagnosticsIfRequested() async {
+        guard ProcessInfo.processInfo.environment["ORZMC_DEMO_DIAGNOSE"] == "1" else { return }
+        await model.reloadList()
+        guard let server = model.servers.first, let id = server.id else { return }
+        model.startConnect(for: id)
+
+        var report: [[String: String]] = []
+        for step in 0..<6 {
+            try? await Task.sleep(for: .seconds(5))
+            report.append([
+                "t": "\(step * 5)s",
+                "isConnected": String(model.isConnected),
+                "readyServerID": model.readyServerID ?? "-",
+                "expectedServerID": id,
+                "activeStreams": model.activeStreams.map(\.rawValue).sorted().joined(separator: ","),
+                "consoleLines": String(model.consoleLines.count),
+                "disconnectedReason": model.disconnectedReason ?? "-",
+                "errorMessage": model.errorMessage ?? "-",
+                "status": server.serverStatus.map { String(describing: $0) } ?? "-",
+            ])
+        }
+        let json = try? JSONSerialization.data(withJSONObject: report, options: .prettyPrinted)
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("orzmc-diagnose.json")
+        try? json?.write(to: url)
+    }
+    #endif
     var body: some View {
         NavigationStack(path: $model.path) {
             ExarotonServerList().environment(model)
@@ -21,6 +53,9 @@ struct ExarotonContent: View {
         } message: {
             Text(verbatim: model.errorMessage ?? "")
         }
+        #if DEBUG
+        .task { await runDiagnosticsIfRequested() }
+        #endif
     }
 }
 
