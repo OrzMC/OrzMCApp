@@ -79,6 +79,40 @@ final class RemotePanelsUITests: XCTestCase {
         app.buttons["取消"].tap()
     }
 
+    /// **真机专属**：用真实 exaroton 账号进第一台服务器的详情页，验证控制台是否连上。
+    ///
+    /// 需要设备上已有 Token（跑之前先手动登录过一次）。用 `ORZMC_UITEST_REAL_ACCOUNT=1` 开启，
+    /// 模拟器上默认跳过。
+    func testRealAccountConsoleAppears() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_REAL_ACCOUNT"] == "1",
+                          "需要真机 + 真实 exaroton Token，设置 ORZMC_UITEST_REAL_ACCOUNT=1 才跑")
+
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
+        app.launch()
+
+        // 列表第一行（真实账号里的服务器）
+        let firstServer = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'PaperMC'")).firstMatch
+        XCTAssertTrue(firstServer.waitForExistence(timeout: 20), "应能看到真实账号下的服务器卡片")
+        firstServer.tap()
+
+        // 控制台区块必须存在（未连接时应显示占位 + 重连，而不是整块消失）
+        let consoleTitle = app.staticTexts["控制台（RCON）"]
+        let consoleFallback = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '控制台'")).firstMatch
+        XCTAssertTrue(consoleTitle.waitForExistence(timeout: 15) || consoleFallback.exists,
+                      "详情页应有控制台区块")
+        add(XCTAttachment(screenshot: app.screenshot()))
+
+        // 等 15 秒，看是否出现 WS 诊断行（connected / disconnected）
+        let diagnostic = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'WS:'")).firstMatch
+        if diagnostic.waitForExistence(timeout: 15) {
+            XCTContext.runActivity(named: "WS 诊断") { activity in
+                activity.add(XCTAttachment(string: diagnostic.label))
+            }
+            XCTFail("控制台未连接，诊断：\(diagnostic.label)")
+        }
+    }
+
     /// 远程托管：用假服务器进详情页，确认动作区三个按钮都在（不需要 exaroton Token）。
     func testRemoteDetailShowsActionButtons() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
