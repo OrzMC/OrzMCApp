@@ -77,12 +77,25 @@ COMMON=(
 )
 [[ -n "$DEVICE" ]] || COMMON+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='')
 
-step "构建（build-for-testing）"
+# 先单独构建 App：Xcode 在 "Products 里没有 OrzMC.app" 时会报
+# `bundle identifier for OrzMC couldn't be read`（路径少了 .app），这一步保证产物一定在。
+step "构建 App"
+if [[ -n "$DEVICE" ]]; then
+  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
+    -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
+    -skipPackageUpdates -skipPackagePluginValidation -skipMacroValidation 2>&1 | tail -4
+else
+  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
+    -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
+    -skipPackageUpdates -skipPackagePluginValidation -skipMacroValidation \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' 2>&1 | tail -4
+fi
+
+step "构建测试（build-for-testing）"
 xcodebuild build-for-testing "${COMMON[@]}" 2>&1 | tail -8
 
 if [[ -z "$DEVICE" ]]; then
   step "预装 App（规避 Xcode 的 bundle identifier 读取 bug）"
-  xcrun simctl uninstall "$UDID" com.joker.OrzMC.iOS 2>/dev/null || true
   xcrun simctl install "$UDID" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/OrzMC.app"
 fi
 
