@@ -124,7 +124,7 @@
 		F310C79E2C8B535700590F32 /* ExarotonCopyableText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F310C79D2C8B535700590F32 /* ExarotonCopyableText.swift */; };
 		F310C7A02C8B6B5D00590F32 /* documentation.docc in Sources */ = {isa = PBXBuildFile; fileRef = F310C79F2C8B6B5D00590F32 /* documentation.docc */; };
 		F3B18FAC2BE242A2002C7851 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B18FAB2BE242A2002C7851 /* Constants.swift */; };
-		F3FE52112BF7B494006E79AA /* ExarotonServerStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FE52102BF7B494006E79AA /* ExarotonServerStatusView.swift */; };
+		F3FE52112BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FE52102BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift */; };
 		F3FE52132BF7B4FC006E79AA /* ExarotonServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FE52122BF7B4FC006E79AA /* ExarotonServerView.swift */; };
 		C0D000010000000000000002 /* LauncherServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D000020000000000000002 /* LauncherServicesTests.swift */; };
 		C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D000020000000000000003 /* ProtocolPacketTests.swift */; };
@@ -247,7 +247,7 @@
 		F3B4D0DD2A1A777A0095B108 /* MCServerInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCServerInfo.swift; sourceTree = "<group>"; };
 		F3B4D0DE2A1A777A0095B108 /* MCServerStatusInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCServerStatusInfo.swift; sourceTree = "<group>"; };
 		F3B4D0E62A1A7BEB0095B108 /* MCServerInfo+Equatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCServerInfo+Equatable.swift"; sourceTree = "<group>"; };
-		F3FE52102BF7B494006E79AA /* ExarotonServerStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerStatusView.swift; sourceTree = "<group>"; };
+		F3FE52102BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerStatus+Presentation.swift"; sourceTree = "<group>"; };
 		F3FE52122BF7B4FC006E79AA /* ExarotonServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerView.swift; sourceTree = "<group>"; };
 		F3FFCD152C45856100414587 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -388,7 +388,7 @@
 				CD2026102200000000000002 /* ExarotonMemorySection.swift */,
 				F3FE52122BF7B4FC006E79AA /* ExarotonServerView.swift */,
 				2B5ACA552BFB136200397BFC /* ExarotonCreditPoolView.swift */,
-				F3FE52102BF7B494006E79AA /* ExarotonServerStatusView.swift */,
+				F3FE52102BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift */,
 				2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */,
 				2B5ACA692BFB5C8A00397BFC /* ExarotonTradeMarkView.swift */,
 				2B5BC3D42BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift */,
@@ -906,7 +906,7 @@
 				C0D300010000000000000002 /* CommandLineSettingsSection.swift in Sources */,
 				2BA06D742DA2E6500043C0CE /* GameList.swift in Sources */,
 				F310C79E2C8B535700590F32 /* ExarotonCopyableText.swift in Sources */,
-				F3FE52112BF7B494006E79AA /* ExarotonServerStatusView.swift in Sources */,
+				F3FE52112BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

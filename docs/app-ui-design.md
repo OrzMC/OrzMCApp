@@ -232,6 +232,21 @@ macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部�
 - 如果将来要做“多实例并行管理”，正确方向是 `WindowGroup(for: InstanceID.self)` + 共享 `AppModel`，
   而不是复制 `AppModel`。
 
+### 3.x 状态徽章里的旋转图标：时间驱动
+
+进行态（开始中/停止中/加载中…）的图标**必须一直转**。踩过两次坑：
+
+1. `symbolEffect(.rotate)`：依赖符号重新插入，文案更新引起局部重绘就停；
+2. `rotationEffect` + `@State` 角度 + `repeatForever`：`onAppear` 里直接赋 360° 没有动画事务 →
+   首次出现不转；从详情页返回再进入时视图重建、`@State` 已是 360° 且不再触发 `onChange` → 永远不动。
+
+现在的实现：角度由 `TimelineView` 的时间算出（`Sources/OrzMCDesignSystem/StatusBadge.swift`），
+没有状态、不依赖动画事务，重建多少次都继续转。所有徽章（列表卡片、详情概览、额度池里的服务器、
+自建服务器、macOS 侧栏/控制台）都从这里出，改一次全生效。
+
+回归测试：`testStatusBadgeKeepsSpinningAfterReentering` —— 截两次徽章区域比像素，
+覆盖"首次出现 / 进详情 / 返回 / 再进"四种时刻。
+
 ---
 
 ## 4. Settings 崩溃：根因与修复
@@ -347,7 +362,7 @@ Settings {
 | 能力 | macOS 14 | iOS 18 | 做法 |
 |---|---|---|---|
 | 语义色/字体 | ✅ | ✅ | `OrzMCTheme` 只用 SwiftUI 跨平台 API |
-| 状态徽标 / 标签 / 提示条 | ✅ | ✅ | `OrzMCDesignSystem` 共用 |
+| 状态徽标 / 标签 / 提示条 | ✅ | ✅ | `OrzMCDesignSystem` 共用（**唯一**状态徽章实现：`OrzMCStatusBadge`） |
 | Exaroton 面板 | ✅ | ✅ | `Common/ExarotonUI` 共用；平台差异 `#if os` |
 | 远程列表行 | `NavigationLink` + `.listStyle(.inset)` | `NavigationLink` + 默认 insetGrouped | 同一份代码 |
 | 控制台 | 等宽日志 + 命令输入 + 独立窗口 | 日志 + 命令 sheet | `ServerConsoleView` 仅 macOS；Exaroton 控制台共用 |
