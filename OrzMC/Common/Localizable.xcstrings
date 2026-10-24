@@ -4381,12 +4381,12 @@
         }
       }
     },
-    "The server closed the connection. For RCON this usually means enable-rcon is off, rcon.port points at another service, or the password is empty.": {
+    "The server closed the connection. For RCON check enable-rcon, rcon.port and rcon.password; if you use a domain name, make sure it points straight at the server and not at a reverse proxy or CDN.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "服务端断开了连接。RCON 下多半是没开 enable-rcon、rcon.port 指到了别的服务，或密码为空。"
+            "value": "服务端断开了连接。RCON 请检查 enable-rcon、rcon.port、rcon.password；用域名访问时要确认它直达服务器，而不是反向代理或 CDN。"
           }
         }
       }
