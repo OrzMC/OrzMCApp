@@ -42,6 +42,7 @@ static_checks() {
   ./scripts/check-platform-split.sh
   python3 scripts/dev/check-pbxproj.py
   python3 scripts/dev/check-localization.py
+  ./scripts/dev/check-status-source.sh
   python3 scripts/dev/check-secrets.py
   ok "静态检查通过"
 }

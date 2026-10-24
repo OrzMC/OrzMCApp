@@ -93,4 +93,29 @@ final class PlayerListParserTests: XCTestCase {
         XCTAssertTrue(PlayerListParser.banned(from: "There are no bans.").isEmpty)
         XCTAssertTrue(PlayerListParser.banned(from: "There are 0 ban(s):").isEmpty)
     }
+
+    /// 真实服务器（Paper）换行被吞掉后的形态：整段一行、条目之间没有任何分隔符。
+    /// 旧解析会把整段当"一个玩家名"（真机反馈"封禁列表像一段文本"）。
+    func testBanlistWithoutLineBreaksSplitsByWording() {
+        let reply = "There are 3 ban(s):176.65.148.132 was banned by Console: 你已被此服务器封禁！"
+            + "king was banned by Console: 真当自己是王了啊"
+            + "156.146.63.150 was banned by Server: Banned by an operator."
+        let bans = PlayerListParser.banned(from: reply)
+        XCTAssertEqual(bans.map(\.name), ["176.65.148.132", "king", "156.146.63.150"])
+        XCTAssertEqual(bans[0].reason, "你已被此服务器封禁！")
+        XCTAssertEqual(bans[1].reason, "真当自己是王了啊")
+        XCTAssertEqual(bans[2].reason, "Banned by an operator.")
+    }
+
+    /// 带换行的常规形态同样要能解析（两种形态不能互相干扰）。
+    func testBanlistWithLineBreaksUsesSameStructure() {
+        let reply = """
+        There are 2 ban(s):
+        alice was banned by Console: griefing
+        bob was banned by Server: cheating
+        """
+        let bans = PlayerListParser.banned(from: reply)
+        XCTAssertEqual(bans.map(\.name), ["alice", "bob"])
+        XCTAssertEqual(bans.map(\.reason), ["griefing", "cheating"])
+    }
 }

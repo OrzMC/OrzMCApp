@@ -40,6 +40,7 @@ struct ExarotonServerView: View {
 
                 Spacer(minLength: OrzMCTheme.Spacing.sm)
 
+                // 兜底读快照：调用方没传 `status` 时才走这里（预览/旧调用点）。
                 if showStatus, let status = status ?? server.serverStatus {
                     OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
                 }

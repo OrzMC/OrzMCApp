@@ -351,7 +351,7 @@ struct SelfHostedServerView: View {
                     emptyRow(String(localized: "Nobody is banned."))
                 }
                 ForEach(model.currentLists.banned, id: \.name) { entry in
-                    playerRow(entry.reason.map { "\(entry.name)（\($0)）" } ?? entry.name) {
+                    playerRow(entry.name, subtitle: entry.reason) {
                         action("Unban") { await model.performPlayerAction("pardon \(entry.name)") }
                     }
                 }
@@ -397,12 +397,30 @@ struct SelfHostedServerView: View {
         .orzMCPanel()
     }
 
-    private func playerRow(_ title: String, @ViewBuilder actions: () -> some View) -> some View {
-        HStack(spacing: OrzMCTheme.Spacing.sm) {
-            Text(verbatim: title)
-                .font(OrzMCTheme.Typography.code)
-                .lineLimit(1)
-                .truncationMode(.middle)
+    /// 一行玩家：名字（`subtitle` 有值时为两行，第二行是封禁原因等次要信息）。
+    ///
+    /// 封禁原因经常是一整句甚至带中文逗号/冒号的长文本（实测真实服务器：
+    /// "176.65.148.132 was banned by Console: 你已被此服务器封禁！"），
+    /// 之前把它拼进标题里，整行就变成"一段话"。现在名字一行、原因一行并截断。
+    private func playerRow(
+        _ title: String,
+        subtitle: String? = nil,
+        @ViewBuilder actions: () -> some View
+    ) -> some View {
+        HStack(alignment: subtitle == nil ? .center : .top, spacing: OrzMCTheme.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: title)
+                    .font(OrzMCTheme.Typography.code)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(verbatim: subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                }
+            }
             Spacer(minLength: OrzMCTheme.Spacing.sm)
             actions()
         }

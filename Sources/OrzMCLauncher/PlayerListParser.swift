@@ -51,9 +51,32 @@ public enum PlayerListParser {
         return splitNames(tail)
     }
 
-    /// `banlist`：名字后面常跟 `(原因)`，甚至一行一个。返回 `(名字, 原因?)`。
+    /// `banlist`：返回 `(名字, 原因?)`。
+    ///
+    /// 两种真实形态都要处理（实测同一台 Paper）：
+    ///
+    /// ```
+    /// There are 2 ban(s):
+    /// alice was banned by Console: griefing
+    /// bob (cheating)
+    /// ```
+    ///
+    /// 以及 **换行被吞掉**、整段连成一行的情况：
+    ///
+    /// ```
+    /// There are 7 ban(s):176.65.148.132 was banned by Console: 你已被此服务器封禁！king was banned by ...
+    /// ```
+    ///
+    /// 后者不能按逗号/换行切，否则整段会被当成"一个玩家名"（真机反馈"封禁列表像一段文本"）。
+    /// 名字在 Minecraft 里不含空格，所以按 `名字 + was banned by 来源:` 这个结构切最稳。
     public static func banned(from reply: String) -> [(name: String, reason: String?)] {
-        guard !isCommandError(reply), let tail = tailAfterColon(in: reply) else { return [] }
+        guard !isCommandError(reply) else { return [] }
+
+        if let structured = bannedByBanListWording(reply), !structured.isEmpty {
+            return structured
+        }
+
+        guard let tail = tailAfterColon(in: reply) else { return [] }
         return splitEntries(tail).compactMap { entry in
             let (head, reason) = splitReason(entry)
             let name = head.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -61,6 +84,36 @@ public enum PlayerListParser {
             guard !name.isEmpty, name != "-", name.lowercased() != "none" else { return nil }
             return (name, reason)
         }
+    }
+
+    /// 解析 `"<名字> was banned by <来源>: <原因>"` 这种结构（可连续出现、行内无分隔符）。
+    static func bannedByBanListWording(_ reply: String) -> [(name: String, reason: String?)]? {
+        // 名字：用户名（字母数字下划线）或 IP（数字点）。不含空格。
+        let pattern = "([A-Za-z0-9_.\\-]{2,45})\\s+was\\s+banned\\s+by\\s+([^:]{1,40}):\\s*"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let ns = reply as NSString
+        let matches = regex.matches(in: reply, range: NSRange(location: 0, length: ns.length))
+        guard !matches.isEmpty else { return nil }
+
+        var entries: [(String, String?)] = []
+        for (index, match) in matches.enumerated() {
+            let name = ns.substring(with: match.range(at: 1))
+            let source = ns.substring(with: match.range(at: 2))
+            let reasonStart = match.range.location + match.range.length
+            let reasonEnd = index + 1 < matches.count
+                ? matches[index + 1].range.location
+                : ns.length
+            guard reasonEnd > reasonStart else {
+                entries.append((name, source))
+                continue
+            }
+            let rawReason = ns.substring(with: NSRange(location: reasonStart, length: reasonEnd - reasonStart))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // "Server"/"Console" 这类来源没信息量；有自定义原因时优先展示原因。
+            let reason = rawReason.isEmpty ? source : rawReason
+            entries.append((name, reason))
+        }
+        return entries
     }
 
     // MARK: - 内部

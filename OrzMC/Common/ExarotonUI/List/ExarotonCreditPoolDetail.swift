@@ -60,7 +60,10 @@ struct ExarotonCreditPoolDetail: View {
                 Section {
                     ForEach(servers) { server in
                         NavigationLink(value: server) {
-                            ExarotonServerView(server: server)
+                            ExarotonServerView(
+                                server: server,
+                                status: model.effectiveStatus(for: server)
+                            )
                         }
                     }
                 } header: {
