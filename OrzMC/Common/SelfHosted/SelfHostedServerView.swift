@@ -331,7 +331,7 @@ struct SelfHostedServerView: View {
                     playerRow(name) {
                         if model.canRunCommands {
                             action("Kick") { await model.performPlayerAction("kick \(name)") }
-                            action("OP") { await model.performPlayerAction("op \(name)") }
+                            action("Grant OP") { await model.performPlayerAction("op \(name)") }
                             action("Ban") { await model.performPlayerAction("ban \(name)") }
                         }
                     }
@@ -342,8 +342,8 @@ struct SelfHostedServerView: View {
                 }
                 ForEach(model.currentLists.whitelisted, id: \.self) { name in
                     playerRow(name) {
-                        action("Remove") { await model.performPlayerAction("whitelist remove \(name)") }
-                        action("OP") { await model.performPlayerAction("op \(name)") }
+                        action("Remove from Whitelist") { await model.performPlayerAction("whitelist remove \(name)") }
+                        action("Grant OP") { await model.performPlayerAction("op \(name)") }
                     }
                 }
             case .banned:
@@ -398,10 +398,12 @@ struct SelfHostedServerView: View {
     }
 
     private func playerRow(_ title: String, @ViewBuilder actions: () -> some View) -> some View {
-        HStack(spacing: OrzMCTheme.Spacing.xs) {
+        HStack(spacing: OrzMCTheme.Spacing.sm) {
             Text(verbatim: title)
                 .font(OrzMCTheme.Typography.code)
-            Spacer(minLength: 0)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: OrzMCTheme.Spacing.sm)
             actions()
         }
     }
@@ -412,7 +414,9 @@ struct SelfHostedServerView: View {
             .foregroundStyle(.tertiary)
     }
 
-    private func action(_ title: String, perform: @escaping () async -> Void) -> some View {
+    /// 注意参数类型必须是 `LocalizedStringKey`：`Button("Kick")` 传 String 字面量会走
+    /// `StringProtocol` 那个重载，**不会本地化**——之前中文界面里显示英文 Kick/OP/Ban 就是这个原因。
+    private func action(_ title: LocalizedStringKey, perform: @escaping () async -> Void) -> some View {
         Button(title) { Task { await perform() } }
             .buttonStyle(.borderless)
             .controlSize(.small)

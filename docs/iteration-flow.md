@@ -233,6 +233,23 @@ TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1 TEST_RUNNER_ORZMC_UITEST_POWER_CYCLE=1 \
 截图/诊断附件统一用 `keep()`（`lifetime = .keepAlways`），否则测试通过后附件会被丢掉；
 `-resultBundlePath /tmp/rb.xcresult` + `xcrun xcresulttool export attachments` 就能取回。
 
+### 视觉巡检（截图）
+
+要"看一眼界面"时不用手点：`testSnapshotTour` / `testSnapshotTourRemote` 会把主要界面
+挨个走一遍并截图（自建页/三个名单页签/控制台/设置/添加/远程列表/远程详情三段）。
+
+```bash
+TEST_RUNNER_ORZMC_UITEST_SNAPSHOTS=1 xcodebuild test-without-building \
+  -xctestrun <已修的 xctestrun> -destination 'platform=iOS Simulator,id=<UDID>' \
+  -only-testing:OrzMCUITests/RemotePanelsUITests/testSnapshotTour \
+  -only-testing:OrzMCUITests/RemotePanelsUITests/testSnapshotTourRemote \
+  -resultBundlePath /tmp/rb.xcresult
+xcrun xcresulttool export attachments --path /tmp/rb.xcresult --output-path /tmp/snaps
+```
+
+截图带名字（`01-selfhosted-top` 等），附件用 `keep()` 保留。**这套流程就是这轮 UI 打磨的来源**
+（玩家行英文按钮、地址字号盖过服务器名、工具栏常驻转圈、TabBar 切掉最后一张卡）。
+
 写用例时注意：
 - 用 `accessibilityIdentifier`（如 `selfHosted.settings`），不要依赖本地化文案——文案一改测试就红；
 - 测试专用的数据注入走 DEBUG 环境变量（`ORZMC_DEMO_SEED_PROFILE` / `ORZMC_DEMO_RCON_PASSWORD` /
