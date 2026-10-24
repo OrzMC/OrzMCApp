@@ -29,7 +29,10 @@ extension ServerStatus {
     /// 界面据此禁用按钮并显示转圈。
     var isTransitional: Bool {
         switch self {
-        case .STARTING, .STOPPING, .RESTARTING, .SAVING, .LOADING, .PENDING, .PREPARING:
+        case .STARTING, .STOPPING, .RESTARTING, .SAVING, .LOADING, .PENDING, .PREPARING, .TRANSFERRING:
+            return true
+        // 未知状态（SDK 遇到没见过的状态码）也按过渡态处理：状态没稳定前不许动作。
+        case .UNKNOWN:
             return true
         case .ONLINE, .OFFLINE, .CRASHED:
             return false
@@ -49,6 +52,8 @@ extension ServerStatus {
         case .CRASHED: return String(localized: "Crashed")
         case .PENDING: return String(localized: "Pending…")
         case .PREPARING: return String(localized: "Preparing…")
+        case .TRANSFERRING: return String(localized: "Transferring…")
+        case .UNKNOWN: return String(localized: "Unknown status")
         }
     }
 
@@ -56,7 +61,8 @@ extension ServerStatus {
         switch self {
         case .OFFLINE: return .idle
         case .ONLINE: return .running
-        case .STARTING, .STOPPING, .RESTARTING, .SAVING, .LOADING, .PENDING, .PREPARING: return .busy
+        case .STARTING, .STOPPING, .RESTARTING, .SAVING, .LOADING, .PENDING, .PREPARING, .TRANSFERRING: return .busy
+        case .UNKNOWN: return .busy
         case .CRASHED: return .error
         }
     }
@@ -70,10 +76,12 @@ extension ServerStatus {
             return .init("stop.circle", OrzMCTheme.Palette.idle)
         case .ONLINE:
             return .init("play.circle.fill", OrzMCTheme.Palette.success)
-        case .STARTING, .LOADING, .PREPARING, .PENDING, .RESTARTING:
+        case .STARTING, .LOADING, .PREPARING, .PENDING, .RESTARTING, .TRANSFERRING:
             return .init("arrow.triangle.2.circlepath", OrzMCTheme.Palette.warning, true)
         case .STOPPING, .SAVING:
             return .init("stop.circle", OrzMCTheme.Palette.warning, true)
+        case .UNKNOWN:
+            return .init("questionmark.circle", OrzMCTheme.Palette.warning, true)
         case .CRASHED:
             return .init("exclamationmark.triangle.fill", OrzMCTheme.Palette.danger)
         }

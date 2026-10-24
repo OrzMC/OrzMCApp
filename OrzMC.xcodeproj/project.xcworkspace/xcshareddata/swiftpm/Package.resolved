@@ -33,8 +33,8 @@
       "kind": "remoteSourceControl",
       "location": "https://github.com/OrzMC/ExarotonAPI.git",
       "state": {
-        "revision": "1eea5719e44fec7dfe07f8a310359e2577344ead",
-        "version": "0.0.9"
+        "revision": "bd965265ed4309b363249b8d87e1b58c7c49863d",
+        "version": "0.0.10"
       }
     },
     {
