@@ -91,6 +91,19 @@ else
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' 2>&1 | tail -4
 fi
 
+if [[ -n "$DEVICE" ]]; then
+  # ⚠️ 真机**不能**走 build-for-testing + test-without-building：
+  # 那条路会在 `testmanagerd` 建立 UI 自动化通道时被拒绝
+  # （`Connection peer refused channel request for dtxproxy:XCTestDriverInterface`、
+  # runner 以 code 74 退出 —— 实测 iOS 27 / Xcode 27）。必须用 `xcodebuild test`。
+  LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+  step "构建并执行 UI 测试（真机）"
+  echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac）"
+  TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test "${COMMON[@]}" 2>&1 \
+    | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
+  exit ${PIPESTATUS[0]}
+fi
+
 step "构建测试（build-for-testing）"
 xcodebuild build-for-testing "${COMMON[@]}" 2>&1 | tail -8
 
@@ -100,4 +113,12 @@ if [[ -z "$DEVICE" ]]; then
 fi
 
 step "执行 UI 测试"
-xcodebuild test-without-building "${COMMON[@]}" 2>&1 | grep -E "Test Case|Test Suite|\*\* TEST" | tail -30
+# 真机上 127.0.0.1 是手机自己：把 Mac 的局域网地址通过 TEST_RUNNER_ 前缀传给测试 bundle。
+RUNNER_ENV=()
+if [[ -n "$DEVICE" ]]; then
+  LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+  [[ -n "$LAN_IP" ]] && RUNNER_ENV+=(TEST_RUNNER_UITEST_HOST="$LAN_IP")
+  echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac）"
+fi
+xcodebuild test-without-building "${COMMON[@]}" "${RUNNER_ENV[@]:-}" 2>&1 \
+  | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30

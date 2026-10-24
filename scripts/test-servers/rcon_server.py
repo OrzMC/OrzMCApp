@@ -8,7 +8,8 @@ import struct
 import sys
 import threading
 
-HOST = "127.0.0.1"
+# 绑定所有网卡：模拟器用 127.0.0.1，真机用 Mac 的局域网地址（0.0.0.0 两边都能连）。
+HOST = ""
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 25575
 PASSWORD = "testpass"
 
@@ -58,7 +59,7 @@ srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 srv.bind((HOST, PORT))
 srv.listen(5)
-print(f"rcon server listening on {HOST}:{PORT}", flush=True)
+print(f"rcon server listening on {HOST or '0.0.0.0'}:{PORT}", flush=True)
 while True:
     conn, _ = srv.accept()
     threading.Thread(target=handle, args=(conn,), daemon=True).start()
