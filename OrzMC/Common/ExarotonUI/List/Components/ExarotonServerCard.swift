@@ -65,8 +65,8 @@ struct ExarotonServerCard: View {
     private var idLine: some View {
         if let id = server.id {
             Text(id)
-                .font(OrzMCTheme.Typography.code)
-                .foregroundStyle(.secondary)
+                .font(.caption.monospaced())
+                .foregroundStyle(.tertiary)      // id 只是"对上号"用的，不该抢地址的注意力
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .textSelection(.enabled)

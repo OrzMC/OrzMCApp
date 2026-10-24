@@ -61,6 +61,7 @@ struct ExarotonCopyableText: View {
         HStack {
             Text(verbatim: content)
                 .textSelection(.enabled)
+                .fontWeight(.medium)
 
             Spacer()
 
