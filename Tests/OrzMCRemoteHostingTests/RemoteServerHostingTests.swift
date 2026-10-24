@@ -22,6 +22,9 @@ final class RemoteServerHostingTests: XCTestCase {
         XCTAssertTrue(policy.canPerform(.restart, on: .online))
         XCTAssertFalse(policy.canPerform(.start, on: .starting))
         XCTAssertFalse(policy.canPerform(.stop, on: .offline))
+        // 启动中可以取消（真机验收反馈：点了启动只能干等）
+        XCTAssertTrue(policy.canPerform(.stop, on: .starting))
+        XCTAssertFalse(policy.canPerform(.restart, on: .starting))
         XCTAssertFalse(policy.canPerform(.restart, on: .unknown))
     }
 }

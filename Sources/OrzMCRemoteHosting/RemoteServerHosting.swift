@@ -74,7 +74,10 @@ public struct RemoteServerListPolicy: Sendable {
 
     public func canPerform(_ action: RemoteServerAction, on state: RemoteServerState) -> Bool {
         switch (action, state) {
-        case (.start, .offline), (.stop, .online), (.restart, .online):
+        case (.start, .offline), (.restart, .online):
+            return true
+        case (.stop, .online), (.stop, .starting), (.stop, .stopping), (.stop, .restarting):
+            // 「启动中」也允许停止：手滑点了启动不该只能干等（exaroton 侧接受该请求）。
             return true
         default:
             return false
