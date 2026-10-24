@@ -181,6 +181,23 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 **模拟器够用**：它跑在 Mac 上，能直接走真实网络（真实自建服务器、真实 exaroton 账号都能连），
 所以"真实服务器 + 真实账号"这两类**不必上真机**——真机只在发版前验证签名/安装/权限/手感差异。
 
+### 升级 SwiftPM 依赖的 pin 之后必做一步
+
+改了 `Package.resolved` 里钉住的 revision（例如把 `ExarotonAPI` 从 0.0.9 升到 0.0.10）后，
+Xcode 会报：
+
+```
+Couldn’t check out revision …: fatal: unable to read tree (…)
+```
+
+原因是本地 bare repo 缓存里没有那个提交。清一下就正常：
+
+```bash
+./scripts/dev/purge-package-cache.sh ExarotonAPI
+```
+
+（每个 DerivedData 各有一份缓存，脚本会一起清。）
+
 ### 真实凭据怎么放（敏感信息）
 
 模板：`scripts/dev/uitest-secrets.example.env`；真值放 `scripts/dev/uitest-secrets.env`（**已 gitignore**）。
