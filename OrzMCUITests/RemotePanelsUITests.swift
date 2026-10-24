@@ -68,7 +68,7 @@ final class RemotePanelsUITests: XCTestCase {
             .waitForExistence(timeout: 5), "封禁列表应来自 banlist list（带原因）")
 
         XCTAssertTrue(app.staticTexts["控制台（RCON）"].exists, "开了 RCON 应有控制台卡")
-        add(XCTAttachment(screenshot: app.screenshot()))
+        keep(XCTAttachment(screenshot: app.screenshot()))
     }
 
     /// 设置 sheet：点「设置」应立即出现（这是真机反馈过的"偶现加载很久/空白"）。
@@ -84,7 +84,7 @@ final class RemotePanelsUITests: XCTestCase {
         // 2 秒内出现标题，且「测试连接」按钮就在首屏——不需要滚动。
         XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 5), "设置 sheet 必须立刻出现")
         XCTAssertTrue(app.buttons["测试连接"].exists, "连通性区块应在首屏")
-        add(XCTAttachment(screenshot: app.screenshot()))
+        keep(XCTAttachment(screenshot: app.screenshot()))
 
         app.buttons["取消"].tap()
     }
@@ -121,7 +121,7 @@ final class RemotePanelsUITests: XCTestCase {
         let firstServer = app.buttons.matching(identifier: "remote.serverCard").firstMatch
         XCTAssertTrue(firstServer.waitForExistence(timeout: 20), "应能看到真实账号下的服务器卡片")
         firstServer.tap()
-        add(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
 
         // 控制台区块必须存在（未连接时应显示占位 + 重连，而不是整块消失）
         // 控制台在页面下方（懒加载），需要滚动才会进入可访问性树。
@@ -130,7 +130,7 @@ final class RemotePanelsUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(consoleTitle.waitForExistence(timeout: 10), "详情页应有控制台区块")
-        add(XCTAttachment(screenshot: app.screenshot()))
+        keep(XCTAttachment(screenshot: app.screenshot()))
 
         // 等 15 秒，看是否出现 WS 诊断行（connected / disconnected）
         let diagnostic = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'WS:'")).firstMatch
@@ -152,6 +152,83 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["启动服务器"].waitForExistence(timeout: 20), "详情页应能进（假服务器）")
         XCTAssertTrue(app.buttons["停止"].exists)
         XCTAssertTrue(app.buttons["重启"].exists)
-        add(XCTAttachment(screenshot: app.screenshot()))
+        keep(XCTAttachment(screenshot: app.screenshot()))
+    }
+
+    /// **真机专属 · 端到端**：启动服务器 → 状态变在线 → 控制台出现启动日志 →（收尾）停止。
+    ///
+    /// 会真的消耗 exaroton 额度（大约 1–3 分钟），默认跳过；用
+    /// `TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1 TEST_RUNNER_ORZMC_UITEST_POWER_CYCLE=1` 打开。
+    func testStartServerThenConsoleStreams() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_REAL_ACCOUNT"] == "1",
+                          "需要真机 + 真实 exaroton Token")
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_POWER_CYCLE"] == "1",
+                          "会真的启停服务器（消耗额度），设置 ORZMC_UITEST_POWER_CYCLE=1 才跑")
+
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 30), "应能看到真实账号下的服务器卡片")
+        card.tap()
+
+        let stop = app.buttons["停止"]
+        let start = app.buttons["启动服务器"]
+        XCTAssertTrue(stop.waitForExistence(timeout: 20) || start.waitForExistence(timeout: 20),
+                      "详情页应有操作按钮")
+
+        // 已经是在线就不要再点启动（省额度、也避免真在跑的服务被干扰）。
+        var weStarted = false
+        if !stop.isEnabled, start.isEnabled {
+            start.tap()
+            weStarted = true
+            keep(XCTAttachment(string: "已点击「启动服务器」"))
+        }
+
+        // 等在线：`停止` 变可点即代表 ONLINE（过渡态是全部禁用的）。
+        XCTAssertTrue(waitUntil(timeout: 240) { stop.isEnabled },
+                      "启动后 240 秒内应变成在线（按钮可点）")
+
+        // 滚到控制台，等真正的启动日志（Paper 启动完成会打印 "Done (…)"）。
+        let console = app.staticTexts["控制台"]
+        for _ in 0..<6 where !console.exists { app.swipeUp() }
+        XCTAssertTrue(console.waitForExistence(timeout: 10), "在线后应出现控制台区块")
+
+        XCTAssertTrue(waitUntil(timeout: 240) {
+            app.swipeUp()
+            return app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Done ('")).firstMatch.exists
+        }, "在线后控制台应流出启动日志（等待 Paper 的 Done 行）")
+
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+
+        // 收尾：自己启动的就停掉，恢复原状，避免白白烧额度。
+        if weStarted {
+            app.swipeDown()
+            app.swipeDown()
+            if app.buttons["停止"].waitForExistence(timeout: 10), app.buttons["停止"].isEnabled {
+                app.buttons["停止"].tap()
+                // 确认弹窗（alert）
+                let confirm = app.alerts.buttons["停止"]
+                if confirm.waitForExistence(timeout: 5) { confirm.tap() }
+            }
+        }
+    }
+
+    /// 截图附件默认 `deleteOnSuccess`（测试过了就丢），真机验收需要留证据，所以统一提到 `keepAlways`。
+    private func keep(_ attachment: XCTAttachment) {
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// 轮询直到条件成立（UI 测试里没有原生的 "wait until"）。
+    private func waitUntil(timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            Thread.sleep(forTimeInterval: 1)
+        }
+        return condition()
     }
 }

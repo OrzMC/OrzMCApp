@@ -178,6 +178,19 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 | 添加服务器 | 点 `＋` 立刻出现新建 sheet |
 | 远程详情（假服务器） | 三个动作按钮存在（`启动服务器`/`停止`/`重启`） |
 | 真实账号（真机，`TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1`） | 点真服务器卡进详情 → 滚到「控制台」→ 若出现 `WS:` 诊断行则判失败并附上诊断 |
+| **端到端启停**（`TEST_RUNNER_ORZMC_UITEST_POWER_CYCLE=1`） | 点「启动服务器」→ 240 秒内 `停止` 变可点（= 在线）→ 控制台流出 Paper 的 `Done (…)` 行 → 收尾自动停止 |
+
+端到端那条**会真的消耗 exaroton 额度**（实测约 82 秒），所以默认跳过：
+
+```bash
+TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1 TEST_RUNNER_ORZMC_UITEST_POWER_CYCLE=1 \
+  xcodebuild test-without-building -xctestrun <已修的 xctestrun> \
+  -destination 'platform=iOS,id=<UDID>' \
+  -only-testing:OrzMCUITests/RemotePanelsUITests/testStartServerThenConsoleStreams
+```
+
+截图/诊断附件统一用 `keep()`（`lifetime = .keepAlways`），否则测试通过后附件会被丢掉；
+`-resultBundlePath /tmp/rb.xcresult` + `xcrun xcresulttool export attachments` 就能取回。
 
 写用例时注意：
 - 用 `accessibilityIdentifier`（如 `selfHosted.settings`），不要依赖本地化文案——文案一改测试就红；
