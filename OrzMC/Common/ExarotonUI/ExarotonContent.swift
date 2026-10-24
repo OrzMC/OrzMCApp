@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ExarotonContent: View {
     @State private var model = ExarotonServerModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     #if DEBUG
     /// **诊断钩子**（仅 DEBUG）：`ORZMC_DEMO_DIAGNOSE=1` 启动后自动连第一台服务器，把 WS/ready/流/控制台
@@ -68,6 +69,16 @@ struct ExarotonContent: View {
             Button("OK", role: .cancel) { model.errorMessage = nil }
         } message: {
             Text(verbatim: model.errorMessage ?? "")
+        }
+        // 后台状态轮询由**模型**持有（不是视图）：切到别的页签、进出详情都不会中断，
+        // 否则服务器自动关机后界面会一直停在「在线」（真机反馈）。
+        .task { model.startBackgroundRefresh() }
+        .onChange(of: scenePhase) { _, phase in
+            model.isSceneActive = phase == .active
+            // 回到前台立刻拉一次：后台期间状态可能已经变了。
+            if phase == .active, !model.token.isEmpty {
+                Task { await model.reloadList() }
+            }
         }
         #if DEBUG
         .task { await runDiagnosticsIfRequested() }

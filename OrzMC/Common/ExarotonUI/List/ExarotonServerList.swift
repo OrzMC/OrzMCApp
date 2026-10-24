@@ -17,7 +17,6 @@ import SwiftUI
 /// - 加载用条件渲染的 `ProgressView`，不再用 `.opacity(0)`（透明但仍然拦截点击）。
 struct ExarotonServerList: View {
     @Environment(ExarotonServerModel.self) private var model
-    @Environment(\.scenePhase) private var scenePhase
 
     @State private var token: String = ""
     @State private var showTokenInput = false
@@ -115,23 +114,6 @@ struct ExarotonServerList: View {
             token = model.token
             if !model.token.isEmpty {
                 await model.reloadList()
-            }
-        }
-        // 低频轮询：WebSocket 是**按服务器**连的，只有进详情才会连；
-        // 用户停在列表页时如果不轮询，状态就永远停在打开那一刻（真机反馈"状态不准确"）。
-        // 已经有 WebSocket 时（详情页开着）就不必再拉 HTTP。
-        .task {
-            guard !model.token.isEmpty else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(15))
-                if Task.isCancelled { break }
-                if !model.isLive { await model.reloadList() }
-            }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            // 回到前台立刻刷新一次：后台期间状态可能已经变了。
-            if phase == .active, !model.token.isEmpty {
-                Task { await model.reloadList() }
             }
         }
         .task {
