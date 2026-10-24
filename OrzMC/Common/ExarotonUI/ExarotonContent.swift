@@ -25,7 +25,7 @@ struct ExarotonContent: View {
         model.startConnect(for: id)
 
         var report: [[String: String]] = []
-        for step in 0..<6 {
+        for step in 0..<12 {
             try? await Task.sleep(for: .seconds(5))
             report.append([
                 "t": "\(step * 5)s",
@@ -37,13 +37,20 @@ struct ExarotonContent: View {
                 "consoleLines": String(model.consoleLines.count),
                 "disconnectedReason": model.disconnectedReason ?? "-",
                 "errorMessage": model.errorMessage ?? "-",
-                "status": server.serverStatus.map { String(describing: $0) } ?? "-",
+                "status": Self.describe(server.serverStatus),
+                "liveStatus": Self.describe(model.servers.first?.serverStatus),
+                "startError": model.actionErrors[id] ?? "-",
             ])
         }
         let json = try? JSONSerialization.data(withJSONObject: report, options: .prettyPrinted)
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("orzmc-diagnose.json")
         try? json?.write(to: url)
+    }
+
+    private static func describe(_ status: ServerStatus?) -> String {
+        guard let status else { return "-" }
+        return String(describing: status)
     }
     #endif
     var body: some View {
