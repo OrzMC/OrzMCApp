@@ -19,8 +19,10 @@ struct ExarotonContent: View {
         await model.reloadList()
         guard let server = model.servers.first, let id = server.id else { return }
         // `ORZMC_DEMO_DIAGNOSE=start`：顺便把这台服务器启动起来，用来验证"在线 → 有流 → 控制台有日志"。
+        var startResult = "-"
         if mode == "start" {
-            _ = await model.startServer(serverId: id)
+            let ok = await model.startServer(serverId: id)
+            startResult = ok ? "ok" : "false · \(model.actionErrors[id] ?? model.actionMessages[id] ?? "-")"
         }
         model.startConnect(for: id)
 
@@ -40,6 +42,7 @@ struct ExarotonContent: View {
                 "status": Self.describe(server.serverStatus),
                 "liveStatus": Self.describe(model.servers.first?.serverStatus),
                 "startError": model.actionErrors[id] ?? "-",
+                "startResult": startResult,
             ])
         }
         let json = try? JSONSerialization.data(withJSONObject: report, options: .prettyPrinted)
