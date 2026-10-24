@@ -161,11 +161,63 @@ final class SelfHostedServersModel {
         SelfHostedProfilesStore.save(profiles, defaults: defaults)
     }
 
+
+#if DEBUG
+/// UI 测试 / 截图验收用的**应用内假服务器**：`ORZMC_DEMO_FAKE_SELFHOSTED=1` 时不碰任何网络。
+///
+/// 真机不能依赖"Mac 上的假服务端"：iOS 要本地网络权限、macOS 防火墙也可能拦 python，
+/// 端口通不通完全不可控。真机验收因此走这条路——数据在进程内伪造，结果确定、毫秒级。
+enum SelfHostedFakeServer {
+    static var isEnabled: Bool {
+        ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SELFHOSTED"] == "1"
+    }
+
+    static var status: MCStatusSummary {
+        MCStatusSummary(
+            versionName: "26.3",
+            protocolVersion: 769,
+            playersOnline: 2,
+            playersMax: 20,
+            sampleNames: ["alice", "bob"],
+            motd: "假服务器（UI 测试）",
+            latencyMilliseconds: 1
+        )
+    }
+
+    static var playerLists: SelfHostedServersModel.PlayerLists {
+        var lists = SelfHostedServersModel.PlayerLists()
+        lists.online = ["alice"]
+        lists.whitelisted = ["alice", "carol"]
+        lists.banned = [("dave", "griefing")]
+        return lists
+    }
+
+    static func reply(for command: String) -> String {
+        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch trimmed {
+        case "list": return "There are 2 of a max of 20 players online: alice, bob"
+        case "whitelist list": return "There are 2 whitelisted players: alice, carol"
+        case "banlist list": return "There are 1 ban(s): dave (griefing)"
+        default: return "假服务器收到了：\(trimmed)"
+        }
+    }
+}
+#endif
+
     // MARK: - 状态
 
     /// 查一次当前服务器的状态。失败**不清空**上一次的展示（"暂时查不到"不该让卡片闪成空白）。
     func refreshStatus() async {
         guard let profile = selected, profile.isConfigured, !isProbing else { return }
+        #if DEBUG
+        if SelfHostedFakeServer.isEnabled {
+            status[profile.id] = SelfHostedFakeServer.status
+            statusError[profile.id] = nil
+            lastUpdatedAt[profile.id] = .now
+            notifier.observe(profile, isOnline: true)
+            return
+        }
+        #endif
         isProbing = true
         defer { isProbing = false }
         do {
@@ -189,6 +241,14 @@ final class SelfHostedServersModel {
         guard let profile = selected else { return false }
         let command = (raw ?? commandDraft).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty, !isSending else { return false }
+        #if DEBUG
+        if SelfHostedFakeServer.isEnabled {
+            append(.init(kind: .command, text: "> \(command)"), to: profile.id)
+            if raw == nil { commandDraft = "" }
+            append(.init(kind: .output, text: SelfHostedFakeServer.reply(for: command)), to: profile.id)
+            return true
+        }
+        #endif
         guard let password = passwordProvider(profile.id), !password.isEmpty else {
             append(.init(kind: .error, text: String(localized: "RCON password is missing. Add it in Settings.")), to: profile.id)
             return false
@@ -222,6 +282,13 @@ final class SelfHostedServersModel {
     func refreshPlayerLists() async {
         // 没密码就直接跳过：界面已经有"需要密码"的提示，不必再连一次拿一个误导性的"密码被拒绝"。
         guard let profile = selected, profile.rconEnabled, canRunCommands, !isFetchingLists else { return }
+        #if DEBUG
+        if SelfHostedFakeServer.isEnabled {
+            playerLists[profile.id] = SelfHostedFakeServer.playerLists
+            listError[profile.id] = nil
+            return
+        }
+        #endif
         isFetchingLists = true
         defer { isFetchingLists = false }
 

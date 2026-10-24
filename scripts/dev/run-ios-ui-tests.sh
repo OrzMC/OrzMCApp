@@ -91,6 +91,32 @@ else
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' 2>&1 | tail -4
 fi
 
+if [[ -n "$DEVICE" ]]; then
+  # 真机流程（实测 iOS 27 / Xcode 27）：
+  #   build-for-testing → 修 xctestrun → 装 App → test-without-building -xctestrun
+  #
+  # 为什么不能直接 `xcodebuild test`：本项目 pbxproj 是手工维护的，Xcode 27 生成的
+  # xctestrun 会把 UITargetAppPath 写成 `.../Debug-iphoneos/OrzMC`（少了 `.app`），
+  # 于是报 `bundle identifier for OrzMC couldn't be read`，或者 runner 直接起不来
+  # （code 74 / testmanagerd 拒绝 dtxproxy 通道）。patch-xctestrun.py 补上真实路径。
+  step "构建测试（build-for-testing）"
+  xcodebuild build-for-testing "${COMMON[@]}" 2>&1 | tail -4
+  XCTESTRUN="$(ls -t "$DERIVED_DATA"/Build/Products/*_iphoneos*.xctestrun | head -1)"
+  python3 scripts/dev/patch-xctestrun.py "$XCTESTRUN"
+
+  step "安装 App 到真机"
+  xcrun devicectl device install app --device "$DEVICE" \
+    "$DERIVED_DATA/Build/Products/Debug-iphoneos/OrzMC.app" 2>&1 | tail -2
+
+  LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+  step "执行 UI 测试（真机）"
+  echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac；默认测试用应用内假数据）"
+  TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
+    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" 2>&1 \
+    | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
+  exit ${PIPESTATUS[0]}
+fi
+
 step "构建测试（build-for-testing）"
 xcodebuild build-for-testing "${COMMON[@]}" 2>&1 | tail -8
 
@@ -100,4 +126,12 @@ if [[ -z "$DEVICE" ]]; then
 fi
 
 step "执行 UI 测试"
-xcodebuild test-without-building "${COMMON[@]}" 2>&1 | grep -E "Test Case|Test Suite|\*\* TEST" | tail -30
+# 真机上 127.0.0.1 是手机自己：把 Mac 的局域网地址通过 TEST_RUNNER_ 前缀传给测试 bundle。
+RUNNER_ENV=()
+if [[ -n "$DEVICE" ]]; then
+  LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+  [[ -n "$LAN_IP" ]] && RUNNER_ENV+=(TEST_RUNNER_UITEST_HOST="$LAN_IP")
+  echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac）"
+fi
+xcodebuild test-without-building "${COMMON[@]}" "${RUNNER_ENV[@]:-}" 2>&1 \
+  | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30

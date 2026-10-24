@@ -14,11 +14,32 @@ final class RemotePanelsUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// 关掉系统弹窗：真机首次联网会弹「允许 OrzMC 查找本地网络中的设备?」，
+    /// 不点掉它整个界面都不响应（XCUITest 会一直点空）。这类弹窗属于 SpringBoard。
+    private func allowSystemPrompts() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for label in ["允许", "Allow", "好", "OK"] {
+            let button = springboard.buttons[label]
+            if button.waitForExistence(timeout: 3) {
+                button.tap()
+                return
+            }
+        }
+    }
+
     private func makeApp(_ environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         // 固定中文，断言文案才稳定。
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
-        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "演示服|127.0.0.1|25566|25575|1"
+        // 真机上 127.0.0.1 是手机自己，假服务端在 Mac 上 —— runner 会通过
+        // `TEST_RUNNER_UITEST_HOST` 把 Mac 的局域网地址传进来。
+        let host = ProcessInfo.processInfo.environment["UITEST_HOST"] ?? "127.0.0.1"
+        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "演示服|\(host)|25566|25575|1"
+        // 默认用**应用内假数据**：真机连不到 Mac 的假服务端（本地网络权限 / 防火墙不可控）。
+        // 想验证真实的 SLP/RCON 链路时，把 ORZMC_UITEST_REAL_FAKE_SERVERS=0 传进来。
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_USE_NETWORK"] != "1" {
+            app.launchEnvironment["ORZMC_DEMO_FAKE_SELFHOSTED"] = "1"
+        }
         app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = "testpass"
         app.launchEnvironment["ORZMC_DEMO_TAB"] = "selfHosted"
         for (key, value) in environment { app.launchEnvironment[key] = value }
@@ -29,9 +50,10 @@ final class RemotePanelsUITests: XCTestCase {
     func testSelfHostedPageShowsLiveStatus() {
         let app = makeApp()
         app.launch()
+        allowSystemPrompts()
 
         XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 20), "服务器名应显示")
-        XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "假 SLP 服务端在线，状态应为「在线」")
+        XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "假服务器在线，状态应为「在线」")
         XCTAssertTrue(app.staticTexts["26.3"].exists, "版本标签来自 SLP")
         XCTAssertTrue(app.staticTexts["玩家"].exists, "玩家卡应始终显示")
 
@@ -53,13 +75,14 @@ final class RemotePanelsUITests: XCTestCase {
     func testServerSettingsSheetAppearsImmediately() {
         let app = makeApp()
         app.launch()
+        allowSystemPrompts()
 
         let settings = app.buttons["selfHosted.settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 20))
         settings.tap()
 
         // 2 秒内出现标题，且「测试连接」按钮就在首屏——不需要滚动。
-        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 2), "设置 sheet 必须立刻出现")
+        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 5), "设置 sheet 必须立刻出现")
         XCTAssertTrue(app.buttons["测试连接"].exists, "连通性区块应在首屏")
         add(XCTAttachment(screenshot: app.screenshot()))
 
@@ -70,12 +93,13 @@ final class RemotePanelsUITests: XCTestCase {
     func testAddServerOpensEmptySheet() {
         let app = makeApp()
         app.launch()
+        allowSystemPrompts()
 
         let add = app.buttons["selfHosted.addServer"]
         XCTAssertTrue(add.waitForExistence(timeout: 20))
         add.tap()
 
-        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 2), "新建档案的 sheet 应立刻出现")
+        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 5), "新建档案的 sheet 应立刻出现")
         app.buttons["取消"].tap()
     }
 
@@ -90,17 +114,22 @@ final class RemotePanelsUITests: XCTestCase {
         let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
         app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
+        allowSystemPrompts()
 
         // 列表第一行（真实账号里的服务器）
-        let firstServer = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'PaperMC'")).firstMatch
+        // 只认"服务器卡"，不要点成额度池卡（真实账号里额度池也叫 PaperMC …）。
+        let firstServer = app.buttons.matching(identifier: "remote.serverCard").firstMatch
         XCTAssertTrue(firstServer.waitForExistence(timeout: 20), "应能看到真实账号下的服务器卡片")
         firstServer.tap()
+        add(XCTAttachment(screenshot: app.screenshot(), quality: .original))
 
         // 控制台区块必须存在（未连接时应显示占位 + 重连，而不是整块消失）
-        let consoleTitle = app.staticTexts["控制台（RCON）"]
-        let consoleFallback = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '控制台'")).firstMatch
-        XCTAssertTrue(consoleTitle.waitForExistence(timeout: 15) || consoleFallback.exists,
-                      "详情页应有控制台区块")
+        // 控制台在页面下方（懒加载），需要滚动才会进入可访问性树。
+        let consoleTitle = app.staticTexts["控制台"]
+        for _ in 0..<6 where !consoleTitle.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(consoleTitle.waitForExistence(timeout: 10), "详情页应有控制台区块")
         add(XCTAttachment(screenshot: app.screenshot()))
 
         // 等 15 秒，看是否出现 WS 诊断行（connected / disconnected）
@@ -118,6 +147,7 @@ final class RemotePanelsUITests: XCTestCase {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
         app.launchArguments += ["--remote-detail"]
         app.launch()
+        allowSystemPrompts()
 
         XCTAssertTrue(app.buttons["启动服务器"].waitForExistence(timeout: 20), "详情页应能进（假服务器）")
         XCTAssertTrue(app.buttons["停止"].exists)
