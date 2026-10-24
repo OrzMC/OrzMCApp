@@ -173,8 +173,9 @@ struct ExarotonServerDetail: View {
         #if os(iOS)
         // iOS 26 的浮动 TabBar 会盖住最后一行（实测把「重启」压住了）。
         // `contentMargins` 对 Form/List 不生效，用 `safeAreaInset` 在底部真正留出空白。
+        // 56 不够：浮动 TabBar 实测高 83pt，最后一张卡（内存/控制台）会被切掉一截。
         .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 56)
+            Color.clear.frame(height: 84)
         }
         #endif
         .navigationTitle(server.name ?? String(localized: "Server Detail"))
@@ -188,10 +189,9 @@ struct ExarotonServerDetail: View {
                         if let id = server.id { model.startConnect(for: id) }
                     }
                     .help(reason)
-                } else if !wsServerReady {
-                    ProgressView().controlSize(.small)
-                        .accessibilityLabel("Connecting")
                 }
+                // 以前这里在 `!wsServerReady` 时放一个 ProgressView：服务器离线十几分钟也一直转，
+                // 看起来像"卡住了"。连接状态该由「控制台」区块和「重新连接」按钮表达，工具栏保持干净。
                 // 连接正常时不再往工具栏塞绿色图标，服务器状态也已经由「概览」卡里的徽章表达——
                 // 工具栏两个方块图标（云勾 + 状态圆点）在真机上看着像两个不明按钮。
             }
@@ -337,10 +337,12 @@ extension ExarotonServerDetail {
                     if let id = server.id { model.startConnect(for: id) }
                 }
             }
-            // 把连接细节摊开，便于用户（和排查）判断卡在哪一步。
+            #if DEBUG
+            // 把连接细节摊开，便于排查判断卡在哪一步。**只给 DEBUG**：正式版不该出现这种内部字符串。
             Text(verbatim: "WS: \(model.isConnected ? "connected" : "disconnected") · ready: \(model.readyServerID ?? "-") · server: \(server.id ?? "-")")
                 .font(.caption.monospaced())
                 .foregroundStyle(.tertiary)
+            #endif
             if let reason = model.disconnectedReason {
                 Text(verbatim: reason)
                     .font(.caption)

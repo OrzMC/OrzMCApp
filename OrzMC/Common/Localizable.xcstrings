@@ -1541,6 +1541,16 @@
         }
       }
     },
+    "Grant OP": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授予 OP"
+          }
+        }
+      }
+    },
     "Heap: %@ GB": {
       "localizations": {
         "zh-Hans": {
@@ -3037,6 +3047,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除"
+          }
+        }
+      }
+    },
+    "Remove from Whitelist": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移出白名单"
           }
         }
       }

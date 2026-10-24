@@ -61,7 +61,10 @@ struct ExarotonCopyableText: View {
         HStack {
             Text(verbatim: content)
                 .textSelection(.enabled)
-                .fontWeight(.medium)
+                // 地址属于次要信息：用等宽字体便于核对字符，字号降一档、不加粗，
+                // 否则它会比服务器名还抢眼（模拟器截图里确实如此）。
+                .font(.subheadline.monospaced())
+                .foregroundStyle(.secondary)
 
             Spacer()
 

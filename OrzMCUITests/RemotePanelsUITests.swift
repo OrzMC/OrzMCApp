@@ -229,6 +229,86 @@ final class RemotePanelsUITests: XCTestCase {
         add(attachment)
     }
 
+    // MARK: - 视觉巡检（截图）
+
+    /// 走一遍主要界面，把每个状态截成附件，用于人工/模型一起看视觉问题。
+    ///
+    /// `ORZMC_UITEST_SNAPSHOTS=1` 才跑（不参与日常回归）。截图用 `keep()` 保留。
+    func testSnapshotTour() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+        _ = app.staticTexts["演示服"].waitForExistence(timeout: 20)
+        snap(app, "01-selfhosted-top")
+
+        // 玩家卡三个页签
+        for (index, name) in ["白名单", "封禁"].enumerated() {
+            let tab = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+            if tab.exists {
+                tab.tap()
+                snap(app, "02-players-\(index)")
+            }
+        }
+
+        // 控制台：发一条命令，看命令行/回复行的排版
+        let input = app.textFields["selfHosted.consoleInput"]
+        for _ in 0..<6 where !input.exists { app.swipeUp() }
+        if input.waitForExistence(timeout: 10) {
+            snap(app, "03-console-empty")
+            input.tap()
+            if !app.keyboards.firstMatch.waitForExistence(timeout: 5) { input.tap() }
+            input.typeText("list")
+            app.buttons["selfHosted.consoleSend"].tap()
+            _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'players online'")).firstMatch
+                .waitForExistence(timeout: 10)
+            snap(app, "04-console-reply")
+            app.swipeDown()
+        }
+
+        // 设置 sheet（首屏 + 底部）
+        app.buttons["selfHosted.settings"].tap()
+        _ = app.buttons["保存"].waitForExistence(timeout: 10)
+        snap(app, "05-settings-top")
+        app.swipeUp()
+        snap(app, "06-settings-bottom")
+        app.buttons["取消"].tap()
+
+        // 添加服务器
+        app.buttons["selfHosted.addServer"].tap()
+        _ = app.buttons["保存"].waitForExistence(timeout: 10)
+        snap(app, "07-add-server")
+        app.buttons["取消"].tap()
+    }
+
+    /// 远程托管（假服务器）：列表 + 详情各区块。
+    func testSnapshotTourRemote() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        _ = app.buttons.matching(identifier: "remote.serverCard").firstMatch.waitForExistence(timeout: 20)
+        snap(app, "10-remote-list")
+
+        app.buttons.matching(identifier: "remote.serverCard").firstMatch.tap()
+        _ = app.buttons["启动服务器"].waitForExistence(timeout: 20)
+        snap(app, "11-remote-detail-top")
+        app.swipeUp()
+        snap(app, "12-remote-detail-mid")
+        app.swipeUp()
+        snap(app, "13-remote-detail-bottom")
+    }
+
+    private func snap(_ app: XCUIApplication, _ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        keep(attachment)
+    }
+
     /// 轮询直到条件成立（UI 测试里没有原生的 "wait until"）。
     private func waitUntil(timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)

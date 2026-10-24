@@ -6,6 +6,7 @@
 //
 
 import ExarotonHTTP
+import Foundation
 
 extension ExarotonServerModel {
     func reloadList() async {
@@ -220,8 +221,12 @@ extension ExarotonServerModel {
     }
 
     /// 本地化主句 + 系统错误细节：主句保证可读，细节保留排查信息。
+    ///
+    /// 细节本身是完整句子（本地化文案自带句号），直接塞进括号会变成
+    /// 「…（服务返回了非预期响应。）」这种双标点，所以先去掉尾部句号。
     static func failureText(_ message: String, detail: String? = nil) -> String {
         guard let detail, !detail.isEmpty else { return message }
-        return "\(message) (\(detail))"
+        let cleaned = detail.trimmingCharacters(in: CharacterSet(charactersIn: "。."))
+        return "\(message) (\(cleaned))"
     }
 }
