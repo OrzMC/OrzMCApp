@@ -96,33 +96,50 @@ public struct OrzMCStatusBadge: View {
 
 /// 状态徽章里的图标：进行态持续旋转。
 ///
-/// 为什么不用 `symbolEffect(.rotate)`：那个效果依赖"符号被重新插入"，徽章文案更新引起局部重绘时
-/// 动画会停住（真机反馈"转一下就停了"）。这里用 `rotationEffect` + `repeatForever`，
-/// 与重绘无关，直到 `isSpinning` 变回 false 才停。
+/// 踩过两次坑，最终选择**时间驱动**：
+///
+/// 1. `symbolEffect(.rotate)`：依赖符号被重新插入，徽章文案更新引起局部重绘时就停了；
+/// 2. `rotationEffect` + `@State` 角度 + `repeatForever`：`onAppear` 里直接赋 360° 没有动画事务 →
+///    首次出现时**根本不转**；从详情页返回再进入、卡片复用导致视图重建，`@State` 已经等于 360°
+///    且不会再次触发 `onChange` → **动画再也不动**（真机反馈"退出重进后停止"）。
+///
+/// 现在角度由 `TimelineView` 的时间算出来：没有状态、没有动画事务、不需要 onAppear，
+/// 视图重建多少次都会继续转。代价是图标可见期间每帧重绘一次（只有一个 caption 尺寸的符号，
+/// 可接受），换来了"任何地方、任何时刻都在转"。
 private struct SpinningStatusIcon: View {
     let systemName: String
     let isSpinning: Bool
     let tint: Color
 
-    @State private var angle: Double = 0
+    /// 一圈 1.1 秒，和之前的手感保持一致。
+    private static let secondsPerTurn: Double = 1.1
 
     var body: some View {
+        if isSpinning {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+                icon.rotationEffect(.degrees(angle(at: context.date)))
+            }
+        } else {
+            icon
+        }
+    }
+
+    private var icon: some View {
         Image(systemName: systemName)
             .font(.caption2.weight(.semibold))
             .imageScale(.small)
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(tint)
-            .rotationEffect(.degrees(angle))
-            .onAppear { angle = isSpinning ? 360 : 0 }
-            .onChange(of: isSpinning) { _, newValue in
-                if newValue {
-                    withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
-                        angle = 360
-                    }
-                } else {
-                    withAnimation(.easeOut(duration: 0.2)) { angle = 0 }
-                }
-            }
+    }
+
+    /// 纯函数，便于单测：给定时间点 → 角度（0..<360）。
+    static func angle(at date: Date) -> Double {
+        let phase = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: secondsPerTurn)
+        return phase / secondsPerTurn * 360
+    }
+
+    private func angle(at date: Date) -> Double {
+        Self.angle(at: date)
     }
 }
 

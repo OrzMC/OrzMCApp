@@ -293,6 +293,67 @@ final class RemotePanelsUITests: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'GB'")).firstMatch.label
     }
 
+    /// 状态徽章的旋转图标必须在**任何时候**都在转：首次出现、从详情页返回再进入、
+    /// 卡片复用（额度池里同一台服务器）都不能停。
+    ///
+    /// 判据是"像素会变"：截两次徽章区域（间隔 0.4s）比较哈希。旋转 1.1s/圈，
+    /// 0.4s ≈ 131°，一定不同；动画停住时两次完全一样（真机反馈"退出重进后停止"）。
+    func testStatusBadgeKeepsSpinningAfterReentering() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
+                           "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_STATUS": "starting"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20), "应有服务器卡片")
+
+        // ① 列表卡片上的徽章
+        XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "列表卡片的徽章图标应在旋转")
+
+        // ② 进详情 → 返回 → 再进：视图被重建后仍要转（这是原来的 bug）
+        card.tap()
+        XCTAssertTrue(app.staticTexts["启动中…"].firstMatch.waitForExistence(timeout: 20), "详情页应有状态徽章")
+        XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "详情页的徽章图标应在旋转")
+
+        for round in 1...2 {
+            app.navigationBars.buttons.firstMatch.tap()          // 返回列表
+            XCTAssertTrue(card.waitForExistence(timeout: 20), "第 \(round) 次返回后应回到列表")
+            XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "第 \(round) 次返回后列表徽章仍应在转")
+            card.tap()
+            XCTAssertTrue(app.staticTexts["启动中…"].firstMatch.waitForExistence(timeout: 20))
+            XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "第 \(round) 次重进详情后徽章仍应在转")
+        }
+    }
+
+    /// 徽章区域在 0.4 秒内是否发生过变化（= 图标在转）。
+    private func badgeIsSpinning(_ app: XCUIApplication, around label: String) -> Bool {
+        guard let first = badgeFingerprint(app, around: label) else { return false }
+        Thread.sleep(forTimeInterval: 0.4)
+        guard let second = badgeFingerprint(app, around: label) else { return false }
+        return first != second
+    }
+
+    /// 截取徽章（图标 + 文案）区域并算一个指纹。
+    private func badgeFingerprint(_ app: XCUIApplication, around label: String) -> Int? {
+        let text = app.staticTexts[label].firstMatch
+        guard text.exists else { return nil }
+        // 图标在文案左侧：向左扩 30pt，上下各扩 8pt（胶囊内边距）。
+        let rect = text.frame.insetBy(dx: 0, dy: 0)
+            .offsetBy(dx: -30, dy: -8)
+            .insetBy(dx: -8, dy: -0)
+        let image = XCUIScreen.main.screenshot().image
+        let scale = image.scale
+        let pixelRect = CGRect(x: rect.minX * scale, y: rect.minY * scale,
+                               width: max(rect.width, 1) * scale, height: max(rect.height, 1) * scale)
+        guard let cropped = image.cgImage?.cropping(to: pixelRect),
+              let data = cropped.dataProvider?.data
+        else { return nil }
+        var hash = 5381
+        for byte in (data as Data) { hash = (hash &* 33) &+ Int(byte) }
+        return hash
+    }
+
     // MARK: - 视觉巡检（截图）
 
     /// 走一遍主要界面，把每个状态截成附件，用于人工/模型一起看视觉问题。

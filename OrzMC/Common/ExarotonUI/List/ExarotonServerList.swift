@@ -140,6 +140,18 @@ struct ExarotonServerList: View {
             // 用来在没有账号/钥匙串的环境（CI、模拟器、无签名桌面包）里验收详情页布局。
             if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SERVER"] == "1", model.servers.isEmpty {
                 model.servers = [Self.demoServer]
+                // `ORZMC_DEMO_FAKE_STATUS=starting|online|offline`：把假服务器钉在某个状态，
+                // 用来验收"徽章图标是否在转 / 状态文案"（默认离线，不会转）。
+                if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_STATUS"],
+                   let id = Self.demoServer.id {
+                    let mapping: [String: ServerStatus] = [
+                        "starting": .STARTING, "online": .ONLINE, "offline": .OFFLINE,
+                        "stopping": .STOPPING, "transferring": .TRANSFERRING, "unknown": .UNKNOWN,
+                    ]
+                    if let status = mapping[raw.lowercased()] {
+                        model.liveStatuses[id] = status
+                    }
+                }
             }
             // `--remote-detail` 直接进第一台服务器的详情页，便于快照这个次级窗口。
             if ProcessInfo.processInfo.arguments.contains("--remote-detail"),
