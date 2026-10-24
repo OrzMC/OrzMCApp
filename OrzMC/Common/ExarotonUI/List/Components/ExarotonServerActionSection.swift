@@ -149,6 +149,13 @@ struct ExarotonServerActionSection: View {
     }
 
     private func perform(_ action: RemoteServerAction) {
+        // 状态可能在"渲染 → 点击"之间被推送更新（例如刚好进入 starting），
+        // 这时再发请求会被服务端拒绝，用户看到的就是"点一下就报错"。
+        guard canPerform(action) else {
+            // 静默刷新列表，让界面跟上服务端真实状态（不弹错）。
+            Task { await model.reloadList() }
+            return
+        }
         guard let serverID = server.id else {
             model.errorMessage = String(localized: "Server ID is missing.")
             return

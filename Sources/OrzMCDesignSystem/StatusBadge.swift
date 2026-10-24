@@ -67,6 +67,8 @@ public struct OrzMCStatusBadge: View {
                 .imageScale(.small)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(style.tint)
+                // 进行态：让**徽章里的图标**动起来（旋转 + 脉冲），而不是在旁边再加一个转圈。
+                .modifier(BusyIconAnimation(isActive: style == .busy))
                 .accessibilityHidden(true)
 
             textView
@@ -88,6 +90,19 @@ public struct OrzMCStatusBadge: View {
             Text(key)
         case .verbatim(let text):
             Text(verbatim: text)
+        }
+    }
+}
+
+/// 进行态图标的动画：iOS 18+/macOS 15+ 用 `.rotate`（转起来最直观），老系统退回 `.pulse` 脉冲。
+private struct BusyIconAnimation: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            content.symbolEffect(.rotate, options: .repeating, isActive: isActive)
+        } else {
+            content.symbolEffect(.pulse, options: .repeating, isActive: isActive)
         }
     }
 }
