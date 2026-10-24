@@ -21,12 +21,42 @@
         }
       }
     },
+    "%@ server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端"
+          }
+        }
+      }
+    },
     "%lld / %lld lines": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld / %lld 行"
+          }
+        }
+      }
+    },
+    "%lld GB": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld GB"
+          }
+        }
+      }
+    },
+    "%lld days ago": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天前"
           }
         }
       }
@@ -51,6 +81,26 @@
         }
       }
     },
+    "%lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另 %lld 项"
+          }
+        }
+      }
+    },
+    "%lld ms": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 毫秒"
+          }
+        }
+      }
+    },
     "%lld servers": {
       "localizations": {
         "zh-Hans": {
@@ -67,6 +117,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld/%lld 名玩家"
+          }
+        }
+      }
+    },
+    "(no output)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（没有输出）"
           }
         }
       }
@@ -131,6 +191,16 @@
         }
       }
     },
+    "Actions run on exaroton's side; Stop and Restart disconnect connected players.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些操作在 exaroton 一侧执行；停止和重启会断开在线玩家。"
+          }
+        }
+      }
+    },
     "Add Account Token…": {
       "localizations": {
         "zh-Hans": {
@@ -141,12 +211,122 @@
         }
       }
     },
+    "Add Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器"
+          }
+        }
+      }
+    },
+    "Add Server Address…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器地址…"
+          }
+        }
+      }
+    },
+    "Add Server…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加服务器…"
+          }
+        }
+      }
+    },
+    "Add another server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再添加一台服务器"
+          }
+        }
+      }
+    },
+    "Add to Whitelist": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入白名单"
+          }
+        }
+      }
+    },
+    "Address": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地址"
+          }
+        }
+      }
+    },
+    "Adds -agentlib:jdwp=… to the server JVM so a debugger can attach. Keep it off unless you need it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "给服务端 JVM 加 -agentlib:jdwp=…，供调试器连接。不需要就别开。"
+          }
+        }
+      }
+    },
     "Alipay QR code": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "支付宝二维码"
+          }
+        }
+      }
+    },
+    "All %lld instance folders (%@) are deleted for good, including worlds, configs, plugins and assets.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 的全部 %lld 个实例目录，含存档、配置、插件与资源。"
+          }
+        }
+      }
+    },
+    "Allocated memory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分配内存"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
           }
         }
       }
@@ -171,6 +351,76 @@
         }
       }
     },
+    "Back to Latest (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到最新（%lld）"
+          }
+        }
+      }
+    },
+    "Back to detail": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回详情"
+          }
+        }
+      }
+    },
+    "Ban": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁"
+          }
+        }
+      }
+    },
+    "Ban list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁列表"
+          }
+        }
+      }
+    },
+    "Banned (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁（%lld）"
+          }
+        }
+      }
+    },
+    "Ban…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封禁…"
+          }
+        }
+      }
+    },
+    "Both client types share the same game folder; Fabric adds a mods folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两种客户端类型共用同一个游戏目录，Fabric 会多出一个 mods 目录。"
+          }
+        }
+      }
+    },
     "Buy Me a Coffee": {
       "localizations": {
         "zh-Hans": {
@@ -181,12 +431,42 @@
         }
       }
     },
+    "CPU × %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU × %@"
+          }
+        }
+      }
+    },
+    "Can't connect to %@. Check the address, the port and your network.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连不上 %@，请检查地址、端口和网络。"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "取消"
+          }
+        }
+      }
+    },
+    "Cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消。"
           }
         }
       }
@@ -241,12 +521,72 @@
         }
       }
     },
+    "Check the server status now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即检查服务器状态"
+          }
+        }
+      }
+    },
+    "Check your own server and manage exaroton servers in a separate window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在独立窗口里查看自己的服务器，或管理 exaroton 远程服务器"
+          }
+        }
+      }
+    },
+    "Checking…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查中…"
+          }
+        }
+      }
+    },
+    "Checks the status port with Server List Ping, and (if RCON is on) runs `list` to verify the password. Nothing is saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 Server List Ping 查状态端口；（若打开 RCON）再跑一条 `list` 验证密码。不会保存任何内容。"
+          }
+        }
+      }
+    },
+    "Choose a folder, not a file.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择文件夹，而不是文件。"
+          }
+        }
+      }
+    },
     "Choose a version from the sidebar to view details.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "从侧边栏选择一个版本以查看详情。"
+          }
+        }
+      }
+    },
+    "Choose what to launch: client (Vanilla / Fabric) or a server core": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择启动对象：客户端（Vanilla / Fabric）或某个服务端核心"
           }
         }
       }
@@ -281,6 +621,26 @@
         }
       }
     },
+    "Clear search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空搜索"
+          }
+        }
+      }
+    },
+    "Clear the search if needed, then follow new output again": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必要时会清空搜索，然后重新跟随新日志"
+          }
+        }
+      }
+    },
     "Clear the visible log (does not affect the server)": {
       "localizations": {
         "zh-Hans": {
@@ -301,12 +661,82 @@
         }
       }
     },
+    "Client (%@)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端（%@）"
+          }
+        }
+      }
+    },
+    "Client or server instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端或服务端实例"
+          }
+        }
+      }
+    },
     "Client type": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "客户端类型"
+          }
+        }
+      }
+    },
+    "Client · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端 · %@"
+          }
+        }
+      }
+    },
+    "Close Window (settings, console)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭窗口（设置、控制台）"
+          }
+        }
+      }
+    },
+    "Collapse All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部折叠"
+          }
+        }
+      }
+    },
+    "Collapse or expand every instance card": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有实例卡片"
+          }
+        }
+      }
+    },
+    "Collapse this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起该实例"
           }
         }
       }
@@ -321,12 +751,52 @@
         }
       }
     },
+    "Commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用命令"
+          }
+        }
+      }
+    },
+    "Commands and replies show up here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令和返回会显示在这里。"
+          }
+        }
+      }
+    },
+    "Connect a server you run yourself": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接你自己运行的服务器"
+          }
+        }
+      }
+    },
     "Connected": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已连接"
+          }
+        }
+      }
+    },
+    "Connected, waiting for the server handshake…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接，正在等待服务器握手…"
           }
         }
       }
@@ -351,6 +821,46 @@
         }
       }
     },
+    "Console (RCON)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台（RCON）"
+          }
+        }
+      }
+    },
+    "Console Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台操作"
+          }
+        }
+      }
+    },
+    "Console needs a live connection to the server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台需要先连上服务器。"
+          }
+        }
+      }
+    },
+    "Console page: back to detail": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台页：返回详情"
+          }
+        }
+      }
+    },
     "Console — %@": {
       "localizations": {
         "zh-Hans": {
@@ -371,12 +881,142 @@
         }
       }
     },
+    "Copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        }
+      }
+    },
+    "Copy failed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制失败"
+          }
+        }
+      }
+    },
     "Core": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "核心"
+          }
+        }
+      }
+    },
+    "Could not delete the folder. %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法删除这个目录：%@"
+          }
+        }
+      }
+    },
+    "Could not detect Java runtimes. Installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能检测到 Java 运行时。本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "Could not load remote servers. Check your account token and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载远程服务器，请检查账号令牌后重试。"
+          }
+        }
+      }
+    },
+    "Could not load remote servers. Check your connection and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载远程服务器，请检查网络连接后重试。"
+          }
+        }
+      }
+    },
+    "Could not load server memory.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取服务器内存大小。"
+          }
+        }
+      }
+    },
+    "Could not open the folder. %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开这个目录：%@"
+          }
+        }
+      }
+    },
+    "Could not request the server to restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法请求重启服务器。"
+          }
+        }
+      }
+    },
+    "Could not request the server to start.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法请求启动服务器。"
+          }
+        }
+      }
+    },
+    "Could not request the server to stop.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法请求停止服务器。"
+          }
+        }
+      }
+    },
+    "Could not save server memory. Try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存服务器内存，请重试。"
           }
         }
       }
@@ -411,6 +1051,36 @@
         }
       }
     },
+    "Current": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
+    "De-OP…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消 OP…"
+          }
+        }
+      }
+    },
     "Debugging": {
       "localizations": {
         "zh-Hans": {
@@ -431,6 +1101,16 @@
         }
       }
     },
+    "Delete %@ Client Files?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 %@ 客户端文件？"
+          }
+        }
+      }
+    },
     "Delete %@ Server Files?": {
       "localizations": {
         "zh-Hans": {
@@ -441,12 +1121,72 @@
         }
       }
     },
+    "Delete All Instances": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部实例"
+          }
+        }
+      }
+    },
     "Delete Client Files?": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "删除客户端文件？"
+          }
+        }
+      }
+    },
+    "Delete This Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这台服务器"
+          }
+        }
+      }
+    },
+    "Delete This Server?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这台服务器？"
+          }
+        }
+      }
+    },
+    "Delete all %lld instance folders?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部 %lld 个实例目录？"
+          }
+        }
+      }
+    },
+    "Delete every instance folder of this version (asks for confirmation)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个版本的全部实例目录（会先确认）"
+          }
+        }
+      }
+    },
+    "Delete this instance's folder (asks for confirmation)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这个实例的目录（会先确认）"
           }
         }
       }
@@ -521,12 +1261,132 @@
         }
       }
     },
+    "Downloads and runs the official installer:": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会下载并运行官方安装器："
+          }
+        }
+      }
+    },
+    "Drop plugin jars here — they load on the next start.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将插件 jar 放在此处，下次启动时加载。"
+          }
+        }
+      }
+    },
+    "Each server core has its own folder, console and lifecycle.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个服务端核心有独立的目录、控制台与生命周期。"
+          }
+        }
+      }
+    },
+    "Edit…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑…"
+          }
+        }
+      }
+    },
     "Engine": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "引擎"
+          }
+        }
+      }
+    },
+    "Enter a valid address and port first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先填写有效的地址和端口。"
+          }
+        }
+      }
+    },
+    "Enter player name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入玩家名称"
+          }
+        }
+      }
+    },
+    "Enter the RCON password, or turn RCON off.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写 RCON 密码，或者关掉 RCON。"
+          }
+        }
+      }
+    },
+    "Enter the address and port of a Minecraft server you host (for example one started with `orzmc` in server mode). The app checks its status with Server List Ping; turn on RCON to run console commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填写你自己服务器（比如用 `orzmc` 服务端模式起的那个）的地址和端口。本应用用 Server List Ping 查状态；想发控制台命令就再打开 RCON。"
+          }
+        }
+      }
+    },
+    "Enter the server address.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写服务器地址。"
+          }
+        }
+      }
+    },
+    "Exaroton server URL is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exaroton 服务器地址无效。"
+          }
+        }
+      }
+    },
+    "Expand All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部展开"
+          }
+        }
+      }
+    },
+    "Expand this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开该实例"
           }
         }
       }
@@ -541,12 +1401,62 @@
         }
       }
     },
+    "Fabric mod jars — loaded on the next launch.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fabric 模组 jar 文件，下次启动时加载。"
+          }
+        }
+      }
+    },
+    "Fill in or run a common command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填好参数或直接执行常用命令"
+          }
+        }
+      }
+    },
+    "Filter a version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "筛选版本"
+          }
+        }
+      }
+    },
+    "Focus version search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聚焦版本搜索"
+          }
+        }
+      }
+    },
     "Follow": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "跟随"
+          }
+        }
+      }
+    },
+    "Follow System": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
           }
         }
       }
@@ -631,6 +1541,26 @@
         }
       }
     },
+    "Heap: %@ GB": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "堆内存：%@ GB"
+          }
+        }
+      }
+    },
+    "Hide token": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏令牌"
+          }
+        }
+      }
+    },
     "Input Account Token": {
       "localizations": {
         "zh-Hans": {
@@ -681,6 +1611,16 @@
         }
       }
     },
+    "Install record": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装记录"
+          }
+        }
+      }
+    },
     "Installed": {
       "localizations": {
         "zh-Hans": {
@@ -701,12 +1641,42 @@
         }
       }
     },
+    "Installed from a terminal": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由终端安装"
+          }
+        }
+      }
+    },
+    "Installed from this app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由本应用安装"
+          }
+        }
+      }
+    },
     "Installed: %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已安装：%@"
+          }
+        }
+      }
+    },
+    "Installs to ~/.local/bin (no admin rights) and may add it to your shell PATH.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装到 ~/.local/bin（无需管理员权限），可能修改 shell 的 PATH。"
           }
         }
       }
@@ -751,6 +1721,16 @@
         }
       }
     },
+    "Java": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Java"
+          }
+        }
+      }
+    },
     "Java Runtime": {
       "localizations": {
         "zh-Hans": {
@@ -781,12 +1761,82 @@
         }
       }
     },
+    "Java requirement is unknown until a version is selected. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择版本后才能确定 Java 需求。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "Jump to Newest Version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳到最新版本"
+          }
+        }
+      }
+    },
+    "Jump to Oldest Version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳到最旧版本"
+          }
+        }
+      }
+    },
+    "Kick": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "踢出"
+          }
+        }
+      }
+    },
+    "Kick…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "踢出…"
+          }
+        }
+      }
+    },
     "Kill the process now (may lose unsaved world data)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "立即终止进程（可能丢失未保存的世界数据）"
+          }
+        }
+      }
+    },
+    "Latest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新"
+          }
+        }
+      }
+    },
+    "Latest snapshot": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新快照"
           }
         }
       }
@@ -801,12 +1851,72 @@
         }
       }
     },
+    "Launch and console": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动与控制台"
+          }
+        }
+      }
+    },
+    "Launch target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动目标"
+          }
+        }
+      }
+    },
+    "Level data (`level-name` in server.properties). Back this up before big changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "世界数据（由 server.properties 中的 level-name 指定），重要更改前请备份。"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
+          }
+        }
+      }
+    },
     "Links": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "链接"
+          }
+        }
+      }
+    },
+    "List players": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列出玩家"
+          }
+        }
+      }
+    },
+    "Loading remote servers…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载远程服务器…"
           }
         }
       }
@@ -831,12 +1941,42 @@
         }
       }
     },
+    "Logs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日志"
+          }
+        }
+      }
+    },
     "Manage exaroton remote servers in a separate window": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在独立窗口中管理 exaroton 远程服务器"
+          }
+        }
+      }
+    },
+    "Manage plugins for this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理这个实例的插件"
+          }
+        }
+      }
+    },
+    "Managed by the engine: a missing version is downloaded on launch, so this never blocks you.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由引擎托管：缺失的版本会在启动时自动下载，不需要你手动处理。"
           }
         }
       }
@@ -861,12 +2001,42 @@
         }
       }
     },
+    "Memory (%@ GB)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内存（%@ GB）"
+          }
+        }
+      }
+    },
     "Metrics": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "指标"
+          }
+        }
+      }
+    },
+    "Mod Configs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模组配置"
+          }
+        }
+      }
+    },
+    "Mod jars — they load on the next start.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模组 jar 文件，下次启动时加载。"
           }
         }
       }
@@ -881,12 +2051,42 @@
         }
       }
     },
+    "Mods": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模组"
+          }
+        }
+      }
+    },
     "More": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "更多"
+          }
+        }
+      }
+    },
+    "More actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        }
+      }
+    },
+    "More actions (do not fit in this window width)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作（当前窗口宽度放不下）"
           }
         }
       }
@@ -901,12 +2101,52 @@
         }
       }
     },
+    "My Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的服务器"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Network request failed. Check your connection and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络请求失败，请检查网络后重试。"
+          }
+        }
+      }
+    },
     "New: plugins/ · Updates: plugins/update/ (applied on next restart)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "新装：plugins/ · 更新：plugins/update/（下次重启生效）"
+          }
+        }
+      }
+    },
+    "No instances yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有任何实例"
           }
         }
       }
@@ -931,6 +2171,36 @@
         }
       }
     },
+    "No server added yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有添加服务器"
+          }
+        }
+      }
+    },
+    "Nobody is banned.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有被封禁的玩家。"
+          }
+        }
+      }
+    },
+    "Nobody is online right now.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在没有人在线。"
+          }
+        }
+      }
+    },
     "None": {
       "localizations": {
         "zh-Hans": {
@@ -951,12 +2221,42 @@
         }
       }
     },
+    "Notifications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        }
+      }
+    },
+    "Notify me when the server goes online or offline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器上下线时通知我"
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "好"
+          }
+        }
+      }
+    },
+    "OP": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OP"
           }
         }
       }
@@ -1001,12 +2301,42 @@
         }
       }
     },
+    "One folder per instance — switching the folder switches every instance.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个实例一个游戏目录——换目录等于换一整套实例。"
+          }
+        }
+      }
+    },
     "Online": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在线"
+          }
+        }
+      }
+    },
+    "Online (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线（%lld）"
+          }
+        }
+      }
+    },
+    "Only used when the game mode is Server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在游戏模式为服务器时使用。"
           }
         }
       }
@@ -1031,12 +2361,42 @@
         }
       }
     },
+    "Open console": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开控制台"
+          }
+        }
+      }
+    },
+    "Open console (running)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开控制台（运行中）"
+          }
+        }
+      }
+    },
     "Open in New Window": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在新窗口中打开"
+          }
+        }
+      }
+    },
+    "Open in a new window, export, or clear the log": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在新窗口打开、导出或清空日志"
           }
         }
       }
@@ -1051,6 +2411,16 @@
         }
       }
     },
+    "Open this console in its own window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在独立窗口中打开这个控制台"
+          }
+        }
+      }
+    },
     "Operation Failed": {
       "localizations": {
         "zh-Hans": {
@@ -1061,12 +2431,62 @@
         }
       }
     },
+    "Optional, e.g. Home": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选，例如「家里的」"
+          }
+        }
+      }
+    },
+    "Origin unknown (legacy record)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源未知（旧记录）"
+          }
+        }
+      }
+    },
     "OrzMC is free and open source. If it helps you, you can support the author.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "OrzMC 是自由开源软件。如果它帮到了你，可以支持作者。"
+          }
+        }
+      }
+    },
+    "OrzMC 处于活跃状态时，应用内快捷键先于文本输入生效；正在用输入法拼写时一律让位给候选词。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OrzMC 处于活跃状态时，应用内快捷键先于文本输入生效；正在用输入法拼写时一律让位给候选词。"
+          }
+        }
+      }
+    },
+    "Overview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "概览"
+          }
+        }
+      }
+    },
+    "Path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径"
           }
         }
       }
@@ -1091,12 +2511,82 @@
         }
       }
     },
+    "Per-mod config files written on first run.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各模组首次运行时生成的配置文件。"
+          }
+        }
+      }
+    },
+    "Pick a launch target above and press Start — the folder and its cards appear here once created.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在上面选好启动目标并按启动 —— 目录建好后，对应的卡片会出现在这里。"
+          }
+        }
+      }
+    },
+    "Player name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家名"
+          }
+        }
+      }
+    },
+    "Player name used for the offline client launch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离线客户端启动使用的玩家名"
+          }
+        }
+      }
+    },
+    "Players": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "玩家"
+          }
+        }
+      }
+    },
+    "Players online (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线玩家（%lld）"
+          }
+        }
+      }
+    },
     "Playlist": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "玩家列表"
+          }
+        }
+      }
+    },
+    "Plugin Updates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插件更新队列"
           }
         }
       }
@@ -1121,12 +2611,72 @@
         }
       }
     },
+    "Port": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口"
+          }
+        }
+      }
+    },
+    "Port must be a number between 1 and 65535.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口必须是 1–65535 之间的数字。"
+          }
+        }
+      }
+    },
+    "Ports and the password come from `server.properties` (`rcon.port`, `rcon.password`, `enable-rcon=true`). The password is stored in the system keychain.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口和密码来自 `server.properties` 的 `rcon.port` / `rcon.password` / `enable-rcon=true`。密码保存在系统钥匙串里。"
+          }
+        }
+      }
+    },
+    "Prefilled on every client launch; required before starting a client.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次启动客户端都会预填；启动客户端前必填。"
+          }
+        }
+      }
+    },
     "Preparing…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "准备中…"
+          }
+        }
+      }
+    },
+    "Press keys…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按下按键…"
+          }
+        }
+      }
+    },
+    "Priority and conflicts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "优先级与冲突"
           }
         }
       }
@@ -1141,12 +2691,122 @@
         }
       }
     },
+    "Provided by the system": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统提供"
+          }
+        }
+      }
+    },
+    "Queued plugin updates — the server applies them on the next restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待更新的插件，服务器将在下次重启时应用。"
+          }
+        }
+      }
+    },
+    "Quit OrzMC": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 OrzMC"
+          }
+        }
+      }
+    },
     "RAM: %@ GB": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "内存：%@ GB"
+          }
+        }
+      }
+    },
+    "RCON answered in an unexpected format.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 返回了无法识别的格式。"
+          }
+        }
+      }
+    },
+    "RCON needs a password. Add it in Settings to manage players.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 需要密码，先在设置里填好才能管理玩家。"
+          }
+        }
+      }
+    },
+    "RCON needs a password. Add it in Settings to send commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 需要密码，先在设置里填好才能发命令。"
+          }
+        }
+      }
+    },
+    "RCON password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 密码"
+          }
+        }
+      }
+    },
+    "RCON password is missing. Add it in Settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 RCON 密码，请在设置里填写。"
+          }
+        }
+      }
+    },
+    "RCON password was rejected. Check the password in server.properties.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 密码被拒绝，请核对 server.properties 里的密码。"
+          }
+        }
+      }
+    },
+    "RCON port": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 端口"
+          }
+        }
+      }
+    },
+    "RCON port must be a number between 1 and 65535.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 端口必须是 1–65535 之间的数字。"
           }
         }
       }
@@ -1171,12 +2831,42 @@
         }
       }
     },
+    "Reading or writing files failed. Check free space and permissions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读写文件失败，请检查磁盘空间和权限。"
+          }
+        }
+      }
+    },
     "Ready": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "就绪"
+          }
+        }
+      }
+    },
+    "Reconnect": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新连接"
+          }
+        }
+      }
+    },
+    "Record": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制"
           }
         }
       }
@@ -1211,6 +2901,16 @@
         }
       }
     },
+    "Reinstalling rewrites the install record: it will say this app installed it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重装会改写安装记录：来源会变成「由本应用安装」。"
+          }
+        }
+      }
+    },
     "Reinstall…": {
       "localizations": {
         "zh-Hans": {
@@ -1241,12 +2941,42 @@
         }
       }
     },
+    "Releases only": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只看正式版"
+          }
+        }
+      }
+    },
+    "Reload online / whitelist / ban lists": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新拉取在线 / 白名单 / 封禁名单"
+          }
+        }
+      }
+    },
     "Reload remote servers": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "重新加载远程服务器"
+          }
+        }
+      }
+    },
+    "Remote Hosting": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程托管"
           }
         }
       }
@@ -1301,6 +3031,106 @@
         }
       }
     },
+    "Remove": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "Removes the address, the saved RCON password and the console history on this device.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录。"
+          }
+        }
+      }
+    },
+    "Removes the address, the saved RCON password and the console history on this device. The server itself is not touched.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录；服务器本身不受影响。"
+          }
+        }
+      }
+    },
+    "Removes the binary, the PATH line it added, the shell completion and the install record. Game files are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会删除可执行文件、它写入的 PATH 行、命令补全和安装记录；游戏文件保留。"
+          }
+        }
+      }
+    },
+    "Requesting server restart…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在请求重启服务器…"
+          }
+        }
+      }
+    },
+    "Requesting server start…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在请求启动服务器…"
+          }
+        }
+      }
+    },
+    "Requesting server stop…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在请求停止服务器…"
+          }
+        }
+      }
+    },
+    "Required": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要"
+          }
+        }
+      }
+    },
+    "Rescan Java": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描 Java"
+          }
+        }
+      }
+    },
+    "Rescan installed Java runtimes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描 Java 运行时"
+          }
+        }
+      }
+    },
     "Rescan the managed Java runtimes under the game folder": {
       "localizations": {
         "zh-Hans": {
@@ -1311,12 +3141,42 @@
         }
       }
     },
+    "Rescan the managed runtimes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描已托管的运行时"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认"
+          }
+        }
+      }
+    },
     "Reset game folder to default": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "重置游戏目录为默认"
+          }
+        }
+      }
+    },
+    "Resource Packs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "资源包"
           }
         }
       }
@@ -1381,12 +3241,42 @@
         }
       }
     },
+    "Restart…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重启…"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
     "Reveal": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "显示"
+          }
+        }
+      }
+    },
+    "Revert": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原"
           }
         }
       }
@@ -1421,12 +3311,72 @@
         }
       }
     },
+    "Runtimes are managed by the engine under <game folder>/java/<major>. A missing version is downloaded on launch, so this never blocks you.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行时由引擎管理在 <游戏目录>/java/<主版本> 下。缺哪个版本，启动时会自动下载，所以不会卡住你。"
+          }
+        }
+      }
+    },
+    "Same as the CLI's --root-dir.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与 CLI 的 --root-dir 相同。"
+          }
+        }
+      }
+    },
+    "Same as the CLI's --root-dir. One folder per instance — switching it switches every instance.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等同于命令行的 --root-dir。每个实例一个目录——换目录就是换全部实例。"
+          }
+        }
+      }
+    },
+    "Same four values as the CLI's --type.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与 CLI 的 --type 取值相同。"
+          }
+        }
+      }
+    },
+    "Same rules as the CLI's --min-mem / --max-mem.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "规则与 CLI 的 --min-mem / --max-mem 相同。"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "保存"
+          }
+        }
+      }
+    },
+    "Save Memory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存内存设置"
           }
         }
       }
@@ -1441,12 +3391,62 @@
         }
       }
     },
+    "Save the world": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存世界"
+          }
+        }
+      }
+    },
+    "Saves": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单人存档"
+          }
+        }
+      }
+    },
+    "Saving memory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在保存内存设置"
+          }
+        }
+      }
+    },
     "Saving…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "保存中…"
+          }
+        }
+      }
+    },
+    "Say something or run a command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入命令，或说一句话"
+          }
+        }
+      }
+    },
+    "Say…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "广播…"
           }
         }
       }
@@ -1477,6 +3477,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索插件"
+          }
+        }
+      }
+    },
+    "Select Server": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择服务器"
           }
         }
       }
@@ -1591,12 +3601,42 @@
         }
       }
     },
+    "Server Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器目录"
+          }
+        }
+      }
+    },
     "Server ID is missing.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "服务器 ID 缺失。"
+          }
+        }
+      }
+    },
+    "Server Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器设置"
+          }
+        }
+      }
+    },
+    "Server address, port and RCON": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器地址、端口与 RCON"
           }
         }
       }
@@ -1611,12 +3651,132 @@
         }
       }
     },
+    "Server is back online": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器已恢复在线"
+          }
+        }
+      }
+    },
+    "Server lifecycle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端生命周期"
+          }
+        }
+      }
+    },
+    "Server restart requested.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已提交重启请求。"
+          }
+        }
+      }
+    },
+    "Server start requested.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已提交启动请求。"
+          }
+        }
+      }
+    },
+    "Server stop requested.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已提交停止请求。"
+          }
+        }
+      }
+    },
+    "Server type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器类型"
+          }
+        }
+      }
+    },
+    "Server went offline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器离线了"
+          }
+        }
+      }
+    },
+    "Server · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器 · %@"
+          }
+        }
+      }
+    },
     "Servers": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "服务器"
+          }
+        }
+      }
+    },
+    "Set Up RCON": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去设置 RCON"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
+    },
+    "Shortcuts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
           }
         }
       }
@@ -1641,6 +3801,16 @@
         }
       }
     },
+    "Show only the instance headers, or also the folder rows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只显示实例表头，或同时显示目录行"
+          }
+        }
+      }
+    },
     "Show plugins from the Hangar catalog (off = installed only)": {
       "localizations": {
         "zh-Hans": {
@@ -1661,6 +3831,36 @@
         }
       }
     },
+    "Show the managed Java folder in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示 Java 目录"
+          }
+        }
+      }
+    },
+    "Show token": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示令牌"
+          }
+        }
+      }
+    },
+    "Show/Hide Sidebar": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示/隐藏边栏"
+          }
+        }
+      }
+    },
     "Sign in with your exaroton account token to manage remote servers here.": {
       "localizations": {
         "zh-Hans": {
@@ -1671,12 +3871,42 @@
         }
       }
     },
+    "Sign-in failed. Complete the Microsoft sign-in again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录失败，请重新完成 Microsoft 登录。"
+          }
+        }
+      }
+    },
+    "Single-player worlds.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单人游戏的世界存档。"
+          }
+        }
+      }
+    },
     "Snapshot": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "快照"
+          }
+        }
+      }
+    },
+    "Something went wrong while running the game or server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行游戏/服务端时出错。"
           }
         }
       }
@@ -1707,6 +3937,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "启动服务器"
+          }
+        }
+      }
+    },
+    "Start button launches this instance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动按钮启动的就是这个实例"
+          }
+        }
+      }
+    },
+    "Start current target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动当前目标"
           }
         }
       }
@@ -1851,6 +4101,26 @@
         }
       }
     },
+    "Stop all servers": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止全部服务器"
+          }
+        }
+      }
+    },
+    "Stop: each server saves the world, then shuts down. Players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止：逐个先存档再退出，玩家会掉线。"
+          }
+        }
+      }
+    },
     "Stopped": {
       "localizations": {
         "zh-Hans": {
@@ -1871,6 +4141,16 @@
         }
       }
     },
+    "Stop…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止…"
+          }
+        }
+      }
+    },
     "Stored in the macOS/iOS keychain and only used for exaroton requests.": {
       "localizations": {
         "zh-Hans": {
@@ -1887,6 +4167,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "支持"
+          }
+        }
+      }
+    },
+    "Switch launch target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换启动目标"
+          }
+        }
+      }
+    },
+    "TOKEN": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token"
           }
         }
       }
@@ -1921,6 +4221,26 @@
         }
       }
     },
+    "Terminate the process (may lose unsaved progress)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束进程（可能丢失未保存的进度）"
+          }
+        }
+      }
+    },
+    "Terminate: processes are killed at once, so recent changes may be lost.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "终止：直接结束进程，最近的进度可能丢失。"
+          }
+        }
+      }
+    },
     "Terminate…": {
       "localizations": {
         "zh-Hans": {
@@ -1941,12 +4261,152 @@
         }
       }
     },
+    "Test Connection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试连接"
+          }
+        }
+      }
+    },
+    "Texture and resource packs available in-game.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "游戏内可用的纹理包和资源包。"
+          }
+        }
+      }
+    },
+    "The %@ client folder (%@) is deleted for good, including assets, mods and options.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 客户端目录（%@），资源、mods 和设置一并消失。"
+          }
+        }
+      }
+    },
+    "The %@ server folder (%@) is deleted for good, including worlds, configs and plugins.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会永久删除 %@ 服务端目录（%@），存档、配置和插件一并消失。"
+          }
+        }
+      }
+    },
+    "The %@ server is killed immediately and cannot finish saving; recent changes may be lost.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会被立即结束，来不及存档，最近的进度可能丢失。"
+          }
+        }
+      }
+    },
+    "The %@ server restarts; players are disconnected during the restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会重启，期间玩家掉线。"
+          }
+        }
+      }
+    },
+    "The %@ server saves the world, then shuts down; connected players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 服务端会先存档再退出，在线玩家会掉线。"
+          }
+        }
+      }
+    },
+    "The input isn't valid. Check the settings and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入不合法，请检查设置后重试。"
+          }
+        }
+      }
+    },
+    "The instance folder is not known yet.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还不知道这个实例的目录。"
+          }
+        }
+      }
+    },
     "The recorded binary is missing — reinstall to repair the record.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "记录的二进制文件不存在 —— 重新安装以修复记录。"
+          }
+        }
+      }
+    },
+    "The requested version or file doesn't exist. Refresh the list and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本或文件不存在，刷新列表后重试。"
+          }
+        }
+      }
+    },
+    "The server answered in an unexpected format. Is it a Minecraft server?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端返回了无法识别的数据，确认这是 Minecraft 服务器吗？"
+          }
+        }
+      }
+    },
+    "The server closed the connection. For RCON this usually means enable-rcon is off, rcon.port points at another service, or the password is empty.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端断开了连接。RCON 下多半是没开 enable-rcon、rcon.port 指到了别的服务，或密码为空。"
+          }
+        }
+      }
+    },
+    "The server didn't answer in time. Check the address and that the port is open.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器没有按时回应，请检查地址和端口是否开放。"
+          }
+        }
+      }
+    },
+    "The server restarts; players are disconnected during the restart.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器会重启，期间玩家掉线。"
           }
         }
       }
@@ -1961,6 +4421,16 @@
         }
       }
     },
+    "The server saves and shuts down; connected players are disconnected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器会存档并关闭，在线玩家会掉线。"
+          }
+        }
+      }
+    },
     "The server stops and starts again. Connected players are disconnected during the restart.": {
       "localizations": {
         "zh-Hans": {
@@ -1971,12 +4441,162 @@
         }
       }
     },
+    "The service did not accept the request.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务未接受该请求。"
+          }
+        }
+      }
+    },
+    "The service returned an unexpected response.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务返回了非预期响应。"
+          }
+        }
+      }
+    },
+    "The whitelist is empty.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单是空的。"
+          }
+        }
+      }
+    },
+    "Theme": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主题"
+          }
+        }
+      }
+    },
+    "These are handled by macOS and cannot be changed here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些由 macOS 处理，此处不可修改。"
+          }
+        }
+      }
+    },
+    "This account has no servers or credit pools.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账号下没有服务器或额度池。"
+          }
+        }
+      }
+    },
+    "This server returned status data this app doesn't understand.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个服务端返回的状态数据本应用无法识别。"
+          }
+        }
+      }
+    },
+    "This version needs Java %@; installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该版本需要 Java %@；本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "This version needs Java %@; it will be installed on launch. Installed: %@. Click to rescan.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该版本需要 Java %@；启动时会自动安装。本机已装 %@。点击重新扫描。"
+          }
+        }
+      }
+    },
+    "This version or platform doesn't support that action.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个版本或平台不支持该操作。"
+          }
+        }
+      }
+    },
+    "Tick: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tick：%@"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
+        }
+      }
+    },
     "Tools": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "工具"
+          }
+        }
+      }
+    },
+    "Turn on RCON in the server settings to run console commands from here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在服务器设置里打开 RCON，就能在这里发控制台命令。"
+          }
+        }
+      }
+    },
+    "Turn on RCON to kick players or edit the whitelist.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 RCON 后可以踢人、改白名单。"
+          }
+        }
+      }
+    },
+    "Type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "类型"
           }
         }
       }
@@ -1997,6 +4617,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "URL 格式错误：%@"
+          }
+        }
+      }
+    },
+    "Unavailable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不可用"
+          }
+        }
+      }
+    },
+    "Unban": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解封"
+          }
+        }
+      }
+    },
+    "Unban…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解除封禁…"
           }
         }
       }
@@ -2031,6 +4681,16 @@
         }
       }
     },
+    "Unsaved changes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未保存的更改"
+          }
+        }
+      }
+    },
     "Up to date": {
       "localizations": {
         "zh-Hans": {
@@ -2061,12 +4721,32 @@
         }
       }
     },
+    "Updated %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新于 %@"
+          }
+        }
+      }
+    },
     "Use Folder": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "使用文件夹"
+          }
+        }
+      }
+    },
+    "Use RCON for console commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 RCON 发送控制台命令"
           }
         }
       }
@@ -2081,6 +4761,86 @@
         }
       }
     },
+    "Uses system notifications. Only state changes are reported, at most once a minute per server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用系统通知。只在状态变化时提醒，每台服务器最多每分钟一条。"
+          }
+        }
+      }
+    },
+    "Verification": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连通性"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        }
+      }
+    },
+    "Version info not refreshed yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本信息尚未刷新"
+          }
+        }
+      }
+    },
+    "Version info updated %@ %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本信息更新于 %@ %@"
+          }
+        }
+      }
+    },
+    "Version list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本列表"
+          }
+        }
+      }
+    },
+    "Version list: jump to newest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本列表：跳到最新"
+          }
+        }
+      }
+    },
+    "Version list: jump to oldest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本列表：跳到最旧"
+          }
+        }
+      }
+    },
     "Website": {
       "localizations": {
         "zh-Hans": {
@@ -2091,12 +4851,92 @@
         }
       }
     },
+    "Whitelist (%lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单（%lld）"
+          }
+        }
+      }
+    },
+    "Whitelist add…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单添加…"
+          }
+        }
+      }
+    },
+    "Whitelist list": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单列表"
+          }
+        }
+      }
+    },
+    "Whitelist remove…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白名单移除…"
+          }
+        }
+      }
+    },
     "Will be installed": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "将自动安装"
+          }
+        }
+      }
+    },
+    "World": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "世界存档"
+          }
+        }
+      }
+    },
+    "Yesterday": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昨天"
+          }
+        }
+      }
+    },
+    "`logs/latest.log` — useful when the game crashes on launch.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "logs/latest.log：游戏启动崩溃时可检查此日志。"
+          }
+        }
+      }
+    },
+    "`logs/latest.log` — what the server console shows, including crashes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "logs/latest.log：服务器控制台输出，包含崩溃信息。"
           }
         }
       }
@@ -2151,12 +4991,32 @@
         }
       }
     },
+    "mc.example.com or 192.168.0.10": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mc.example.com 或 192.168.0.10"
+          }
+        }
+      }
+    },
     "not created yet": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "尚未创建"
+          }
+        }
+      }
+    },
+    "options.txt, screenshots and everything else the client writes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "客户端设置、截图及其他客户端文件。"
           }
         }
       }
@@ -2191,1492 +5051,12 @@
         }
       }
     },
-    "Apply": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "应用"
-          }
-        }
-      }
-    },
-    "Choose a folder, not a file.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请选择文件夹，而不是文件。"
-          }
-        }
-      }
-    },
-    "Back to Latest (%lld)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回到最新（%lld）"
-          }
-        }
-      }
-    },
-    "Requesting server start…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在请求启动服务器…"
-          }
-        }
-      }
-    },
-    "Requesting server stop…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在请求停止服务器…"
-          }
-        }
-      }
-    },
-    "Requesting server restart…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在请求重启服务器…"
-          }
-        }
-      }
-    },
-    "Server start requested.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已提交启动请求。"
-          }
-        }
-      }
-    },
-    "Server stop requested.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已提交停止请求。"
-          }
-        }
-      }
-    },
-    "Server restart requested.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已提交重启请求。"
-          }
-        }
-      }
-    },
-    "Could not load remote servers. Check your account token and try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法加载远程服务器，请检查账号令牌后重试。"
-          }
-        }
-      }
-    },
-    "Could not load remote servers. Check your connection and try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法加载远程服务器，请检查网络连接后重试。"
-          }
-        }
-      }
-    },
-    "This account has no servers or credit pools.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此账号下没有服务器或额度池。"
-          }
-        }
-      }
-    },
-    "Could not save server memory. Try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法保存服务器内存，请重试。"
-          }
-        }
-      }
-    },
-    "Save Memory": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存内存设置"
-          }
-        }
-      }
-    },
-    "Revert": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还原"
-          }
-        }
-      }
-    },
-    "Unsaved changes": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未保存的更改"
-          }
-        }
-      }
-    },
-    "Reconnect": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新连接"
-          }
-        }
-      }
-    },
-    "Retry": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重试"
-          }
-        }
-      }
-    },
-    "Server Folder": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器目录"
-          }
-        }
-      }
-    },
-    "World": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "世界存档"
-          }
-        }
-      }
-    },
-    "Logs": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "日志"
-          }
-        }
-      }
-    },
-    "Plugin Updates": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "插件更新队列"
-          }
-        }
-      }
-    },
-    "Mods": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模组"
-          }
-        }
-      }
-    },
-    "Mod Configs": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模组配置"
-          }
-        }
-      }
-    },
-    "Saves": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "单人存档"
-          }
-        }
-      }
-    },
-    "Resource Packs": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "资源包"
-          }
-        }
-      }
-    },
     "server.properties, eula.txt, banned lists and everything else the server writes.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "服务器配置、许可文件、封禁列表及其他服务器文件。"
-          }
-        }
-      }
-    },
-    "Level data (`level-name` in server.properties). Back this up before big changes.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "世界数据（由 server.properties 中的 level-name 指定），重要更改前请备份。"
-          }
-        }
-      }
-    },
-    "`logs/latest.log` — what the server console shows, including crashes.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "logs/latest.log：服务器控制台输出，包含崩溃信息。"
-          }
-        }
-      }
-    },
-    "Drop plugin jars here — they load on the next start.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将插件 jar 放在此处，下次启动时加载。"
-          }
-        }
-      }
-    },
-    "Queued plugin updates — the server applies them on the next restart.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "等待更新的插件，服务器将在下次重启时应用。"
-          }
-        }
-      }
-    },
-    "Mod jars — they load on the next start.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模组 jar 文件，下次启动时加载。"
-          }
-        }
-      }
-    },
-    "Per-mod config files written on first run.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "各模组首次运行时生成的配置文件。"
-          }
-        }
-      }
-    },
-    "options.txt, screenshots and everything else the client writes.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "客户端设置、截图及其他客户端文件。"
-          }
-        }
-      }
-    },
-    "`logs/latest.log` — useful when the game crashes on launch.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "logs/latest.log：游戏启动崩溃时可检查此日志。"
-          }
-        }
-      }
-    },
-    "Single-player worlds.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "单人游戏的世界存档。"
-          }
-        }
-      }
-    },
-    "Fabric mod jars — loaded on the next launch.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fabric 模组 jar 文件，下次启动时加载。"
-          }
-        }
-      }
-    },
-    "Texture and resource packs available in-game.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "游戏内可用的纹理包和资源包。"
-          }
-        }
-      }
-    },
-    "Could not request the server to start.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法请求启动服务器。"
-          }
-        }
-      }
-    },
-    "Could not request the server to stop.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法请求停止服务器。"
-          }
-        }
-      }
-    },
-    "Could not request the server to restart.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法请求重启服务器。"
-          }
-        }
-      }
-    },
-    "Could not load server memory.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法读取服务器内存大小。"
-          }
-        }
-      }
-    },
-    "The service did not accept the request.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务未接受该请求。"
-          }
-        }
-      }
-    },
-    "The service returned an unexpected response.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务返回了非预期响应。"
-          }
-        }
-      }
-    },
-    "Unavailable": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不可用"
-          }
-        }
-      }
-    },
-    "Open console": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开控制台"
-          }
-        }
-      }
-    },
-    "Open console (running)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开控制台（运行中）"
-          }
-        }
-      }
-    },
-    "Manage plugins for this instance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "管理这个实例的插件"
-          }
-        }
-      }
-    },
-    "Copy": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "复制"
-          }
-        }
-      }
-    },
-    "Copied": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已复制"
-          }
-        }
-      }
-    },
-    "Copy failed": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "复制失败"
-          }
-        }
-      }
-    },
-    "%lld GB": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld GB"
-          }
-        }
-      }
-    },
-    "Filter a version": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "筛选版本"
-          }
-        }
-      }
-    },
-    "Show token": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示令牌"
-          }
-        }
-      }
-    },
-    "Hide token": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "隐藏令牌"
-          }
-        }
-      }
-    },
-    "Open this console in its own window": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在独立窗口中打开这个控制台"
-          }
-        }
-      }
-    },
-    "Clear the search if needed, then follow new output again": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "必要时会清空搜索，然后重新跟随新日志"
-          }
-        }
-      }
-    },
-    "Rescan Java": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新扫描 Java"
-          }
-        }
-      }
-    },
-    "Allocated memory": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分配内存"
-          }
-        }
-      }
-    },
-    "Saving memory": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在保存内存设置"
-          }
-        }
-      }
-    },
-    "Could not open the folder. %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法打开这个目录：%@"
-          }
-        }
-      }
-    },
-    "Could not delete the folder. %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法删除这个目录：%@"
-          }
-        }
-      }
-    },
-    "Console Actions": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "控制台操作"
-          }
-        }
-      }
-    },
-    "Open in a new window, export, or clear the log": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在新窗口打开、导出或清空日志"
-          }
-        }
-      }
-    },
-    "Releases only": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只看正式版"
-          }
-        }
-      }
-    },
-    "Version": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本"
-          }
-        }
-      }
-    },
-    "Java": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Java"
-          }
-        }
-      }
-    },
-    "Latest": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最新"
-          }
-        }
-      }
-    },
-    "Latest snapshot": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最新快照"
-          }
-        }
-      }
-    },
-    "Today": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今天"
-          }
-        }
-      }
-    },
-    "Yesterday": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "昨天"
-          }
-        }
-      }
-    },
-    "%lld days ago": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 天前"
-          }
-        }
-      }
-    },
-    "Version info updated %@ %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本信息更新于 %@ %@"
-          }
-        }
-      }
-    },
-    "Version info not refreshed yet": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本信息尚未刷新"
-          }
-        }
-      }
-    },
-    "Jump to Newest Version": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跳到最新版本"
-          }
-        }
-      }
-    },
-    "Jump to Oldest Version": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跳到最旧版本"
-          }
-        }
-      }
-    },
-    "Client or server instance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "客户端或服务端实例"
-          }
-        }
-      }
-    },
-    "Client (%@)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "客户端（%@）"
-          }
-        }
-      }
-    },
-    "Both client types share the same game folder; Fabric adds a mods folder.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "两种客户端类型共用同一个游戏目录，Fabric 会多出一个 mods 目录。"
-          }
-        }
-      }
-    },
-    "Each server core has its own folder, console and lifecycle.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每个服务端核心有独立的目录、控制台与生命周期。"
-          }
-        }
-      }
-    },
-    "Current": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前"
-          }
-        }
-      }
-    },
-    "Collapse All": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全部折叠"
-          }
-        }
-      }
-    },
-    "Expand All": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全部展开"
-          }
-        }
-      }
-    },
-    "Show only the instance headers, or also the folder rows": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只显示实例表头，或同时显示目录行"
-          }
-        }
-      }
-    },
-    "Collapse this instance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "收起该实例"
-          }
-        }
-      }
-    },
-    "Expand this instance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "展开该实例"
-          }
-        }
-      }
-    },
-    "Client · %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "客户端 · %@"
-          }
-        }
-      }
-    },
-    "Server · %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器 · %@"
-          }
-        }
-      }
-    },
-    "Launch target": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启动目标"
-          }
-        }
-      }
-    },
-    "Choose what to launch: client (Vanilla / Fabric) or a server core": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择启动对象：客户端（Vanilla / Fabric）或某个服务端核心"
-          }
-        }
-      }
-    },
-    "Player name used for the offline client launch": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "离线客户端启动使用的玩家名"
-          }
-        }
-      }
-    },
-    "Java requirement is unknown until a version is selected. Click to rescan.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择版本后才能确定 Java 需求。点击重新扫描。"
-          }
-        }
-      }
-    },
-    "This version needs Java %@; installed: %@. Click to rescan.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "该版本需要 Java %@；本机已装 %@。点击重新扫描。"
-          }
-        }
-      }
-    },
-    "This version needs Java %@; it will be installed on launch. Installed: %@. Click to rescan.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "该版本需要 Java %@；启动时会自动安装。本机已装 %@。点击重新扫描。"
-          }
-        }
-      }
-    },
-    "Could not detect Java runtimes. Installed: %@. Click to rescan.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未能检测到 Java 运行时。本机已装 %@。点击重新扫描。"
-          }
-        }
-      }
-    },
-    "Enter player name": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入玩家名称"
-          }
-        }
-      }
-    },
-    "Path": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "路径"
-          }
-        }
-      }
-    },
-    "Type": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "类型"
-          }
-        }
-      }
-    },
-    "Required": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "需要"
-          }
-        }
-      }
-    },
-    "Theme": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "主题"
-          }
-        }
-      }
-    },
-    "Appearance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外观"
-          }
-        }
-      }
-    },
-    "Follow System": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跟随系统"
-          }
-        }
-      }
-    },
-    "Light": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浅色"
-          }
-        }
-      }
-    },
-    "Dark": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "深色"
-          }
-        }
-      }
-    },
-    "Installed from a terminal": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "由终端安装"
-          }
-        }
-      }
-    },
-    "Installed from this app": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "由本应用安装"
-          }
-        }
-      }
-    },
-    "Origin unknown (legacy record)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "来源未知（旧记录）"
-          }
-        }
-      }
-    },
-    "Install record": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安装记录"
-          }
-        }
-      }
-    },
-    "Rescan the managed runtimes": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新扫描已托管的运行时"
-          }
-        }
-      }
-    },
-    "Rescan installed Java runtimes": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新扫描 Java 运行时"
-          }
-        }
-      }
-    },
-    "Show the managed Java folder in Finder": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在访达中显示 Java 目录"
-          }
-        }
-      }
-    },
-    "Managed by the engine: a missing version is downloaded on launch, so this never blocks you.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "由引擎托管：缺失的版本会在启动时自动下载，不需要你手动处理。"
-          }
-        }
-      }
-    },
-    "One folder per instance — switching the folder switches every instance.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每个实例一个游戏目录——换目录等于换一整套实例。"
-          }
-        }
-      }
-    },
-    "Same as the CLI's --root-dir.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "与 CLI 的 --root-dir 相同。"
-          }
-        }
-      }
-    },
-    "Same rules as the CLI's --min-mem / --max-mem.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "规则与 CLI 的 --min-mem / --max-mem 相同。"
-          }
-        }
-      }
-    },
-    "Same four values as the CLI's --type.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "与 CLI 的 --type 取值相同。"
-          }
-        }
-      }
-    },
-    "Only used when the game mode is Server.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅在游戏模式为服务器时使用。"
-          }
-        }
-      }
-    },
-    "Adds -agentlib:jdwp=… to the server JVM so a debugger can attach. Keep it off unless you need it.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "给服务端 JVM 加 -agentlib:jdwp=…，供调试器连接。不需要就别开。"
-          }
-        }
-      }
-    },
-    "%@ server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 服务端"
-          }
-        }
-      }
-    },
-    "Start button launches this instance": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启动按钮启动的就是这个实例"
-          }
-        }
-      }
-    },
-    "Shortcuts": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "快捷键"
-          }
-        }
-      }
-    },
-    "Start current target": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启动当前目标"
-          }
-        }
-      }
-    },
-    "Version list: jump to newest": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本列表：跳到最新"
-          }
-        }
-      }
-    },
-    "Version list: jump to oldest": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本列表：跳到最旧"
-          }
-        }
-      }
-    },
-    "Stop all servers": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停止全部服务器"
-          }
-        }
-      }
-    },
-    "Launch and console": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启动与控制台"
-          }
-        }
-      }
-    },
-    "Version list": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本列表"
-          }
-        }
-      }
-    },
-    "Server lifecycle": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务端生命周期"
-          }
-        }
-      }
-    },
-    "Provided by the system": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "系统提供"
-          }
-        }
-      }
-    },
-    "These are handled by macOS and cannot be changed here.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这些由 macOS 处理，此处不可修改。"
-          }
-        }
-      }
-    },
-    "Record": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "录制"
-          }
-        }
-      }
-    },
-    "Press keys…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按下按键…"
-          }
-        }
-      }
-    },
-    "Reset": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "恢复默认"
-          }
-        }
-      }
-    },
-    "Show/Hide Sidebar": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示/隐藏边栏"
-          }
-        }
-      }
-    },
-    "Settings…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置…"
-          }
-        }
-      }
-    },
-    "Quit OrzMC": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "退出 OrzMC"
-          }
-        }
-      }
-    },
-    "Back to detail": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返回详情"
-          }
-        }
-      }
-    },
-    "Delete All Instances": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除全部实例"
-          }
-        }
-      }
-    },
-    "Delete all %lld instance folders?": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除全部 %lld 个实例目录？"
-          }
-        }
-      }
-    },
-    "No instances yet": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有任何实例"
-          }
-        }
-      }
-    },
-    "Pick a launch target above and press Start — the folder and its cards appear here once created.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在上面选好启动目标并按启动 —— 目录建好后，对应的卡片会出现在这里。"
-          }
-        }
-      }
-    },
-    "Switch launch target": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切换启动目标"
-          }
-        }
-      }
-    },
-    "Focus version search": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "聚焦版本搜索"
-          }
-        }
-      }
-    },
-    "Priority and conflicts": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "优先级与冲突"
-          }
-        }
-      }
-    },
-    "OrzMC 处于活跃状态时，应用内快捷键先于文本输入生效；正在用输入法拼写时一律让位给候选词。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OrzMC 处于活跃状态时，应用内快捷键先于文本输入生效；正在用输入法拼写时一律让位给候选词。"
-          }
-        }
-      }
-    },
-    "系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。"
-          }
-        }
-      }
-    },
-    "Console page: back to detail": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "控制台页：返回详情"
-          }
-        }
-      }
-    },
-    "Close Window (settings, console)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭窗口（设置、控制台）"
-          }
-        }
-      }
-    },
-    "Delete %@ Client Files?": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除 %@ 客户端文件？"
           }
         }
       }
@@ -3691,1392 +5071,12 @@
         }
       }
     },
-    "Stop: each server saves the world, then shuts down. Players are disconnected.": {
+    "系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "停止：逐个先存档再退出，玩家会掉线。"
-          }
-        }
-      }
-    },
-    "Terminate: processes are killed at once, so recent changes may be lost.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "终止：直接结束进程，最近的进度可能丢失。"
-          }
-        }
-      }
-    },
-    "Downloads and runs the official installer:": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会下载并运行官方安装器："
-          }
-        }
-      }
-    },
-    "Installs to ~/.local/bin (no admin rights) and may add it to your shell PATH.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安装到 ~/.local/bin（无需管理员权限），可能修改 shell 的 PATH。"
-          }
-        }
-      }
-    },
-    "Reinstalling rewrites the install record: it will say this app installed it.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重装会改写安装记录：来源会变成「由本应用安装」。"
-          }
-        }
-      }
-    },
-    "The server saves and shuts down; connected players are disconnected.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器会存档并关闭，在线玩家会掉线。"
-          }
-        }
-      }
-    },
-    "The server restarts; players are disconnected during the restart.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器会重启，期间玩家掉线。"
-          }
-        }
-      }
-    },
-    "Removes the binary, the PATH line it added, the shell completion and the install record. Game files are kept.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会删除可执行文件、它写入的 PATH 行、命令补全和安装记录；游戏文件保留。"
-          }
-        }
-      }
-    },
-    "The %@ server folder (%@) is deleted for good, including worlds, configs and plugins.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会永久删除 %@ 服务端目录（%@），存档、配置和插件一并消失。"
-          }
-        }
-      }
-    },
-    "The %@ client folder (%@) is deleted for good, including assets, mods and options.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会永久删除 %@ 客户端目录（%@），资源、mods 和设置一并消失。"
-          }
-        }
-      }
-    },
-    "All %lld instance folders (%@) are deleted for good, including worlds, configs, plugins and assets.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会永久删除 %@ 的全部 %lld 个实例目录，含存档、配置、插件与资源。"
-          }
-        }
-      }
-    },
-    "The %@ server saves the world, then shuts down; connected players are disconnected.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 服务端会先存档再退出，在线玩家会掉线。"
-          }
-        }
-      }
-    },
-    "The %@ server restarts; players are disconnected during the restart.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 服务端会重启，期间玩家掉线。"
-          }
-        }
-      }
-    },
-    "The %@ server is killed immediately and cannot finish saving; recent changes may be lost.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 服务端会被立即结束，来不及存档，最近的进度可能丢失。"
-          }
-        }
-      }
-    },
-    "The input isn't valid. Check the settings and try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入不合法，请检查设置后重试。"
-          }
-        }
-      }
-    },
-    "Network request failed. Check your connection and try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "网络请求失败，请检查网络后重试。"
-          }
-        }
-      }
-    },
-    "The requested version or file doesn't exist. Refresh the list and try again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版本或文件不存在，刷新列表后重试。"
-          }
-        }
-      }
-    },
-    "Sign-in failed. Complete the Microsoft sign-in again.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "登录失败，请重新完成 Microsoft 登录。"
-          }
-        }
-      }
-    },
-    "This version or platform doesn't support that action.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这个版本或平台不支持该操作。"
-          }
-        }
-      }
-    },
-    "Reading or writing files failed. Check free space and permissions.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "读写文件失败，请检查磁盘空间和权限。"
-          }
-        }
-      }
-    },
-    "Cancelled.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已取消。"
-          }
-        }
-      }
-    },
-    "Something went wrong while running the game or server.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "运行游戏/服务端时出错。"
-          }
-        }
-      }
-    },
-    "%lld more": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "另 %lld 项"
-          }
-        }
-      }
-    },
-    "(no output)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "（没有输出）"
-          }
-        }
-      }
-    },
-    "Add Server Address…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加服务器地址…"
-          }
-        }
-      }
-    },
-    "Address": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "地址"
-          }
-        }
-      }
-    },
-    "Check the server status now": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "立即检查服务器状态"
-          }
-        }
-      }
-    },
-    "Checking…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "检查中…"
-          }
-        }
-      }
-    },
-    "Commands and replies show up here.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "命令和返回会显示在这里。"
-          }
-        }
-      }
-    },
-    "Connect a server you run yourself": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连接你自己运行的服务器"
-          }
-        }
-      }
-    },
-    "Console (RCON)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "控制台（RCON）"
-          }
-        }
-      }
-    },
-    "Enter the RCON password, or turn RCON off.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请填写 RCON 密码，或者关掉 RCON。"
-          }
-        }
-      }
-    },
-    "Enter the address and port of a Minecraft server you host (for example one started with `orzmc` in server mode). The app checks its status with Server List Ping; turn on RCON to run console commands.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "填写你自己服务器（比如用 `orzmc` 服务端模式起的那个）的地址和端口。本应用用 Server List Ping 查状态；想发控制台命令就再打开 RCON。"
-          }
-        }
-      }
-    },
-    "Enter the server address.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请填写服务器地址。"
-          }
-        }
-      }
-    },
-    "My Server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的服务器"
-          }
-        }
-      }
-    },
-    "Name": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名称"
-          }
-        }
-      }
-    },
-    "Optional, e.g. Home": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可选，例如「家里的」"
-          }
-        }
-      }
-    },
-    "Port": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "端口"
-          }
-        }
-      }
-    },
-    "Port must be a number between 1 and 65535.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "端口必须是 1–65535 之间的数字。"
-          }
-        }
-      }
-    },
-    "Ports and the password come from `server.properties` (`rcon.port`, `rcon.password`, `enable-rcon=true`). The password is stored in the system keychain.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "端口和密码来自 `server.properties` 的 `rcon.port` / `rcon.password` / `enable-rcon=true`。密码保存在系统钥匙串里。"
-          }
-        }
-      }
-    },
-    "RCON answered in an unexpected format.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 返回了无法识别的格式。"
-          }
-        }
-      }
-    },
-    "RCON needs a password. Add it in Settings to send commands.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 需要密码，先在设置里填好才能发命令。"
-          }
-        }
-      }
-    },
-    "RCON password": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 密码"
-          }
-        }
-      }
-    },
-    "RCON password is missing. Add it in Settings.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "缺少 RCON 密码，请在设置里填写。"
-          }
-        }
-      }
-    },
-    "RCON password was rejected. Check the password in server.properties.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 密码被拒绝，请核对 server.properties 里的密码。"
-          }
-        }
-      }
-    },
-    "RCON port": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 端口"
-          }
-        }
-      }
-    },
-    "RCON port must be a number between 1 and 65535.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 端口必须是 1–65535 之间的数字。"
-          }
-        }
-      }
-    },
-    "Say something or run a command": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入命令，或说一句话"
-          }
-        }
-      }
-    },
-    "Server Settings": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器设置"
-          }
-        }
-      }
-    },
-    "Server address, port and RCON": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器地址、端口与 RCON"
-          }
-        }
-      }
-    },
-    "Settings": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置"
-          }
-        }
-      }
-    },
-    "TOKEN": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Token"
-          }
-        }
-      }
-    },
-    "The server answered in an unexpected format. Is it a Minecraft server?": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务端返回了无法识别的数据，确认这是 Minecraft 服务器吗？"
-          }
-        }
-      }
-    },
-    "The server closed the connection. Check that the port belongs to Minecraft, not another service.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务端断开了连接，确认这个端口确实是 Minecraft，而不是别的服务。"
-          }
-        }
-      }
-    },
-    "This server returned status data this app doesn't understand.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这个服务端返回的状态数据本应用无法识别。"
-          }
-        }
-      }
-    },
-    "Updated %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新于 %@"
-          }
-        }
-      }
-    },
-    "Use RCON for console commands": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用 RCON 发送控制台命令"
-          }
-        }
-      }
-    },
-    "Players online (%lld)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在线玩家（%lld）"
-          }
-        }
-      }
-    },
-    "%lld ms": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 毫秒"
-          }
-        }
-      }
-    },
-    "mc.example.com or 192.168.0.10": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "mc.example.com 或 192.168.0.10"
-          }
-        }
-      }
-    },
-    "Remote Hosting": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "远程托管"
-          }
-        }
-      }
-    },
-    "Server type": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器类型"
-          }
-        }
-      }
-    },
-    "Actions run on exaroton's side; Stop and Restart disconnect connected players.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这些操作在 exaroton 一侧执行；停止和重启会断开在线玩家。"
-          }
-        }
-      }
-    },
-    "Overview": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "概览"
-          }
-        }
-      }
-    },
-    "CPU × %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CPU × %@"
-          }
-        }
-      }
-    },
-    "Memory (%@ GB)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "内存（%@ GB）"
-          }
-        }
-      }
-    },
-    "Tick: %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tick：%@"
-          }
-        }
-      }
-    },
-    "Heap: %@ GB": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "堆内存：%@ GB"
-          }
-        }
-      }
-    },
-    "Loading remote servers…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在加载远程服务器…"
-          }
-        }
-      }
-    },
-    "Add Server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加服务器"
-          }
-        }
-      }
-    },
-    "Add Server…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加服务器…"
-          }
-        }
-      }
-    },
-    "Ban…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "封禁…"
-          }
-        }
-      }
-    },
-    "Commands": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用命令"
-          }
-        }
-      }
-    },
-    "Delete This Server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这台服务器"
-          }
-        }
-      }
-    },
-    "Edit…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "编辑…"
-          }
-        }
-      }
-    },
-    "Fill in or run a common command": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "填好参数或直接执行常用命令"
-          }
-        }
-      }
-    },
-    "Kick": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "踢出"
-          }
-        }
-      }
-    },
-    "Kick…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "踢出…"
-          }
-        }
-      }
-    },
-    "List players": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "列出玩家"
-          }
-        }
-      }
-    },
-    "No server added yet": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有添加服务器"
-          }
-        }
-      }
-    },
-    "Removes the address, the saved RCON password and the console history on this device.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录。"
-          }
-        }
-      }
-    },
-    "Removes the address, the saved RCON password and the console history on this device. The server itself is not touched.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会删掉地址、已保存的 RCON 密码和本机的控制台记录；服务器本身不受影响。"
-          }
-        }
-      }
-    },
-    "Save the world": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存世界"
-          }
-        }
-      }
-    },
-    "Say…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "广播…"
-          }
-        }
-      }
-    },
-    "Select Server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择服务器"
-          }
-        }
-      }
-    },
-    "The server didn't answer in time. Check the address and that the port is open.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器没有按时回应，请检查地址和端口是否开放。"
-          }
-        }
-      }
-    },
-    "Unban…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解除封禁…"
-          }
-        }
-      }
-    },
-    "Whitelist add…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白名单添加…"
-          }
-        }
-      }
-    },
-    "Whitelist list": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白名单列表"
-          }
-        }
-      }
-    },
-    "Whitelist remove…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白名单移除…"
-          }
-        }
-      }
-    },
-    "Delete This Server?": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这台服务器？"
-          }
-        }
-      }
-    },
-    "Can't connect to %@. Check the address, the port and your network.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连不上 %@，请检查地址、端口和网络。"
-          }
-        }
-      }
-    },
-    "Test Connection": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "测试连接"
-          }
-        }
-      }
-    },
-    "Verification": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "连通性"
-          }
-        }
-      }
-    },
-    "Checks the status port with Server List Ping, and (if RCON is on) runs `list` to verify the password. Nothing is saved.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用 Server List Ping 查状态端口；（若打开 RCON）再跑一条 `list` 验证密码。不会保存任何内容。"
-          }
-        }
-      }
-    },
-    "Enter a valid address and port first.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请先填写有效的地址和端口。"
-          }
-        }
-      }
-    },
-    "Players": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "玩家"
-          }
-        }
-      }
-    },
-    "Online (%lld)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在线（%lld）"
-          }
-        }
-      }
-    },
-    "Whitelist (%lld)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白名单（%lld）"
-          }
-        }
-      }
-    },
-    "Banned (%lld)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "封禁（%lld）"
-          }
-        }
-      }
-    },
-    "Nobody is online right now.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "现在没有人在线。"
-          }
-        }
-      }
-    },
-    "The whitelist is empty.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白名单是空的。"
-          }
-        }
-      }
-    },
-    "Nobody is banned.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "没有被封禁的玩家。"
-          }
-        }
-      }
-    },
-    "Player name": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "玩家名"
-          }
-        }
-      }
-    },
-    "Add to Whitelist": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "加入白名单"
-          }
-        }
-      }
-    },
-    "Ban": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "封禁"
-          }
-        }
-      }
-    },
-    "Unban": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解封"
-          }
-        }
-      }
-    },
-    "Remove": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "移除"
-          }
-        }
-      }
-    },
-    "OP": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OP"
-          }
-        }
-      }
-    },
-    "De-OP…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消 OP…"
-          }
-        }
-      }
-    },
-    "Ban list": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "封禁列表"
-          }
-        }
-      }
-    },
-    "Reload online / whitelist / ban lists": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新拉取在线 / 白名单 / 封禁名单"
-          }
-        }
-      }
-    },
-    "RCON needs a password. Add it in Settings to manage players.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RCON 需要密码，先在设置里填好才能管理玩家。"
-          }
-        }
-      }
-    },
-    "Check your own server and manage exaroton servers in a separate window": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在独立窗口里查看自己的服务器，或管理 exaroton 远程服务器"
-          }
-        }
-      }
-    },
-    "Clear search": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清空搜索"
-          }
-        }
-      }
-    },
-    "Collapse or expand every instance card": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "折叠或展开所有实例卡片"
-          }
-        }
-      }
-    },
-    "Delete every instance folder of this version (asks for confirmation)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这个版本的全部实例目录（会先确认）"
-          }
-        }
-      }
-    },
-    "Delete this instance's folder (asks for confirmation)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这个实例的目录（会先确认）"
-          }
-        }
-      }
-    },
-    "Exaroton server URL is invalid.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exaroton 服务器地址无效。"
-          }
-        }
-      }
-    },
-    "More actions": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更多操作"
-          }
-        }
-      }
-    },
-    "More actions (do not fit in this window width)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更多操作（当前窗口宽度放不下）"
-          }
-        }
-      }
-    },
-    "Prefilled on every client launch; required before starting a client.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每次启动客户端都会预填；启动客户端前必填。"
-          }
-        }
-      }
-    },
-    "Restart…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重启…"
-          }
-        }
-      }
-    },
-    "Runtimes are managed by the engine under <game folder>/java/<major>. A missing version is downloaded on launch, so this never blocks you.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "运行时由引擎管理在 <游戏目录>/java/<主版本> 下。缺哪个版本，启动时会自动下载，所以不会卡住你。"
-          }
-        }
-      }
-    },
-    "Same as the CLI's --root-dir. One folder per instance — switching it switches every instance.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "等同于命令行的 --root-dir。每个实例一个目录——换目录就是换全部实例。"
-          }
-        }
-      }
-    },
-    "Stop…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停止…"
-          }
-        }
-      }
-    },
-    "Terminate the process (may lose unsaved progress)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "结束进程（可能丢失未保存的进度）"
-          }
-        }
-      }
-    },
-    "The instance folder is not known yet.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还不知道这个实例的目录。"
-          }
-        }
-      }
-    },
-    "Server is back online": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器已恢复在线"
-          }
-        }
-      }
-    },
-    "Server went offline": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器离线了"
-          }
-        }
-      }
-    },
-    "Notify me when the server goes online or offline": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "服务器上下线时通知我"
-          }
-        }
-      }
-    },
-    "Uses system notifications. Only state changes are reported, at most once a minute per server.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用系统通知。只在状态变化时提醒，每台服务器最多每分钟一条。"
-          }
-        }
-      }
-    },
-    "Notifications": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通知"
-          }
-        }
-      }
-    },
-    "Turn on RCON to kick players or edit the whitelist.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开 RCON 后可以踢人、改白名单。"
-          }
-        }
-      }
-    },
-    "Set Up RCON": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "去设置 RCON"
-          }
-        }
-      }
-    },
-    "Turn on RCON in the server settings to run console commands from here.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在服务器设置里打开 RCON，就能在这里发控制台命令。"
-          }
-        }
-      }
-    },
-    "Add another server": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "再添加一台服务器"
-          }
-        }
-      }
-    },
-    "Console needs a live connection to the server.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "控制台需要先连上服务器。"
-          }
-        }
-      }
-    },
-    "Connected, waiting for the server handshake…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已连接，正在等待服务器握手…"
+            "value": "系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。"
           }
         }
       }

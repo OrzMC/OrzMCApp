@@ -19,7 +19,9 @@ enum SelfHostedErrorText {
         case MCStreamError.connectFailed:
             return String(localized: "Can't connect to \(address). Check the address, the port and your network.")
         case MCStreamError.connectionClosed:
-            return String(localized: "The server closed the connection. Check that the port belongs to Minecraft, not another service.")
+            // RCON 端口"能连上、但发完认证包就被断开"是最常见的配置问题（实测真实服务器）：
+            // 端口其实是别的服务、或者服务端没开 enable-rcon，用户看到的却是"断开了连接"这种空话。
+            return String(localized: "The server closed the connection. For RCON this usually means enable-rcon is off, rcon.port points at another service, or the password is empty.")
         case MCSLPError.pingFailed, MCSLPError.packetMalFormat:
             return String(localized: "The server answered in an unexpected format. Is it a Minecraft server?")
         case MCRCONError.authFailed:

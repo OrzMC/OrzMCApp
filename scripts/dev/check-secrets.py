@@ -10,9 +10,14 @@
 * 值太短（< 6 字符）或纯数字的不检查（端口、`1`/`0` 之类会误报）。
 * 没有凭据文件时直接通过 —— 所以 CI 上是空操作，安全网只在本地生效。
 
+只扫**新增内容**（暂存区的 + 还没进 origin/main 的提交），不扫整个仓库：
+凭据的分布在历史上早就定了，推之前要防的是"这次改动把它带进来"。整库扫描还会被
+项目自身的品牌词误伤（域名里就有一样的词）。
+
 用法：
-    scripts/dev/check-secrets.py            # 扫描已跟踪文件 + 暂存区
+    scripts/dev/check-secrets.py            # 扫暂存区 + 未推送的提交（pre-push 用）
     scripts/dev/check-secrets.py --staged   # 只扫暂存区（pre-commit 用）
+    scripts/dev/check-secrets.py --all      # 整库审计（人工用，会有误报）
 """
 
 from __future__ import annotations
@@ -57,6 +62,36 @@ def git(*args: str) -> str:
     ).stdout
 
 
+def added_lines(staged_only: bool) -> list[tuple[str, int, str]]:
+    """返回 (文件名, 行号, 内容) —— 只取**新增**的文本行。"""
+    ranges = ["--cached"] if staged_only else ["--cached"]
+    if not staged_only:
+        # 还没推到 origin/main 的提交也算"新增"
+        base = git("rev-parse", "--verify", "origin/main").strip()
+        if base:
+            ranges += [f"{base}...HEAD"]
+    seen: dict[tuple[str, int], str] = {}
+    for spec in ranges:
+        diff = git("diff", "-U0", spec, "--no-color", "--no-ext-diff")
+        path = ""
+        line_no = 0
+        for raw in diff.splitlines():
+            if raw.startswith("+++ b/"):
+                path = raw[6:]
+            elif raw.startswith("@@"):
+                # @@ -a,b +c,d @@
+                plus = raw.split("+")[1].split("@@")[0].strip()
+                start = plus.split(",")[0]
+                line_no = int(start) - 1
+            elif raw.startswith("+") and not raw.startswith("+++"):
+                line_no += 1
+                if path:
+                    seen[(path, line_no)] = raw[1:]
+            elif raw.startswith("-"):
+                continue
+    return [(path, number, text) for (path, number), text in sorted(seen.items())]
+
+
 def candidate_files(staged_only: bool) -> list[Path]:
     names: set[str] = set()
     if not staged_only:
@@ -84,6 +119,7 @@ def hint(value: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--staged", action="store_true", help="只扫暂存区（pre-commit 用）")
+    parser.add_argument("--all", action="store_true", help="整库审计（会被品牌词误伤）")
     args = parser.parse_args()
 
     secrets = load_secrets()
@@ -92,6 +128,26 @@ def main() -> int:
         return 0
 
     hits: list[str] = []
+    if not args.all:
+        for path, line_number, text in added_lines(args.staged):
+            if path in EXEMPT:
+                continue
+            for key, value in secrets.items():
+                if value in text:
+                    hits.append(f"{path}:{line_number} 命中 {key}（{hint(value)}）")
+        if hits:
+            print("✗ 检测到本地测试凭据出现在**本次新增**的内容里：", file=sys.stderr)
+            for item in hits:
+                print(f"  {item}", file=sys.stderr)
+            print(
+                "\n处理方式：把这几行改成从环境变量读取，或删除；"
+                "如果已经推送过，立刻在服务端轮换凭据（改 RCON 密码 / 重置 Token）。",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"✓ 新增内容里没有凭据（检查 {len(secrets)} 个值）")
+        return 0
+
     for path in candidate_files(args.staged):
         try:
             text = path.read_text(encoding="utf-8")

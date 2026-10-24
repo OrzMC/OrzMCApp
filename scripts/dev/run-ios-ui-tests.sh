@@ -52,12 +52,15 @@ else
   step "没有本地凭据文件：真实服务器 / 真实账号的用例会自动跳过"
 fi
 
-# 把可用的凭据转成传给测试进程的环境变量（TEST_RUNNER_ 前缀由 xcodebuild 剥掉）
-RUNNER_SECRETS=()
+# 把凭据转成测试进程的环境变量：xcodebuild 会把 `TEST_RUNNER_` 前缀剥掉后传给 runner。
+#
+# ⚠️ 必须用**环境变量**（`export TEST_RUNNER_X=…`），不能写成 xcodebuild 的命令行参数
+# （`xcodebuild … TEST_RUNNER_X=…`）：后者是"构建设置赋值"，不会进 runner 的进程环境，
+# 症状就是凭据明明"已提供"，真机/真实账号用例照样 skip。
 add_secret() { # add_secret <测试侧变量名> <值>
   # 注意：必须用 if 而不是 `[[ … ]] && …` —— 后者在值为空时返回 1，配合 set -e 会直接终止脚本。
   if [[ -n "${2:-}" ]]; then
-    RUNNER_SECRETS+=("TEST_RUNNER_$1=$2")
+    export "TEST_RUNNER_$1=$2"
   fi
 }
 add_secret ORZMC_UITEST_SELFHOSTED_HOST          "${ORZMC_UITEST_SELFHOSTED_HOST:-}"
@@ -67,7 +70,11 @@ add_secret ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD "${ORZMC_UITEST_SELFHOSTED_RCON
 add_secret ORZMC_UITEST_SELFHOSTED_NAME          "${ORZMC_UITEST_SELFHOSTED_NAME:-}"
 add_secret ORZMC_DEMO_TOKEN                      "${ORZMC_UITEST_EXAROTON_TOKEN:-}"
 if [[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]]; then
-  RUNNER_SECRETS+=("TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1")
+  export TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1
+fi
+# RCON 用例默认不跑（服务端配置错不该把日常迭代染红），需要时 UI_TEST_RCON=1。
+if [[ "${UI_TEST_RCON:-0}" = "1" ]]; then
+  export TEST_RUNNER_ORZMC_UITEST_RCON=1
 fi
 echo "  真实自建服务器：$([[ -n "${ORZMC_UITEST_SELFHOSTED_HOST:-}" ]] && echo 已提供 || echo 未提供)" \
      "· exaroton Token：$([[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]] && echo 已提供 || echo 未提供)"
@@ -145,7 +152,7 @@ if [[ -n "$DEVICE" ]]; then
   step "执行 UI 测试（真机）"
   echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac；默认测试用应用内假数据）"
   TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
-    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" ${RUNNER_SECRETS[@]+"${RUNNER_SECRETS[@]}"} 2>&1 \
+    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" 2>&1 \
     | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
   exit ${PIPESTATUS[0]}
 fi
@@ -162,7 +169,9 @@ step "预装 App（双保险：某些 Xcode 版本没装过 App 会读不到 bun
 xcrun simctl install "$UDID" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/OrzMC.app"
 
 step "执行 UI 测试（模拟器）"
-# 空数组要用 ${arr[@]+"${arr[@]}"} 展开成"零个参数"；
-# 写成 "${arr[@]:-}" 会变成一个空字符串参数，xcodebuild 会报 `Unknown build action ''`。
-xcodebuild test-without-building "${COMMON[@]}" ${RUNNER_SECRETS[@]+"${RUNNER_SECRETS[@]}"} 2>&1 \
+# 必须显式 -xctestrun：用 -scheme 时 xcodebuild 会自己**重新生成** xctestrun，
+# 把我们刚修好的 UITargetAppPath 又覆盖回不带 .app 的版本。
+# 空数组要用 ${arr[@]+"${arr[@]}"} 展开成"零个参数"；写成 "${arr[@]:-}" 会变成一个空字符串参数，
+# xcodebuild 会报 `Unknown build action ''`。
+xcodebuild test-without-building -xctestrun "$SIM_XCTESTRUN" -destination "$DESTINATION" 2>&1 \
   | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30

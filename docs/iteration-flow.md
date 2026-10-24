@@ -214,6 +214,13 @@ cp scripts/dev/uitest-secrets.example.env scripts/dev/uitest-secrets.env
 | 真实账号（真机，`TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1`） | 点真服务器卡进详情 → 滚到「控制台」→ 若出现 `WS:` 诊断行则判失败并附上诊断 |
 | **端到端启停**（`TEST_RUNNER_ORZMC_UITEST_POWER_CYCLE=1`） | 点「启动服务器」→ 240 秒内 `停止` 变可点（= 在线）→ 控制台流出 Paper 的 `Done (…)` 行 → 收尾自动停止 |
 
+**RCON 用例默认不跑**（`UI_TEST_RCON=1` 开启）：RCON 通不通取决于服务端配置
+（`enable-rcon` / `rcon.port` / `rcon.password` / 防火墙），配错了不该把日常迭代染红。
+
+```bash
+UI_TEST_RCON=1 ./scripts/dev/run-ios-ui-tests.sh
+```
+
 端到端那条**会真的消耗 exaroton 额度**（实测约 82 秒），所以默认跳过：
 
 ```bash

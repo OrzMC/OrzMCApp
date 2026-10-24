@@ -43,6 +43,13 @@ final class RemotePanelsUITests: XCTestCase {
         app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = "testpass"
         app.launchEnvironment["ORZMC_DEMO_TAB"] = "selfHosted"
         for (key, value) in environment { app.launchEnvironment[key] = value }
+        // 测试进程拿到的凭据（runner 用 TEST_RUNNER_ 前缀传进来的）要显式转给 **App 进程** ——
+        // 两个进程环境互不相通，不转发的话 App 里没有 Token / RCON 密码，真实用例会直接失败。
+        for key in ["ORZMC_DEMO_TOKEN", "ORZMC_DEMO_RCON_PASSWORD"] {
+            if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+                app.launchEnvironment[key] = value
+            }
+        }
         return app
     }
 
@@ -232,49 +239,83 @@ final class RemotePanelsUITests: XCTestCase {
         return condition()
     }
 
-    /// **真实自建服务器**（模拟器 / 真机都能跑）：真实 SLP + 真实 RCON 命令。
+    /// **真实自建服务器 · SLP**（模拟器 / 真机都能跑）：真实主机名 + 真实状态查询。
     ///
-    /// 凭据来自**未入库**的 `scripts/dev/uitest-secrets.env`（模板见 `.example.env`），
-    /// 没有就自动跳过。断言三件事：状态真的在线、RCON 真的通、命令真的能执行。
-    func testRealSelfHostedServerResponds() throws {
-        let environment = ProcessInfo.processInfo.environment
-        let host = environment["ORZMC_UITEST_SELFHOSTED_HOST"] ?? ""
-        try XCTSkipIf(host.isEmpty, "没有本地凭据（scripts/dev/uitest-secrets.env）")
-
-        let port = environment["ORZMC_UITEST_SELFHOSTED_PORT"] ?? "25565"
-        let rconPort = environment["ORZMC_UITEST_SELFHOSTED_RCON_PORT"] ?? "25575"
-        let password = environment["ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD"] ?? ""
-        let name = environment["ORZMC_UITEST_SELFHOSTED_NAME"] ?? "真实服务器"
-
-        let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
-        app.launchEnvironment["ORZMC_DEMO_TAB"] = "selfHosted"
-        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "\(name)|\(host)|\(port)|\(rconPort)|\(password.isEmpty ? "0" : "1")"
-        if !password.isEmpty { app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = password }
+    /// 凭据来自**未入库**的 `scripts/dev/uitest-secrets.env`（模板见 `.example.env`），没有就跳过。
+    func testRealSelfHostedServerShowsOnline() throws {
+        let config = try selfHostedConfig()
+        let app = makeApp()
+        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] =
+            "\(config.name)|\(config.host)|\(config.port)|\(config.rconPort)|\(config.password.isEmpty ? "0" : "1")"
+        if !config.password.isEmpty { app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = config.password }
         app.launch()
         allowSystemPrompts()
 
-        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 20), "服务器名应显示")
+        XCTAssertTrue(app.staticTexts[config.name].waitForExistence(timeout: 20), "服务器名应显示")
         XCTAssertTrue(waitUntil(timeout: 40) { app.staticTexts["在线"].exists }, "真实服务器应探测为在线")
-        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '连不上'")).firstMatch.exists,
-                       "不应出现连接失败提示")
+        XCTAssertFalse(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '连不上'")).firstMatch.exists,
+            "不应出现连接失败提示"
+        )
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+    }
 
-        // RCON：发一条 list，等真实回复（Paper/Vanilla 都会说 "There are … players online"）
+    /// **真实自建服务器 · RCON**：发一条 `list`，等真实回复。
+    ///
+    /// 单独一条并且要显式开启（`UI_TEST_RCON=1` 或 `TEST_RUNNER_ORZMC_UITEST_RCON=1`）：
+    /// RCON 是**服务端配置**的事（enable-rcon / rcon.port / rcon.password / 防火墙），
+    /// 配错了不该把日常迭代染红，但需要能一键查。
+    func testRealSelfHostedRCONExecutesCommand() throws {
+        let config = try selfHostedConfig()
+        try XCTSkipIf(config.password.isEmpty, "没有 RCON 密码")
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_RCON"] == "1",
+                          "RCON 用例需要显式开启（UI_TEST_RCON=1）")
+
+        let app = makeApp()
+        app.launchEnvironment["ORZMC_DEMO_SEED_PROFILE"] = "\(config.name)|\(config.host)|\(config.port)|\(config.rconPort)|1"
+        app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = config.password
+        app.launch()
+        allowSystemPrompts()
+
         let input = app.textFields["selfHosted.consoleInput"]
-        for _ in 0..<4 where !input.exists { app.swipeUp() }
-        guard input.waitForExistence(timeout: 10) else {
+        for _ in 0..<6 where !input.exists { app.swipeUp() }
+        guard input.waitForExistence(timeout: 15) else {
             XCTFail("应能看到控制台输入框（滚到底部）")
             return
         }
+        allowSystemPrompts()   // 首次联网可能在这时才弹权限框
         input.tap()
+        if !app.keyboards.firstMatch.waitForExistence(timeout: 5) { input.tap() }
         input.typeText("list")
         app.buttons["selfHosted.consoleSend"].tap()
 
-        XCTAssertTrue(waitUntil(timeout: 30) {
+        let replied = waitUntil(timeout: 30) {
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'players online'")).firstMatch.exists
-        }, "RCON 应执行 list 并返回真实在线人数")
-
+        }
+        if !replied {
+            // 把界面上的错误文案一起报出来，省得再跑一趟去猜。
+            let error = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '连接'")).firstMatch
+            let detail = error.exists ? error.label : "（界面上没有错误文案）"
+            XCTFail("RCON 没执行成功。界面提示：\(detail)")
+        }
         keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
     }
-}
 
+    private struct SelfHostedConfig {
+        let name, host, port, rconPort, password: String
+    }
+
+    private func selfHostedConfig() throws -> SelfHostedConfig {
+        let environment = ProcessInfo.processInfo.environment
+        let host = environment["ORZMC_UITEST_SELFHOSTED_HOST"] ?? ""
+        try XCTSkipIf(host.isEmpty, "没有本地凭据（scripts/dev/uitest-secrets.env）")
+        return SelfHostedConfig(
+            name: environment["ORZMC_UITEST_SELFHOSTED_NAME"] ?? "真实服务器",
+            host: host,
+            port: environment["ORZMC_UITEST_SELFHOSTED_PORT"] ?? "25565",
+            rconPort: environment["ORZMC_UITEST_SELFHOSTED_RCON_PORT"] ?? "25575",
+            password: environment["ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD"] ?? ""
+        )
+    }
+
+}
