@@ -21,21 +21,39 @@ import Foundation
 /// 让界面显示"未获取"，而不是把整句当成人名。
 public enum PlayerListParser {
 
+    /// 服务端回的是**命令错误**而不是名单。典型：
+    ///
+    /// ```
+    /// Unknown or incomplete command, see below for error
+    /// banlist list<--[HERE]
+    /// ```
+    ///
+    /// 真机实测：Paper 的 `/banlist` 不接受 `list` 参数，`banlist list` 会返回这段，
+    /// 旧解析把它当成了"一个叫 `banlist list<--[HERE]` 的玩家"。凡是这类回复一律当"拿不到"。
+    public static func isCommandError(_ reply: String) -> Bool {
+        let text = reply.lowercased()
+        return text.contains("<--[here]")
+            || text.contains("unknown or incomplete command")
+            || text.contains("unknown command")
+            || text.contains("incorrect argument")
+            || text.contains("usage:")
+    }
+
     /// `list`：`There are 2 of a max of 20 players online: alice, bob`
     public static func onlinePlayers(from reply: String) -> [String] {
-        guard let tail = tailAfterColon(in: reply) else { return [] }
+        guard !isCommandError(reply), let tail = tailAfterColon(in: reply) else { return [] }
         return splitNames(tail)
     }
 
     /// `whitelist list`：`There are 2 whitelisted player(s): alice, bob`
     public static func whitelisted(from reply: String) -> [String] {
-        guard let tail = tailAfterColon(in: reply) else { return [] }
+        guard !isCommandError(reply), let tail = tailAfterColon(in: reply) else { return [] }
         return splitNames(tail)
     }
 
-    /// `banlist list`：名字后面常跟 `(原因)`，甚至一行一个。返回 `(名字, 原因?)`。
+    /// `banlist`：名字后面常跟 `(原因)`，甚至一行一个。返回 `(名字, 原因?)`。
     public static func banned(from reply: String) -> [(name: String, reason: String?)] {
-        guard let tail = tailAfterColon(in: reply) else { return [] }
+        guard !isCommandError(reply), let tail = tailAfterColon(in: reply) else { return [] }
         return splitEntries(tail).compactMap { entry in
             let (head, reason) = splitReason(entry)
             let name = head.trimmingCharacters(in: .whitespacesAndNewlines)

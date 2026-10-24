@@ -44,12 +44,17 @@ struct ExarotonServerDetail: View {
 
             // 顶部摘要卡与列表行同一个组件：同一个窗口里两处"服务器长什么样"必须一致。
             Section("Overview") {
-                ExarotonServerCard(server: server, showMotd: true, showsDisclosure: false)
+                ExarotonServerCard(
+                    server: server,
+                    status: model.effectiveStatus(for: server),
+                    showMotd: true,
+                    showsDisclosure: false
+                )
             }
 
             // 生命周期动作紧跟概览：这是用户进来最想做的事，别让它排在内存/指标后面
             // （小屏上会滚不到、还容易被浮动 TabBar 压住）。
-            if let serverStatus = server.serverStatus {
+            if let serverStatus = model.effectiveStatus(for: server) {
                 ExarotonServerActionSection(
                     server: server,
                     status: serverStatus,
@@ -64,7 +69,7 @@ struct ExarotonServerDetail: View {
                 }
             }
 
-            if let serverStatus = server.serverStatus {
+            if let serverStatus = model.effectiveStatus(for: server) {
 
                 if model.isConnected {
                     Section("Metrics") {
@@ -118,32 +123,60 @@ struct ExarotonServerDetail: View {
                     Section("Console") {
 
                         ScrollView(.vertical, showsIndicators: true) {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(model.consoleLines) { line in
-                                    Text(verbatim: line.text)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                            if model.consoleLines.isEmpty {
+                                VStack(alignment: .leading) {
+                                    Text("Waiting for the server output…")
+                                        .font(.callout)
+                                        .foregroundStyle(.tertiary)
+                                    Spacer(minLength: 0)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    ForEach(model.consoleLines) { line in
+                                        Text(verbatim: line.text)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                                .font(OrzMCTheme.Typography.console)
+                                .foregroundStyle(.primary)
+                                .textSelection(.enabled)
                             }
-                            .font(OrzMCTheme.Typography.console)
-                            .foregroundStyle(.primary)
-                            .textSelection(.enabled)
                         }
                         .frame(height: 160)
                         .consoleSurface()
                         .defaultScrollAnchor(.bottom)
 
+                        // 按钮自己排（`HStack(Image + Text)` + `fixedSize`）：
+                        // Form 行里 `Button(_:systemImage:)` 会被拆成两行粗体字（"发送控制台命令…" 折行），
+                        // `Label` 则会被降级成图标-only。这里要的是"一行放得下、不折行"。
                         HStack(spacing: OrzMCTheme.Spacing.sm) {
-                            Button("Send Console Command…", systemImage: "paperplane") {
+                            Button {
                                 showConsoleCommandInput = true
+                            } label: {
+                                HStack(spacing: OrzMCTheme.Spacing.xs) {
+                                    Image(systemName: "paperplane")
+                                    Text("Send Command")
+                                }
+                                .fixedSize()
                             }
                             .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
 
-                            Button("Clear Console", systemImage: "trash") {
+                            Button {
                                 model.clearConsole()
+                            } label: {
+                                HStack(spacing: OrzMCTheme.Spacing.xs) {
+                                    Image(systemName: "trash")
+                                    Text("Clear")
+                                }
+                                .fixedSize()
                             }
                             .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .disabled(model.consoleLines.isEmpty)
 
-                            Spacer()
+                            Spacer(minLength: 0)
                         }
                     }
                 }
@@ -241,10 +274,10 @@ struct ExarotonServerDetail: View {
         //
         // 注意：**不能**用 `readyServerID != server.id` 作为重连条件——拿不到 ready 时那样会每 10 秒
         // 把一条好连接拆掉重连，永远握手不成功（真机反馈"在线但控制台连不上"很可能就是这个）。
-        .task(id: server.serverStatus) {
+        .task(id: model.effectiveStatus(for: server)) {
             var attempts = 0
             while !Task.isCancelled {
-                if server.serverStatus == .ONLINE, !model.isLive, attempts < 20, let id = server.id {
+                if model.effectiveStatus(for: server) == .ONLINE, !model.isLive, attempts < 20, let id = server.id {
                     attempts += 1
                     model.startConnect(for: id)
                 }
@@ -260,6 +293,9 @@ struct ExarotonServerDetail: View {
             wsServerReady = model.readyServerID == serverID
             syncStreams()
             await loadMemory()
+            #if DEBUG
+            seedFakeConsoleForSnapshots()
+            #endif
         }
         .onDisappear {
             model.stopConnect()
@@ -283,13 +319,29 @@ struct ExarotonServerDetail: View {
         .onChange(of: model.isConnected) {
             syncStreams()
         }
-        .onChange(of: server.serverStatus) {
+        .onChange(of: model.liveStatuses) {
             syncStreams()
         }
     }
 }
 
 extension ExarotonServerDetail {
+
+    #if DEBUG
+    /// 界面验收：`ORZMC_DEMO_FAKE_LIVE=1` 时塞几条日志，方便截控制台排版并验证断言。
+    /// 必须放在 `startConnect` 之后——连接流程里的 `reset()` 会清空控制台缓冲。
+    private func seedFakeConsoleForSnapshots() {
+        guard ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_LIVE"] == "1",
+              model.consoleLines.isEmpty else { return }
+        for line in [
+            "[20:11:02] [Server thread/INFO]: Starting minecraft server version 26.3",
+            "[20:11:07] [Server thread/INFO]: Preparing level \"world\"",
+            "[20:11:12] [Server thread/INFO]: Done (9.874s)! For help, type \"help\"",
+        ] {
+            model.appendConsoleLine(line)
+        }
+    }
+    #endif
 
     /// 读取内存：成功则同步「确认值 + 草稿」；失败时模型记录 `memoryLoadErrors`，
     /// 动作区会显示「Unavailable + Retry」，且不会把草稿改成一个假的 0。
@@ -363,6 +415,6 @@ extension ExarotonServerDetail {
 
     /// 连接/服务端状态变化时同步远程流：只发缺的那几条，取代原来的 3 秒轮询。
     private func syncStreams() {
-        model.reconcileStreams(serverIsOnline: server.serverStatus == .ONLINE)
+        model.reconcileStreams(serverIsOnline: model.effectiveStatus(for: server) == .ONLINE)
     }
 }

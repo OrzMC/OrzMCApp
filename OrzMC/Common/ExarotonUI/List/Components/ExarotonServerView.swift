@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ExarotonServerView: View {
     let server: ExarotonServer
+    /// 实际状态（WebSocket 推送优先）；不传则退回 HTTP 快照里的状态。
+    var status: ServerStatus?
     var showStatus = true
     var showMotd = false
     var body: some View {
@@ -38,7 +40,7 @@ struct ExarotonServerView: View {
 
                 Spacer(minLength: OrzMCTheme.Spacing.sm)
 
-                if showStatus, let status = server.serverStatus {
+                if showStatus, let status = status ?? server.serverStatus {
                     OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
                 }
             }

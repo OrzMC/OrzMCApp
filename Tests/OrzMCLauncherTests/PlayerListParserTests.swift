@@ -61,4 +61,36 @@ final class PlayerListParserTests: XCTestCase {
         let reply = "Banned players:\nalice\nbob"
         XCTAssertEqual(PlayerListParser.banned(from: reply).map(\.name), ["alice", "bob"])
     }
+
+    /// 真机实测：`banlist list` 在 Paper 上是错误命令，服务端回
+    /// `Unknown or incomplete command …` + `banlist list<--[HERE]`。
+    /// 旧实现把第二行当成了玩家名（"封禁列表里有一项 banlist list<--[HERE]"）。
+    func testCommandErrorReplyIsNotParsedAsPlayer() {
+        let reply = """
+        Unknown or incomplete command, see below for error
+        banlist list<--[HERE]
+        """
+        XCTAssertTrue(PlayerListParser.isCommandError(reply))
+        XCTAssertTrue(PlayerListParser.banned(from: reply).isEmpty)
+        XCTAssertTrue(PlayerListParser.onlinePlayers(from: reply).isEmpty)
+        XCTAssertTrue(PlayerListParser.whitelisted(from: reply).isEmpty)
+    }
+
+    /// `banlist`（不带 list）是标准写法：一行一个名字 + 原因。
+    func testBanlistParsesNamesWithReason() {
+        let reply = """
+        There are 2 ban(s):
+        alice (griefing)
+        bob
+        """
+        let bans = PlayerListParser.banned(from: reply)
+        XCTAssertEqual(bans.map(\.name), ["alice", "bob"])
+        XCTAssertEqual(bans.first?.reason, "griefing")
+    }
+
+    /// "没有人被封禁"这种没有名单正文的回复，不能解析出假玩家。
+    func testEmptyBanlistYieldsNoPlayers() {
+        XCTAssertTrue(PlayerListParser.banned(from: "There are no bans.").isEmpty)
+        XCTAssertTrue(PlayerListParser.banned(from: "There are 0 ban(s):").isEmpty)
+    }
 }

@@ -87,6 +87,19 @@ final class ExarotonServerModel {
     }
 
     var servers = [ExarotonServer]()
+
+    /// WebSocket 推送来的**权威状态**（`id → 状态`）。
+    ///
+    /// 之前只有详情页消费推送，列表读 HTTP 快照 → 两边会不一致：
+    /// 服务器其实已经在线/正在启动，列表却一直显示「离线」；
+    /// 一旦进详情页（收到推送）状态就"跳"成在线，看起来像 App 自己启动了服务器。
+    var liveStatuses: [String: ServerStatus] = [:]
+
+    /// 界面统一从这里取状态：优先用推送值，没有推送再退回 HTTP 快照。
+    func effectiveStatus(for server: ExarotonServer) -> ServerStatus? {
+        guard let id = server.id else { return server.serverStatus }
+        return liveStatuses[id] ?? server.serverStatus
+    }
     var creditPools = [ExarotonCreditPool]()
     var errorMessage: String?
     var isLoadingList = false
@@ -120,7 +133,14 @@ final class ExarotonServerModel {
     /// 是否**真的可用**：SDK 里 `onConnected` 并不总会被调用（实测真机：`onReady` 已拿到
     /// `readyServerID`，`isConnected` 仍是 false）。只认 `isConnected` 会导致
     /// "握手成功但不订阅流、控制台一直空/一直提示未连接"。
-    var isLive: Bool { isConnected || readyServerID != nil }
+    var isLive: Bool {
+        #if DEBUG
+        // 界面验收用：`ORZMC_DEMO_FAKE_LIVE=1` 假装已握手，便于在没有真实在线服务器时
+        // 截取"控制台有日志"的界面（也用于 UI 测试断言控制台区块）。
+        if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_LIVE"] == "1" { return true }
+        #endif
+        return isConnected || readyServerID != nil
+    }
     var isConnected: Bool = false
     var disconnectedReason: String?
     var statusChangedServer: ExarotonWebSocket.Server?

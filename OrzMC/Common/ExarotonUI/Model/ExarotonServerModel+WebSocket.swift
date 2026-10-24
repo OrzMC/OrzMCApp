@@ -137,6 +137,14 @@ extension ExarotonServerModel {
     func socketDidReceiveStatus(_ info: ExarotonWebSocket.Server?) {
         statusChangedServer = info
         statusVersion &+= 1
+
+        guard let info else { return }
+        let previous = liveStatuses[info.id]
+        liveStatuses[info.id] = info.status
+        // 只在**状态真的变化**时刷新列表：一次启动会推好几条，逐条 reload 既浪费也容易打架。
+        if previous != info.status {
+            Task { await reloadList() }
+        }
     }
 
     func socketDidStartStream(_ stream: StreamCategory?) {

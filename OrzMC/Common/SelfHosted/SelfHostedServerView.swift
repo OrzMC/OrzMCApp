@@ -289,7 +289,7 @@ struct SelfHostedServerView: View {
 
     /// 玩家卡：**在线 / 白名单 / 封禁** 三份名单，每行直接给对应动作。
     ///
-    /// 名单来自 RCON（`list` / `whitelist list` / `banlist list`），不是 SLP 的 sample：
+    /// 名单来自 RCON（`list` / `whitelist list` / `banlist`），不是 SLP 的 sample：
     /// sample 常常被服务端隐藏，而且拿不到白名单和封禁。
     private func playersCard(_ profile: SelfHostedServerProfile) -> some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
@@ -521,7 +521,7 @@ struct SelfHostedServerView: View {
             Button("De-OP…") { prefill("deop ") }
             Divider()
             Button("Whitelist list") { send("whitelist list") }
-            Button("Ban list") { send("banlist list") }
+            Button("Ban list") { send("banlist") }
         } label: {
             Label("Commands", systemImage: "text.badge.plus")
                 .font(.caption)

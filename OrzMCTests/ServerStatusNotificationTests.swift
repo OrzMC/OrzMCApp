@@ -35,3 +35,42 @@ final class ServerStatusNotificationTests: XCTestCase {
         XCTAssertFalse(ServerStatusEvent.wentOffline.title.isEmpty)
     }
 }
+
+// MARK: - 列表与推送状态一致性
+
+/// 之前只有详情页消费 WebSocket 的状态推送，列表读 HTTP 快照 → 两边不一致：
+/// 服务器已经在线/正在启动，列表还显示「离线」；一进详情页状态"跳"成在线，
+/// 看起来像 App 自己把服务器启动了。`effectiveStatus(for:)` 统一了取值来源。
+@MainActor
+final class RemoteStatusConsistencyTests: XCTestCase {
+
+    private func makeServer(status: ServerStatus) -> ExarotonServer {
+        .init(
+            id: "testsrv",
+            name: "测试服",
+            address: nil,
+            motd: nil,
+            status: .init(rawValue: status.rawValue),
+            host: "example.com",
+            port: 25565,
+            players: .init(max: 20, count: 0, list: []),
+            software: nil,
+            shared: false
+        )
+    }
+
+    func testEffectiveStatusPrefersPushedValue() {
+        let model = ExarotonServerModel()
+        let server = makeServer(status: .OFFLINE)
+        XCTAssertEqual(model.effectiveStatus(for: server), .OFFLINE, "没有推送时用 HTTP 快照")
+
+        model.liveStatuses[server.id ?? ""] = .STARTING
+        XCTAssertEqual(model.effectiveStatus(for: server), .STARTING, "推送值优先于快照")
+    }
+
+    func testEffectiveStatusFallsBackWhenNoPush() {
+        let model = ExarotonServerModel()
+        let server = makeServer(status: .ONLINE)
+        XCTAssertEqual(model.effectiveStatus(for: server), .ONLINE)
+    }
+}
