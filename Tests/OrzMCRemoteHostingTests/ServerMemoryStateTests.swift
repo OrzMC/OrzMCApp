@@ -36,6 +36,31 @@ final class ServerMemoryStateTests: XCTestCase {
         XCTAssertFalse(memory.canSave)
     }
 
+    /// 乐观更新：一开始保存就停在新值（界面不再"先跳回旧值再跳到新值"）。
+    func testBeginSaveOptimisticallyAdoptsDraft() {
+        var memory = ServerMemoryState()
+        memory.loaded(2)
+        memory.edit(4)
+        _ = memory.beginSave()
+
+        XCTAssertEqual(memory.draft, 4)
+        XCTAssertEqual(memory.confirmed, 4, "保存中界面立刻显示新值")
+        XCTAssertFalse(memory.isDirty)
+    }
+
+    /// 失败要能回滚到提交前的确认值。
+    func testBeginSaveRollsBackOnFailure() {
+        var memory = ServerMemoryState()
+        memory.loaded(2)
+        memory.edit(4)
+        _ = memory.beginSave()
+        memory.saveFailed()
+
+        XCTAssertEqual(memory.confirmed, 2)
+        XCTAssertEqual(memory.draft, 4)
+        XCTAssertTrue(memory.isDirty)
+    }
+
     func testSaveSuccessMovesConfirmedToDraft() {
         var memory = ServerMemoryState()
         memory.loaded(4)

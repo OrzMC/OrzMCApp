@@ -62,6 +62,7 @@ struct ExarotonServerActionSection: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
+        .controlSize(.large)          // 与主按钮同高，三个按钮看起来是一组
         .disabled(!canPerform(.stop))
     }
 
@@ -76,6 +77,7 @@ struct ExarotonServerActionSection: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
+        .controlSize(.large)
         .disabled(!canPerform(.restart))
     }
 
