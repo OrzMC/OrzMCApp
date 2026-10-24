@@ -108,6 +108,11 @@ final class ExarotonServerModel {
     var connectionEpoch = ConnectionEpoch()
 
     var readyServerID: String?
+
+    /// 是否**真的可用**：SDK 里 `onConnected` 并不总会被调用（实测真机：`onReady` 已拿到
+    /// `readyServerID`，`isConnected` 仍是 false）。只认 `isConnected` 会导致
+    /// "握手成功但不订阅流、控制台一直空/一直提示未连接"。
+    var isLive: Bool { isConnected || readyServerID != nil }
     var isConnected: Bool = false
     var disconnectedReason: String?
     var statusChangedServer: ExarotonWebSocket.Server?
