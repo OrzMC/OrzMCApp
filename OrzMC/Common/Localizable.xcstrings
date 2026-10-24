@@ -4601,6 +4601,16 @@
         }
       }
     },
+    "Transferring…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转移中…"
+          }
+        }
+      }
+    },
     "Turn on RCON in the server settings to run console commands from here.": {
       "localizations": {
         "zh-Hans": {
@@ -4707,6 +4717,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "未知"
+          }
+        }
+      }
+    },
+    "Unknown status": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态未知"
           }
         }
       }

@@ -17,6 +17,7 @@ import SwiftUI
 /// - 加载用条件渲染的 `ProgressView`，不再用 `.opacity(0)`（透明但仍然拦截点击）。
 struct ExarotonServerList: View {
     @Environment(ExarotonServerModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var token: String = ""
     @State private var showTokenInput = false
@@ -115,6 +116,25 @@ struct ExarotonServerList: View {
             if !model.token.isEmpty {
                 await model.reloadList()
             }
+        }
+        // 低频轮询：WebSocket 是**按服务器**连的，只有进详情才会连；
+        // 用户停在列表页时如果不轮询，状态就永远停在打开那一刻（真机反馈"状态不准确"）。
+        // 已经有 WebSocket 时（详情页开着）就不必再拉 HTTP。
+        .task {
+            guard !model.token.isEmpty else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15))
+                if Task.isCancelled { break }
+                if !model.isLive { await model.reloadList() }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // 回到前台立刻刷新一次：后台期间状态可能已经变了。
+            if phase == .active, !model.token.isEmpty {
+                Task { await model.reloadList() }
+            }
+        }
+        .task {
             #if DEBUG
             // 调试构建：`ORZMC_DEMO_FAKE_SERVER=1` 注入一台假服务器（不需要 exaroton Token），
             // 用来在没有账号/钥匙串的环境（CI、模拟器、无签名桌面包）里验收详情页布局。

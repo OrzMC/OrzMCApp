@@ -30,7 +30,9 @@ extension ExarotonServer {
         else {
             return nil
         }
-        return ServerStatus(rawValue: status.rawValue)
+        // HTTP 侧枚举来自 openapi 生成代码，取值范围可能比 WebSocket 侧更新；
+        // 对不上时退化成 `.UNKNOWN`（界面显示"未知"，不再是"什么都不显示"）。
+        return ServerStatus(rawValue: status.rawValue) ?? .UNKNOWN
     }
 
     var staticAddress: String? {
@@ -70,13 +72,14 @@ extension ServerStatus {
             return .offline
         case .ONLINE:
             return .online
-        case .STARTING, .LOADING, .PENDING, .PREPARING:
+        case .STARTING, .LOADING, .PENDING, .PREPARING, .TRANSFERRING:
             return .starting
         case .STOPPING, .SAVING:
             return .stopping
         case .RESTARTING:
             return .restarting
-        case .CRASHED:
+        // `.UNKNOWN`（SDK 没见过的状态码）和崩溃一样：状态不确定，按 unknown 处理。
+        case .CRASHED, .UNKNOWN:
             return .unknown
         }
     }
