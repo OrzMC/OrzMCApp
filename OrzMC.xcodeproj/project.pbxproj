@@ -73,6 +73,7 @@
 		2B5ACA5B2BFB28B100397BFC /* ExarotonAPI+.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA5A2BFB28B100397BFC /* ExarotonAPI+.swift */; };
 		2B5ACA5D2BFB28E700397BFC /* String+.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA5C2BFB28E700397BFC /* String+.swift */; };
 		2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */; };
+		CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */; };
 		2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */; };
 		2B5ACA632BFB2A8300397BFC /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA622BFB2A8300397BFC /* Config.swift */; };
 		2B5ACA682BFB312300397BFC /* ExarotonCreditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */; };
@@ -178,6 +179,7 @@
 		2B5ACA5A2BFB28B100397BFC /* ExarotonAPI+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonAPI+.swift"; sourceTree = "<group>"; };
 		2B5ACA5C2BFB28E700397BFC /* String+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+.swift"; sourceTree = "<group>"; };
 		2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+HTTP.swift"; sourceTree = "<group>"; };
+		CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+Refresh.swift"; sourceTree = "<group>"; };
 		2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+WebSocket.swift"; sourceTree = "<group>"; };
 		2B5ACA622BFB2A8300397BFC /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonCreditView.swift; sourceTree = "<group>"; };
@@ -358,6 +360,7 @@
 				2B62C9912BF76C6600387498 /* ExarotonServerModel.swift */,
 				2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */,
 				2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */,
+				CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -879,6 +882,7 @@
 				2B5ACA682BFB312300397BFC /* ExarotonCreditView.swift in Sources */,
 				2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */,
 				2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */,
+				CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,
 				2B54E0872BDDFB16001B6877 /* Version+.swift in Sources */,
 				2B5BC3D52BFC4B4100348C00 /* ExarotonAccountTokenInputView.swift in Sources */,

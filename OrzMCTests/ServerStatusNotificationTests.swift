@@ -74,3 +74,37 @@ final class RemoteStatusConsistencyTests: XCTestCase {
         XCTAssertEqual(model.effectiveStatus(for: server), .ONLINE)
     }
 }
+
+// MARK: - 后台轮询策略
+
+/// 状态必须能随时间自己追上服务端。轮询挂在**模型**上（不随视图生命周期中断），
+/// 这几条守住"什么时候该拉、什么时候别白拉"。
+final class RemoteStatusRefreshPolicyTests: XCTestCase {
+
+    func testRefreshWhenNothingElseProvidesUpdates() {
+        XCTAssertTrue(RemoteStatusRefreshPolicy.shouldRefresh(
+            hasToken: true, isWebSocketLive: false, isAppActive: true, isLoading: false
+        ))
+    }
+
+    func testSkipWhileWebSocketFeedsStatus() {
+        XCTAssertFalse(RemoteStatusRefreshPolicy.shouldRefresh(
+            hasToken: true, isWebSocketLive: true, isAppActive: true, isLoading: false
+        ))
+    }
+
+    func testSkipWithoutToken() {
+        XCTAssertFalse(RemoteStatusRefreshPolicy.shouldRefresh(
+            hasToken: false, isWebSocketLive: false, isAppActive: true, isLoading: false
+        ))
+    }
+
+    func testSkipInBackgroundAndWhileLoading() {
+        XCTAssertFalse(RemoteStatusRefreshPolicy.shouldRefresh(
+            hasToken: true, isWebSocketLive: false, isAppActive: false, isLoading: false
+        ))
+        XCTAssertFalse(RemoteStatusRefreshPolicy.shouldRefresh(
+            hasToken: true, isWebSocketLive: false, isAppActive: true, isLoading: true
+        ))
+    }
+}

@@ -88,6 +88,15 @@ final class ExarotonServerModel {
 
     var servers = [ExarotonServer]()
 
+    /// 后台状态轮询的 Task（见 `ExarotonServerModel+Refresh.swift`）。
+    /// 挂在模型上而不是视图上：切换页面/退出详情都不会中断。
+    @ObservationIgnored
+    var backgroundRefreshTask: Task<Void, Never>?
+
+    /// App 是否在前台（由场景驱动）。后台时不轮询，省电也省额度无关。
+    @ObservationIgnored
+    var isSceneActive = true
+
     /// WebSocket 推送来的**权威状态**（`id → 状态`）。
     ///
     /// 之前只有详情页消费推送，列表读 HTTP 快照 → 两边会不一致：
