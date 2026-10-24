@@ -74,10 +74,9 @@ public struct RemoteServerListPolicy: Sendable {
 
     public func canPerform(_ action: RemoteServerAction, on state: RemoteServerState) -> Bool {
         switch (action, state) {
-        case (.start, .offline), (.restart, .online):
-            return true
-        case (.stop, .online), (.stop, .starting), (.stop, .stopping), (.stop, .restarting):
-            // 「启动中」也允许停止：手滑点了启动不该只能干等（exaroton 侧接受该请求）。
+        // **过渡态（starting / stopping / restarting / loading…）一律不允许动作**：
+        // exaroton 会直接拒绝，用户看到的就是"点了报错"（真机实测：启动中/停止中/重启中都会报）。
+        case (.start, .offline), (.stop, .online), (.restart, .online):
             return true
         default:
             return false

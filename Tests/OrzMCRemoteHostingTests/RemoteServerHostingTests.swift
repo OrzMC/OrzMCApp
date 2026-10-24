@@ -22,9 +22,11 @@ final class RemoteServerHostingTests: XCTestCase {
         XCTAssertTrue(policy.canPerform(.restart, on: .online))
         XCTAssertFalse(policy.canPerform(.start, on: .starting))
         XCTAssertFalse(policy.canPerform(.stop, on: .offline))
-        // 启动中可以取消（真机验收反馈：点了启动只能干等）
-        XCTAssertTrue(policy.canPerform(.stop, on: .starting))
+        // 过渡态一律不允许：exaroton 会拒绝（真机实测启动中/停止中/重启中点了都报错）
+        XCTAssertFalse(policy.canPerform(.stop, on: .starting))
         XCTAssertFalse(policy.canPerform(.restart, on: .starting))
+        XCTAssertFalse(policy.canPerform(.stop, on: .stopping))
+        XCTAssertFalse(policy.canPerform(.start, on: .restarting))
         XCTAssertFalse(policy.canPerform(.restart, on: .unknown))
     }
 }

@@ -25,7 +25,14 @@ struct ExarotonServerDetail: View {
     /// 内存的「草稿 / 已确认 / 保存中」状态（测试在 `ServerMemoryStateTests`）。
     /// Stepper 只改草稿；明确保存后才更新确认值，失败时两边都不动。
     @State private var memory = ServerMemoryState()
+    /// 刚提交的内存值 + 忽略旧回传的时间窗：保存成功后服务端还会推一次"旧值"，
+    /// 直接 `loaded(old)` 会让界面先跳回改前、再跳到改后（真机反馈的"跳变"）。
+    @State private var lastRequestedRAM: Int32?
+    @State private var ignoreMemoryEchoUntil: Date?
 
+    /// 生命周期动作的确认弹窗（挂在本页根部：锚点才会在屏幕底部，而不是某个 Section 行上）。
+    @State private var confirmStop = false
+    @State private var confirmRestart = false
     @State private var showConsoleCommandInput = false
     @State private var consoleCommand: String = ""
 
@@ -43,7 +50,12 @@ struct ExarotonServerDetail: View {
             // 生命周期动作紧跟概览：这是用户进来最想做的事，别让它排在内存/指标后面
             // （小屏上会滚不到、还容易被浮动 TabBar 压住）。
             if let serverStatus = server.serverStatus {
-                ExarotonServerActionSection(server: server, status: serverStatus)
+                ExarotonServerActionSection(
+                    server: server,
+                    status: serverStatus,
+                    confirmStop: $confirmStop,
+                    confirmRestart: $confirmRestart
+                )
             }
 
             if let playlist = server.players?.list, !playlist.isEmpty {
@@ -97,6 +109,10 @@ struct ExarotonServerDetail: View {
                     onReload: { await loadMemory() }
                 )
 
+                if !model.isConnected {
+                    consolePlaceholder
+                }
+
                 if model.isConnected {
 
                     Section("Console") {
@@ -135,6 +151,23 @@ struct ExarotonServerDetail: View {
         }
         .formStyle(.grouped)
         .labeledContentStyle(.orzMCFieldRow)
+        // 破坏性/会断线的远程操作先确认（与本地服务端 Stop/Restart 同一套交互）。
+        .confirmationDialog("Stop Server?", isPresented: $confirmStop, titleVisibility: .visible) {
+            Button("Stop", role: .destructive) {
+                if let id = server.id { Task { _ = await model.stopServer(serverId: id) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The server saves and shuts down; connected players are disconnected.")
+        }
+        .confirmationDialog("Restart Server?", isPresented: $confirmRestart, titleVisibility: .visible) {
+            Button("Restart") {
+                if let id = server.id { Task { _ = await model.restartServer(serverId: id) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The server restarts; players are disconnected during the restart.")
+        }
         #if os(iOS)
         // iOS 26 的浮动 TabBar 会盖住最后一行（实测把「重启」压住了）。
         // `contentMargins` 对 Form/List 不生效，用 `safeAreaInset` 在底部真正留出空白。
@@ -217,6 +250,16 @@ struct ExarotonServerDetail: View {
         }
         .onChange(of: model.savedMemory[server.id ?? ""]) { _, newValue in
             guard let newValue else { return }
+            if let requested = lastRequestedRAM,
+               let until = ignoreMemoryEchoUntil,
+               Date() < until,
+               newValue != requested {
+                return       // 保存刚完成，这是滞后回传的旧值，忽略之
+            }
+            if let requested = lastRequestedRAM, newValue == requested {
+                lastRequestedRAM = nil
+                ignoreMemoryEchoUntil = nil
+            }
             memory.loaded(newValue)
         }
         .onChange(of: model.readyServerID) { _, newValue in
@@ -250,6 +293,8 @@ extension ExarotonServerDetail {
 
     private func saveMemory() {
         guard let id = server.id, let requested = memory.beginSave() else { return }
+        lastRequestedRAM = requested
+        ignoreMemoryEchoUntil = Date().addingTimeInterval(5)
         Task {
             if let ram = await model.changeRAM(serverId: id, ramGB: requested) {
                 memory.saveSucceeded(ram)
@@ -266,6 +311,27 @@ extension ExarotonServerDetail {
         model.sendConsoleCmd(.init(validCommand))
         consoleCommand = ""
         showConsoleCommandInput = false
+    }
+
+    /// 未连接时的控制台占位（以前整块消失，用户以为没这个功能）。
+    @ViewBuilder
+    private var consolePlaceholder: some View {
+        Section("Console") {
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Text("Console needs a live connection to the server.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button("Reconnect") {
+                    if let id = server.id { model.startConnect(for: id) }
+                }
+            }
+            if let reason = model.disconnectedReason {
+                Text(verbatim: reason)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
     }
 
     /// 状态推送 → 更新本页展示的服务器摘要。

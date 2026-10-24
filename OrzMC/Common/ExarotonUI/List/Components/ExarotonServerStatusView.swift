@@ -25,6 +25,17 @@ struct DisplayConfig {
 }
 
 extension ServerStatus {
+    /// 过渡态（启动/停止/重启/保存/加载中）：此时**任何动作都会被服务端拒绝**，
+    /// 界面据此禁用按钮并显示转圈。
+    var isTransitional: Bool {
+        switch self {
+        case .STARTING, .STOPPING, .RESTARTING, .SAVING, .LOADING, .PENDING, .PREPARING:
+            return true
+        case .ONLINE, .OFFLINE, .CRASHED:
+            return false
+        }
+    }
+
     /// 状态展示名（本地化）。
     var localizedTitle: String {
         switch self {
