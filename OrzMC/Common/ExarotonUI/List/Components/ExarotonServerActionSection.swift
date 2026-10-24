@@ -22,8 +22,9 @@ struct ExarotonServerActionSection: View {
 
     private let actionPolicy = RemoteServerListPolicy()
 
-    @State private var confirmStop = false
-    @State private var confirmRestart = false
+    /// 确认弹窗的开关由**详情页根部**持有：`confirmationDialog` 挂在 Section 上时锚点会跑到行上。
+    @Binding var confirmStop: Bool
+    @Binding var confirmRestart: Bool
     /// 最近一次动作，失败后就地给「重试」用，不必让用户回列表再进详情。
     @State private var lastAction: RemoteServerAction?
 
@@ -108,20 +109,11 @@ struct ExarotonServerActionSection: View {
                 role: .info
             )
         }
-        // 破坏性/会断线的远程操作先确认：与本地服务端的 Stop/Restart 保持同一套交互。
-        .confirmationDialog("Stop Server?", isPresented: $confirmStop) {
-            Button("Stop", role: .destructive) { perform(.stop) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("The server saves and shuts down; connected players are disconnected.")
-        }
-        .confirmationDialog("Restart Server?", isPresented: $confirmRestart) {
-            Button("Restart") { perform(.restart) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("The server restarts; players are disconnected during the restart.")
-        }
+        // 确认弹窗**不挂在这里**：`confirmationDialog` 依附在 Section 上时，iPad/iPhone 会以
+        // 该行作为 popover 锚点，弹到屏幕中间偏上、指哪儿打哪儿（真机反馈"锚点不正确"）。
+        // 统一挂到详情页根部（见 `ExarotonServerDetail`），由页面用 `actionConfirmation` 承接。
     }
+
 
     // MARK: - 请求反馈（非模态，错误就地可重试）
 

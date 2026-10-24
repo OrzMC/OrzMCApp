@@ -5060,6 +5060,16 @@
           }
         }
       }
+    },
+    "Console needs a live connection to the server.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台需要先连上服务器。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
