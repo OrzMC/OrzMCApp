@@ -109,11 +109,11 @@ struct ExarotonServerDetail: View {
                     onReload: { await loadMemory() }
                 )
 
-                if !model.isConnected {
+                if !model.isLive {
                     consolePlaceholder
                 }
 
-                if model.isConnected {
+                if model.isLive {
 
                     Section("Console") {
 
@@ -244,7 +244,7 @@ struct ExarotonServerDetail: View {
         .task(id: server.serverStatus) {
             var attempts = 0
             while !Task.isCancelled {
-                if server.serverStatus == .ONLINE, !model.isConnected, attempts < 20, let id = server.id {
+                if server.serverStatus == .ONLINE, !model.isLive, attempts < 20, let id = server.id {
                     attempts += 1
                     model.startConnect(for: id)
                 }
@@ -327,7 +327,7 @@ extension ExarotonServerDetail {
     private var consolePlaceholder: some View {
         Section("Console") {
             HStack(spacing: OrzMCTheme.Spacing.sm) {
-                Text(model.isConnected
+                Text(model.isLive
                     ? String(localized: "Connected, waiting for the server handshake…")
                     : String(localized: "Console needs a live connection to the server."))
                     .font(.callout)

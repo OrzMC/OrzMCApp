@@ -78,8 +78,10 @@ extension ExarotonServerModel {
     ///
     /// 取代视图里 3 秒一次的轮询：只发缺的那几条指令，状态稳定时什么都不发。
     func reconcileStreams(serverIsOnline: Bool) {
+        // `isLive`（ready 也算）而不是 `isConnected`：真机上 onConnected 可能不触发，
+        // 只认 isConnected 会让"已握手"的连接永远不订阅流（→ 控制台没日志）。
         let wantsStreams = readyServerID != nil
-            && RemoteStreamingPolicy.shouldStream(isConnected: isConnected, isServerOnline: serverIsOnline)
+            && RemoteStreamingPolicy.shouldStream(isConnected: isLive, isServerOnline: serverIsOnline)
         let plan = RemoteStreamPlan.make(
             active: activeStreams,
             all: Self.streamCategories,
