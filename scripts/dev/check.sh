@@ -10,6 +10,7 @@
 #   scripts/dev/check.sh --full     # 默认 + iOS 构建 + 真 socket 协议联调（约 6~10 分钟）
 #   scripts/dev/check.sh --build    # 只构建 macOS（不跑测试）
 #   scripts/dev/check.sh --ios      # 只构建 iOS
+#   scripts/dev/check.sh --ui       # iOS UI 自动化验收（XCUITest，需本机起假服务端，约 1~2 分钟）
 #
 # 相当于 CI 的哪些 job：
 #   split → 静态检查（平台分层 / pbxproj 登记 / 本地化）
@@ -87,6 +88,7 @@ case "$MODE" in
   --fast)  static_checks ;;
   --build) build_macos ;;
   --ios)   build_ios ;;
+  --ui)    step "iOS UI 自动化验收"; ./scripts/dev/run-ios-ui-tests.sh; ok "UI 验收通过" ;;
   --full)  static_checks; swift_tests; app_tests; build_macos; build_ios; live_protocol ;;
   default) static_checks; swift_tests; app_tests; build_macos ;;
   *)

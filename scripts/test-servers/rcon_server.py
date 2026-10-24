@@ -14,8 +14,8 @@ PASSWORD = "testpass"
 
 # 给"玩家管理"联调用的固定回复（措辞模仿原版服务端）。
 ANSWERS = {
-    "whitelist list": "There are 2 whitelisted player(s): alice, bob",
-    "banlist list": "There are 1 ban(s):\ncarol (griefing)",
+    "whitelist list": "There are 2 whitelisted player(s): alice, carol",
+    "banlist list": "There are 1 ban(s):\ndave (griefing)",
     "list": "There are 2 of a max of 20 players online: alice, bob",
 }
 

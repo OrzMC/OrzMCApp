@@ -140,6 +140,35 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
   打印**原始回复**与解析结果（`list` / `whitelist list` / `banlist list`）。
   看到新措辞就说明解析器要加兼容——这是 App 里看不到的信息。
 
+## 4.1.1 iOS UI 自动化验收（XCUITest）
+
+`devicectl` 没有触摸注入，人（和 AI）都不能"点一下看看"。**XCUITest** 能真正驱动点击/滑动，
+既能跑模拟器也能跑真机，把"手工点 + 截图 + 肉眼判断"变成可重复断言 + 截图附件：
+
+```bash
+./scripts/dev/run-ios-ui-tests.sh                 # 默认 iPhone SE3 尺寸模拟器，约 1~2 分钟
+./scripts/dev/run-ios-ui-tests.sh --device <UDID> # 真机（需在 Terminal.app 里跑，开发签名）
+./scripts/dev/check.sh --ui                       # 等价入口
+```
+
+脚本会：起假 SLP/RCON 服务端 → `build-for-testing` → 预装 App → `test-without-building`。
+
+覆盖的用例（`OrzMCUITests/RemotePanelsUITests.swift`）：
+
+| 用例 | 断言 |
+|---|---|
+| 自建服务器页 | 状态卡「在线」、SLP 版本标签、玩家卡、**三个名单页签**（在线/白名单/封禁，数据来自假 RCON）、控制台卡 |
+| 设置 sheet | 点 `设置` 后 **2 秒内**出现（回归"偶现加载很久/空白"） |
+| 添加服务器 | 点 `＋` 立刻出现新建 sheet |
+| 远程详情（假服务器） | 三个动作按钮存在（`启动服务器`/`停止`/`重启`） |
+
+写用例时注意：
+- 用 `accessibilityIdentifier`（如 `selfHosted.settings`），不要依赖本地化文案——文案一改测试就红；
+- 测试专用的数据注入走 DEBUG 环境变量（`ORZMC_DEMO_SEED_PROFILE` / `ORZMC_DEMO_RCON_PASSWORD` /
+  `ORZMC_DEMO_TAB` / `ORZMC_DEMO_FAKE_SERVER`），**发布构建里不存在**；
+- 模拟器首次跑 UI 测试若不预装 App，Xcode 会报
+  `bundle identifier for OrzMC couldn't be read` —— 脚本已用 `simctl install` 规避。
+
 ## 4.2 真机安装 debug 包（iPhone）
 
 ```bash
