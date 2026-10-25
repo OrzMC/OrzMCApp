@@ -83,6 +83,8 @@ struct ExarotonServerList: View {
                             }
                             .buttonStyle(.plain)
                             .orzMCPointerHover()
+                            // UI 测试要能定位“额度池卡”（与服务器卡区分）。
+                            .accessibilityIdentifier("remote.creditPoolCard")
                         }
                     }
                 }

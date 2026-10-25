@@ -451,6 +451,16 @@
         }
       }
     },
+    "Can't reach the remote service. Check your connection and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法连接远程服务，请检查网络后重试。"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "zh-Hans": {
@@ -1017,6 +1027,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法保存服务器内存，请重试。"
+          }
+        }
+      }
+    },
+    "Could not send the console command.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法发送控制台命令。"
+          }
+        }
+      }
+    },
+    "Could not stop the server stream.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法停止服务器日志流。"
+          }
+        }
+      }
+    },
+    "Could not subscribe to the server stream.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法订阅服务器日志流。"
           }
         }
       }
@@ -4391,6 +4431,26 @@
         }
       }
     },
+    "The remote service did not answer as expected. Try again later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程服务返回了非预期结果，请稍后重试。"
+          }
+        }
+      }
+    },
+    "The remote service is temporarily unavailable (HTTP %lld). Try again later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程服务暂时不可用（HTTP %lld），请稍后重试。"
+          }
+        }
+      }
+    },
     "The requested version or file doesn't exist. Refresh the list and try again.": {
       "localizations": {
         "zh-Hans": {
@@ -4977,6 +5037,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "昨天"
+          }
+        }
+      }
+    },
+    "Your exaroton token is no longer valid. Please sign in again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号 Token 已失效，请重新登录。"
           }
         }
       }
