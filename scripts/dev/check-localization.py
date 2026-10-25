@@ -68,6 +68,46 @@ ALLOWLIST = {
 }
 
 
+PLACEHOLDER = re.compile(r"%(?:@|lld|ld|d|zd|tu|\.?[0-9]*lf|f|s|%)")
+
+
+def placeholders(text: str) -> list[str]:
+    """按出现顺序抽出占位符类型（`%%` 是字面百分号，跳过；整数类统一成 `num`）。"""
+    result: list[str] = []
+    for match in PLACEHOLDER.finditer(text):
+        token = match.group(0)
+        if token == "%%":
+            continue
+        if token == "%@":
+            result.append("obj")
+        elif token in {"%s"}:
+            result.append("str")
+        else:
+            result.append("num")
+    return result
+
+
+def placeholder_mismatches(entries: dict) -> list[tuple[str, str, str]]:
+    """英文键里的占位符 vs 每种译文里的占位符：数量/类型/顺序必须一致。
+
+    允许译文重排参数（`%2$@` 之类）—— 那种写法里占位符仍按 `%@` 计，顺序检查会放过，
+    但 `String(localized:)` 会用它自己的位置参数，所以只要**个数与类型**对得上就不崩。
+    这里宁可严一点：顺序也必须一致（重排请用 position 写法，本函数认不出来时会报错提醒）。
+    """
+    bad: list[tuple[str, str, str]] = []
+    for key, entry in entries.items():
+        expected = placeholders(key)
+        if not expected:
+            continue
+        for lang, localization in (entry.get("localizations") or {}).items():
+            value = localization.get("stringUnit", {}).get("value")
+            if value is None:
+                continue
+            if placeholders(value) != expected:
+                bad.append((lang, key, value))
+    return bad
+
+
 def collect_keys(source: str) -> set[str]:
     keys: set[str] = set()
     for pattern in PATTERNS:
@@ -97,6 +137,19 @@ def main() -> int:
             localized = entries.get(key, {}).get("localizations", {})
             if "zh-Hans" not in localized:
                 missing.setdefault(key, []).append(str(path.relative_to(ROOT)))
+
+    mismatched = placeholder_mismatches(entries)
+    if mismatched:
+        print("[i18n] 以下译文的占位符与英文键不一致（运行时会格式化错、甚至崩溃）：")
+        for lang, key, value in sorted(mismatched):
+            print(f'  - [{lang}] "{key}"')
+            print(f'      译文 "{value}"')
+            print(f"      期望 {placeholders(key)}，实际 {placeholders(value)}")
+        print(
+            "\n修法：让译文的占位符数量/类型/顺序与英文键一致"
+            "（例：`All %lld folders (%@)` → `全部 %lld 个目录（%@）`）。"
+        )
+        return 1
 
     if missing:
         print("[i18n] 以下文案缺少 zh-Hans 翻译（Localizable.xcstrings）：")
