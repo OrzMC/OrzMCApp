@@ -22,6 +22,15 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         self.client = client
     }
 
+    func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser {
+        let output = try await client.getCurrentUser(query: .init(advanced: advancedInstances))
+        let user = try Self.currentUser(from: output)
+        return MCSManagerCurrentUser(
+            permission: user.permission ?? 0,
+            instances: (user.instances ?? []).compactMap { Self.instance(from: $0) }
+        )
+    }
+
     func daemons() async throws -> [MCSManagerDaemon] {
         let output = try await client.getDaemons()
         return try await Self.daemons(from: output).map { daemon in
@@ -59,6 +68,27 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
             throw MCSManagerModelError.server(
                 statusCode,
                 panelMessage: await panelMessage(from: payload.body)
+            )
+        }
+    }
+
+    static func currentUser(from output: Operations.getCurrentUser.Output) throws -> Components.Schemas.CurrentUserResponse {
+        switch output {
+        case .ok(let ok):
+            return try ok.body.json
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(
+                panelMessage: panelMessage(from: try? response.body.json)
+            )
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(
+                500,
+                panelMessage: panelMessage(from: try? response.body.json)
+            )
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(
+                statusCode,
+                panelMessage: nil
             )
         }
     }
@@ -101,6 +131,24 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
     }
 
     // MARK: - 字段搬运
+
+    /// `GET /api/auth?advanced=true` 里的一条实例（普通用户视角）。
+    static func instance(from info: Components.Schemas.AdvancedInstanceInfo) -> MCSManagerInstance? {
+        guard !info.instanceUuid.isEmpty, !info.daemonId.isEmpty else { return nil }
+        let ping = info.info?.allocatedPorts?.first
+        let nickname = info.nickname.flatMap { $0.isEmpty ? nil : $0 }
+        return MCSManagerInstance(
+            daemonID: info.daemonId,
+            instanceUUID: info.instanceUuid,
+            nickname: nickname ?? info.instanceUuid,
+            status: MCSManagerInstanceState(rawValue: info.status ?? -1),
+            // 普通用户视角没有 pingConfig，只有面板侧的分配端口（host 是端口号）。
+            address: ping?.host,
+            players: info.info.map {
+                MCSManagerPlayers(current: $0.currentPlayers, max: $0.maxPlayers)
+            }
+        )
+    }
 
     static func instance(daemonID: String, detail: Components.Schemas.InstanceDetail) -> MCSManagerInstance? {
         // 没有 id 就没法做键（状态中心/动作都要它）→ 跳过，而不是造一个假 id。

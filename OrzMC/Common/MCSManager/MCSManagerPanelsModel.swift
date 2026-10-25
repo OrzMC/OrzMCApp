@@ -185,33 +185,39 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
 
     private var flip = false
 
+    /// 演示面板按**普通用户**走（真机验收时维护者用的就是普通 key）。
+    func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser {
+        MCSManagerCurrentUser(permission: 1, instances: instances(flipped: false))
+    }
+
     func daemons() async throws -> [MCSManagerDaemon] {
         [MCSManagerDaemon(uuid: "demo-daemon", available: true)]
     }
 
     func instances(daemonID: String, page: Int, pageSize: Int) async throws -> MCSManagerInstancePage {
         flip.toggle()
-        return MCSManagerInstancePage(
-            instances: [
-                MCSManagerInstance(
-                    daemonID: daemonID,
-                    instanceUUID: "demo-1",
-                    nickname: "演示生存服",
-                    status: flip ? .starting : .running,
-                    address: "play.example.com:25565",
-                    players: MCSManagerPlayers(current: 3, max: 20)
-                ),
-                MCSManagerInstance(
-                    daemonID: daemonID,
-                    instanceUUID: "demo-2",
-                    nickname: "演示创造服",
-                    status: .stopped,
-                    address: nil,
-                    players: MCSManagerPlayers(current: 0, max: 20)
-                ),
-            ],
-            maxPage: 1
-        )
+        return MCSManagerInstancePage(instances: instances(flipped: flip), maxPage: 1)
+    }
+
+    private func instances(flipped: Bool) -> [MCSManagerInstance] {
+        [
+            MCSManagerInstance(
+                daemonID: "demo-daemon",
+                instanceUUID: "demo-1",
+                nickname: "演示生存服",
+                status: flipped ? .starting : .running,
+                address: "play.example.com:25565",
+                players: MCSManagerPlayers(current: 3, max: 20)
+            ),
+            MCSManagerInstance(
+                daemonID: "demo-daemon",
+                instanceUUID: "demo-2",
+                nickname: "演示创造服",
+                status: .stopped,
+                address: nil,
+                players: MCSManagerPlayers(current: 0, max: 20)
+            ),
+        ]
     }
 }
 #endif

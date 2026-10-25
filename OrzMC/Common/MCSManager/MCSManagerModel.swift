@@ -183,13 +183,7 @@ final class MCSManagerModel {
 
         do {
             let api = makeAPI(panel.url, apiKey)
-            let daemons = try await api.daemons()
-            var collected: [MCSManagerInstance] = []
-            for daemon in daemons {
-                // 节点掉线时面板会直接报错，跳过它而不是让整个刷新失败。
-                guard daemon.available else { continue }
-                collected += try await instances(of: daemon.uuid, using: api)
-            }
+            let collected = try await loadInstances(using: api)
             instances = collected.sorted {
                 $0.nickname.localizedCaseInsensitiveCompare($1.nickname) == .orderedAscending
             }
@@ -200,6 +194,26 @@ final class MCSManagerModel {
         } catch {
             errorMessage = MCSManagerErrorText.describe(error)
         }
+    }
+
+    /// 按**账号权限**选入口：
+    ///
+    /// - 管理员（`permission >= 10`）：按节点列**全部**实例（管理员自己的 `instances` 通常是空的）；
+    /// - 普通用户：`GET /api/auth?advanced=true` 列**自己的**实例 —— 管理员端点对他们一律 403
+    ///   （面板文案还可能误导成「密钥不正确」）。
+    private func loadInstances(using api: any MCSManagerPanelAPI) async throws -> [MCSManagerInstance] {
+        let user = try await api.currentUser(advancedInstances: true)
+        guard user.permission >= MCSManagerRole.admin else {
+            return user.instances
+        }
+
+        var collected: [MCSManagerInstance] = []
+        for daemon in try await api.daemons() {
+            // 节点掉线时面板会直接报错，跳过它而不是让整个刷新失败。
+            guard daemon.available else { continue }
+            collected += try await instances(of: daemon.uuid, using: api)
+        }
+        return collected
     }
 
     /// 一个节点上的全部实例（面板每页最多 50，按 `maxPage` 取全）。

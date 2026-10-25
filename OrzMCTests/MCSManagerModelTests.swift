@@ -10,19 +10,29 @@ private actor FakePanelAPI: MCSManagerPanelAPI {
 
     private let daemonsResult: Result<[MCSManagerDaemon], Error>
     private let pageResult: Result<MCSManagerInstancePage, Error>
+    private let userResult: Result<MCSManagerCurrentUser, Error>
 
     init(
         daemons: [MCSManagerDaemon] = [],
-        page: MCSManagerInstancePage = .init(instances: [], maxPage: nil)
+        page: MCSManagerInstancePage = .init(instances: [], maxPage: nil),
+        permission: Int = MCSManagerRole.admin,
+        userInstances: [MCSManagerInstance] = []
     ) {
         daemonsResult = .success(daemons)
         pageResult = .success(page)
+        userResult = .success(MCSManagerCurrentUser(permission: permission, instances: userInstances))
     }
 
     /// 面板拒绝 / 连不上：所有请求都失败。
     init(failing error: Error) {
         daemonsResult = .failure(error)
         pageResult = .failure(error)
+        userResult = .failure(error)
+    }
+
+    func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser {
+        calls.append("currentUser:advanced=\(advancedInstances)")
+        return try userResult.get()
     }
 
     func daemons() async throws -> [MCSManagerDaemon] {
@@ -201,6 +211,60 @@ final class MCSManagerModelTests: XCTestCase {
         XCTAssertTrue(model.instances.isEmpty)
         XCTAssertNil(model.statusCenter.status(for: model.instanceID("d1/i1")))
         XCTAssertFalse(model.hasLoaded)
+    }
+
+    /// **普通用户**的 key（permission = 1）：走 `/api/auth?advanced=true`，
+    /// 不去碰管理员端点（那条对普通 key 一律 403）。
+    func testUserLevelKeyListsOwnInstancesWithoutAdminCalls() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("admin-only")], maxPage: 1),
+            permission: 1,
+            userInstances: [
+                instance("i1", daemon: "d1", nickname: "我的生存服", status: 3, address: "25565"),
+                instance("i2", daemon: "d2", nickname: "我的创造服", status: 0),
+            ]
+        )
+        let model = makeModel(api: api)
+
+        await model.reload()
+
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(Set(model.instances.map(\.instanceUUID)), ["i1", "i2"])
+        XCTAssertEqual(model.instances.first { $0.instanceUUID == "i1" }?.nickname, "我的生存服")
+        let calls = await api.calls
+        XCTAssertEqual(calls, ["currentUser:advanced=true"], "普通用户不该请求管理员端点")
+        XCTAssertEqual(model.statusCenter.status(for: model.instanceID("d1/i1"))?.state, .online)
+    }
+
+    /// **管理员**的 key（permission = 10）：自己的 `instances` 通常是空的，必须按节点列全部。
+    func testAdminKeyListsAllInstancesPerDaemon() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", daemon: "d1")], maxPage: 1),
+            permission: MCSManagerRole.admin
+        )
+        let model = makeModel(api: api)
+
+        await model.reload()
+
+        XCTAssertEqual(model.instances.map(\.instanceUUID), ["i1"])
+        let calls = await api.calls
+        XCTAssertEqual(calls, ["currentUser:advanced=true", "daemons", "instances:d1:1"])
+    }
+
+    /// 普通用户一条实例都没有：这是正常结果（不是错误，也不该去试管理员端点）。
+    func testUserLevelKeyWithNoInstancesIsNotAnError() async {
+        let api = FakePanelAPI(permission: 1, userInstances: [])
+        let model = makeModel(api: api)
+
+        await model.reload()
+
+        XCTAssertNil(model.errorMessage)
+        XCTAssertTrue(model.instances.isEmpty)
+        XCTAssertTrue(model.hasLoaded)
+        let calls = await api.calls
+        XCTAssertEqual(calls, ["currentUser:advanced=true"])
     }
 
     // MARK: - 映射
