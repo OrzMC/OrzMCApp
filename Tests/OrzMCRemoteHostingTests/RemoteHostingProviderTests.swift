@@ -148,4 +148,16 @@ private actor ActionRecorder {
     func record(_ action: RemoteServerAction, _ id: RemoteInstanceID) {
         calls.append(Call(action: action, id: id))
     }
+    /// 动作提交后的过渡态：界面靠它立刻给反馈，同时挡住连点（`canPerform` 对过渡态一律 false）。
+    func testActionsMapToPendingStates() {
+        XCTAssertEqual(RemoteServerAction.start.pendingState, .starting)
+        XCTAssertEqual(RemoteServerAction.stop.pendingState, .stopping)
+        XCTAssertEqual(RemoteServerAction.restart.pendingState, .restarting)
+
+        // 过渡态本身必须挡住同一个动作（否则界面还能再点一次）。
+        let policy = RemoteServerListPolicy()
+        for action in RemoteServerAction.allCases {
+            XCTAssertFalse(policy.canPerform(action, on: action.pendingState))
+        }
+    }
 }

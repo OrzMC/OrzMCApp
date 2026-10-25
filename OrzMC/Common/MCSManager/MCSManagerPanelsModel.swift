@@ -280,6 +280,18 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
         return MCSManagerInstancePage(instances: instances(flipped: flip), maxPage: 1)
     }
 
+    /// 演示模式也支持动作（否则验收时按钮全是灰的）。
+    func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {}
+
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {}
+
+    func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
+        """
+        [12:00:00] [Server thread/INFO]: 演示面板的控制台输出
+        [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
+        """
+    }
+
     private func instances(flipped: Bool) -> [MCSManagerInstance] {
         [
             MCSManagerInstance(

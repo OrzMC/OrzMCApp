@@ -7,8 +7,10 @@
 //
 
 import Foundation
+
 import MCSMAPI
 import OpenAPIRuntime
+import OrzMCRemoteHosting
 
 struct MCSManagerAPIClient: MCSManagerPanelAPI {
 
@@ -52,6 +54,58 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
             instances: body.data.compactMap { Self.instance(daemonID: daemonID, detail: $0) },
             maxPage: body.maxPage
         )
+    }
+
+    // MARK: - 动作 + 控制台（P2-7 第 5 步）
+
+    func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {
+        // 三个端点各有自己的 `Query` 类型（生成器不复用），参数一样但类型不通用。
+        switch action {
+        case .start:
+            try await Self.unwrap(
+                client.openInstance(query: .init(daemonId: daemonID, uuid: instanceUUID))
+            )
+        case .stop:
+            try await Self.unwrap(
+                client.stopInstance(query: .init(daemonId: daemonID, uuid: instanceUUID))
+            )
+        case .restart:
+            try await Self.unwrap(
+                client.restartInstance(query: .init(daemonId: daemonID, uuid: instanceUUID))
+            )
+        }
+    }
+
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {
+        try await Self.unwrap(
+            client.sendCommand(
+                query: .init(daemonId: daemonID, uuid: instanceUUID, command: command)
+            )
+        )
+    }
+
+    func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
+        let output = try await client.getOutputLog(
+            query: .init(
+                daemonId: daemonID,
+                uuid: instanceUUID,
+                size: tailSize.map(String.init)
+            )
+        )
+        switch output {
+        case .ok(let ok):
+            let body = try ok.body.plainText
+            // 面板返回日志尾部，可能比我们需要的多（`size` 是面板侧的截断，不一定生效）。
+            let limit = tailSize ?? 256 * 1024
+            let data = try await Data(collecting: body, upTo: limit)
+            return String(decoding: data, as: UTF8.self)
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await Self.panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await Self.panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await Self.panelMessage(from: payload.body))
+        }
     }
 
     // MARK: - 响应解包（HTTP 状态码 → 面板级错误，尽量带上面板自己的文案）
@@ -101,6 +155,60 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         }
     }
 
+    /// 动作端点只关心"有没有被拒绝"：成功时面板也会回 200 + 回执（我们不读），
+    /// 失败走 403 / 500 —— 面板会把"不是你的实例"/节点错误原话放进 `data`，要转述给用户。
+    static func unwrap(_ output: Operations.openInstance.Output) async throws {
+        switch output {
+        case .ok:
+            return
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
+        }
+    }
+
+    static func unwrap(_ output: Operations.stopInstance.Output) async throws {
+        switch output {
+        case .ok:
+            return
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
+        }
+    }
+
+    static func unwrap(_ output: Operations.restartInstance.Output) async throws {
+        switch output {
+        case .ok:
+            return
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
+        }
+    }
+
+    static func unwrap(_ output: Operations.sendCommand.Output) async throws {
+        switch output {
+        case .ok:
+            return
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
+        }
+    }
+
     /// 面板的错误响应是 `{"status":403,"data":"密钥不正确","time":…}` —— 把 `data` 取出来。
     /// 空值/纯空白当作没有（交给界面用兜底文案）。
     static func panelMessage(from errorResponse: Components.Schemas.ErrorResponse?) -> String? {
@@ -145,6 +253,46 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
     }
 
     static func panelMessage(from body: Operations.getCurrentUser.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.openInstance.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.stopInstance.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.restartInstance.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.sendCommand.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.openInstance.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.stopInstance.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.restartInstance.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.sendCommand.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getOutputLog.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getOutputLog.Output.InternalServerError.Body) async -> String? {
         await panelMessage(fromErrorBody: body)
     }
 

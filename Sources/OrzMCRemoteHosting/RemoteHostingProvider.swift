@@ -132,7 +132,10 @@ public enum RemoteHostingError: Error, Equatable, Sendable {
     /// 把 A 家的实例交给了 B 家的适配器（编程错误，不该出现在正常流程里）。
     case wrongProvider(expected: ProviderKind, actual: ProviderKind)
     /// 供应商没接受这个动作（请求失败 / 被拒绝）。调用方决定怎么提示用户。
-    case actionFailed(RemoteServerAction)
+    ///
+    /// `message` 是**供应商自己的原话**（MCSM 面板会给出「不是你的实例」「节点未连接」这类具体原因），
+    /// 有就转述，没有就由界面用兜底文案。
+    case actionFailed(RemoteServerAction, message: String? = nil)
     /// 这个供应商还没提供该动作（例如只读接入阶段）。调用方应把按钮置灰而不是假装成功。
     case actionNotSupported(RemoteServerAction)
 }

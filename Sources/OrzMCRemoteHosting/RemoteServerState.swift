@@ -19,10 +19,22 @@ public enum RemoteServerState: String, Equatable, Sendable {
 }
 
 /// 与供应商无关的生命周期动作。
-public enum RemoteServerAction: Equatable, Sendable {
+public enum RemoteServerAction: Equatable, Sendable, CaseIterable {
     case start
     case stop
     case restart
+
+    /// 动作**提交后、面板确认前**应显示的过渡态。
+    ///
+    /// 为什么需要它：MCSM 的动作端点立即返回（真正起来还要几秒），不先给个过渡态的话，
+    /// 用户点完「启动」看不到任何变化，容易连点；也会被 `canPerform` 判成"还能再点一次"。
+    public var pendingState: RemoteServerState {
+        switch self {
+        case .start: return .starting
+        case .stop: return .stopping
+        case .restart: return .restarting
+        }
+    }
 }
 
 /// 列表侧的纯逻辑（搜索、动作可用性）：可单测，不碰网络也不碰 UI。

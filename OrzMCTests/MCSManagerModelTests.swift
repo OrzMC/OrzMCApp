@@ -45,6 +45,28 @@ private actor FakePanelAPI: MCSManagerPanelAPI {
         calls.append("instances:\(daemonID):\(page)")
         return try pageResult.get()
     }
+
+    /// 动作/命令：记录调用，可配置成失败（测"失败要露出来、不能假装成功"）。
+    var actionFailure: Error?
+    func setActionFailure(_ error: Error?) {
+        actionFailure = error
+    }
+
+    func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {
+        calls.append("perform:\(action):\(daemonID)/\(instanceUUID)")
+        if let actionFailure { throw actionFailure }
+    }
+
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {
+        calls.append("command:\(command):\(daemonID)/\(instanceUUID)")
+        if let actionFailure { throw actionFailure }
+    }
+
+    func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
+        calls.append("outputlog:\(daemonID)/\(instanceUUID):\(tailSize ?? -1)")
+        if let actionFailure { throw actionFailure }
+        return "[12:00:00] [Server thread/INFO]: Done"
+    }
 }
 
 private func instance(
@@ -405,4 +427,148 @@ final class MCSManagerModelTests: XCTestCase {
         XCTAssertEqual(panel?.label, "panel.example.com")
         XCTAssertEqual(panel?.url.absoluteString, "https://panel.example.com/x")
     }
+    // MARK: - 动作 + 控制台（P2-7 第 5 步）
+
+    /// 启动：状态立刻变成「启动中」（过渡态），请求带的是实例的 daemonId + uuid。
+    func testStartPublishesPendingStateAndCallsPanel() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 0)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        await model.perform(.start, on: target)
+
+        let calls = await api.calls
+        XCTAssertTrue(calls.contains("perform:start:d1/i1"), "实际调用：\(calls)")
+        // 请求完成后会立刻 reload（面板立即返回、状态随后变化）→ 过渡态被真实状态覆盖。
+        XCTAssertEqual(model.state(of: target), .offline, "假面板状态没变，刷新后回到面板给的值")
+        XCTAssertNil(model.actionErrors[target.id])
+    }
+
+    /// 过渡态（启动中 / 停止中）不允许再点：`canPerform` 对过渡态一律 false。
+    func testTransitionalStateBlocksActions() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 2)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let starting = model.instances[0]
+
+        XCTAssertEqual(model.state(of: starting), .starting)
+        XCTAssertFalse(model.canPerform(.start, on: starting))
+        XCTAssertFalse(model.canPerform(.stop, on: starting))
+        XCTAssertFalse(model.canPerform(.restart, on: starting))
+    }
+
+    /// 同一实例在途时第二次点击必须被挡掉（`RemoteActionGate` 在首次 await 之前占用）。
+    func testActionIsNotReentrant() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 3)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        // 手动占住实例，模拟"第一次请求还在路上"。
+        XCTAssertTrue(model.gate.beginAction(serverID: target.id))
+        await model.perform(.restart, on: target)
+
+        let calls = await api.calls
+        XCTAssertFalse(calls.contains { $0.hasPrefix("perform:") }, "在途时不该再发请求")
+        XCTAssertFalse(model.canPerform(.stop, on: target))
+    }
+
+    /// 面板拒绝（403「不是你的实例」）→ 过渡态撤回 + 错误写在实例上，不假装成功。
+    func testActionFailureSurfacesPanelMessage() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 0)], maxPage: 1)
+        )
+        await api.setActionFailure(
+            MCSManagerModelError.unauthorized(panelMessage: "参数不正确或非法访问实例")
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        await model.perform(.start, on: target)
+
+        XCTAssertEqual(model.state(of: target), .offline, "失败要把过渡态撤回")
+        let message = try? XCTUnwrap(model.actionErrors[target.id])
+        XCTAssertTrue(message?.contains("参数不正确或非法访问实例") == true, "实际：\(message ?? "-")")
+    }
+
+    /// 发命令：成功返回 true（界面据此清空输入框），空白命令直接不发。
+    func testSendCommandTrimsAndSkipsEmpty() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 3)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        let blank = await model.sendCommand("   \n ", to: target)
+        XCTAssertFalse(blank)
+
+        let sent = await model.sendCommand("  /list ", to: target)
+        XCTAssertTrue(sent)
+        let calls = await api.calls
+        XCTAssertTrue(calls.contains("command:/list:d1/i1"), "实际调用：\(calls)")
+    }
+
+    /// 控制台：把面板给的日志尾部原样取回来（渲染由 `ConsoleTextParser` 统一处理）。
+    func testOutputLogReturnsPanelText() async throws {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 3)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        let text = try await model.outputLog(for: target, tailSize: 4096)
+        XCTAssertTrue(text.contains("Done"))
+        let calls = await api.calls
+        XCTAssertTrue(calls.contains("outputlog:d1/i1:4096"), "实际调用：\(calls)")
+    }
+
+    /// 供应商抽象层的动作转发：能执行 → 正常返回；面板拒绝 → 带面板原话抛 `actionFailed`。
+    func testHostingProviderForwardsActions() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 0)], maxPage: 1)
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let provider = model.hostingProvider
+        let id = model.instanceID("d1/i1")
+
+        await model.gate.reset()
+        try? await provider.perform(.start, on: id)
+        let calls = await api.calls
+        XCTAssertTrue(calls.contains("perform:start:d1/i1"))
+
+        // 再点一次（初始态 offline，仍可启动）时面板拒绝 → 要把面板原话带出来。
+        await api.setActionFailure(MCSManagerModelError.unauthorized(panelMessage: "节点未连接"))
+        do {
+            try await provider.perform(.start, on: id)
+            XCTFail("面板拒绝时不该静默成功")
+        } catch let error as RemoteHostingError {
+            guard case .actionFailed(_, let message) = error else {
+                return XCTFail("期望 actionFailed，实际 \(error)")
+            }
+            XCTAssertEqual(message, "节点未连接")
+        } catch {
+            XCTFail("期望 RemoteHostingError，实际 \(error)")
+        }
+    }
 }
+
+
+
