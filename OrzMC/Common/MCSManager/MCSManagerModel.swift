@@ -203,10 +203,26 @@ final class MCSManagerModel {
     ///   （面板文案还可能误导成「密钥不正确」）。
     private func loadInstances(using api: any MCSManagerPanelAPI) async throws -> [MCSManagerInstance] {
         let user = try await api.currentUser(advancedInstances: true)
-        guard user.permission >= MCSManagerRole.admin else {
+
+        // 明确的普通用户：面板只允许列自己的实例，别去碰管理员端点（对普通 key 一律 403）。
+        if let permission = user.permission, permission < MCSManagerRole.admin {
             return user.instances
         }
 
+        do {
+            return try await adminInstances(using: api)
+        } catch let error as MCSManagerModelError {
+            // 面板没给 permission（老版本）或值是管理员、但管理员端点仍 403：
+            // 说明这个 key 其实是普通用户 —— 用它自己的实例，而不是把 403 丢给用户。
+            if case .unauthorized = error, !user.instances.isEmpty {
+                return user.instances
+            }
+            throw error
+        }
+    }
+
+    /// 管理员视角：面板所有节点上的全部实例（每页 50，按 `maxPage` 取全）。
+    private func adminInstances(using api: any MCSManagerPanelAPI) async throws -> [MCSManagerInstance] {
         var collected: [MCSManagerInstance] = []
         for daemon in try await api.daemons() {
             // 节点掉线时面板会直接报错，跳过它而不是让整个刷新失败。

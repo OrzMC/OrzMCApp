@@ -39,7 +39,8 @@ enum MCSManagerRole {
 /// `permission`：0 guest / 1 user / 10 admin。**普通用户的 key 用不了管理员端点**，
 /// 必须走 `GET /api/auth?advanced=true` 列"自己的"实例；管理员则要按节点列全部实例。
 struct MCSManagerCurrentUser: Equatable, Sendable {
-    let permission: Int
+    /// 面板没返回时就当"不知道"，由模型去试管理员端点再回退（老版本面板可能不返回）。
+    let permission: Int?
     let instances: [MCSManagerInstance]
 }
 
