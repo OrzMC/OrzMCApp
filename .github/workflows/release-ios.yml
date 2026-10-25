@@ -1,0 +1,98 @@
+name: Release iOS
+
+# iOS 归档（archive → ipa），可选上传 TestFlight。
+#
+# 与 `release-app.yml`（macOS：Developer ID + notarize + Sparkle）分开：iOS 没有 notarize，
+# 走的是 App Store Connect 的签名与（可选）TestFlight 上传。
+#
+# 签名方式：**云签名**。CI 不往钥匙串里塞 iOS 证书，靠 App Store Connect API key
+# （`APPSTORE_PRIVATE_KEY` / `APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID`）让 xcodebuild 自己
+# 申请证书与描述文件（`-authenticationKey*` + `-allowProvisioningUpdates`，见 scripts/release-ios.sh）。
+#
+# ⚠️ `upload=true` 会**真的**产生一个 TestFlight 构建（会通知测试员），
+#    并且同一版本号不能重复上传 —— 再传要先把 `CURRENT_PROJECT_VERSION` 提升。
+
+on:
+  workflow_dispatch:
+    inputs:
+      export:
+        description: "导出方式"
+        required: true
+        default: app-store-connect
+        type: choice
+        options:
+          - app-store-connect
+          - release-testing
+          - debugging
+      upload:
+        description: "上传到 TestFlight（会产生真实构建）"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  archive:
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode 26.3
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/SourcePackages
+          key: ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles('**/Package.resolved') }}
+
+      - name: Resolve package dependencies
+        run: |
+          xcrun xcodebuild -resolvePackageDependencies \
+            -scheme OrzMC \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath DerivedData
+
+      - name: Archive, export, and (optionally) upload
+        env:
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          DERIVED_DATA: DerivedData
+          DIST_DIR: dist/ios
+        run: |
+          set -euo pipefail
+          args=(--export "${{ inputs.export }}")
+          if [[ "${{ inputs.upload }}" == "true" ]]; then args+=(--upload); fi
+          echo "release-ios.sh ${args[*]}"
+          ./scripts/release-ios.sh "${args[@]}"
+
+      - name: Show version of the exported ipa
+        if: always()
+        run: |
+          set -euo pipefail
+          for ipa in dist/ios/*/*.ipa; do
+            [[ -e "$ipa" ]] || continue
+            echo "== $ipa"
+            unzip -p "$ipa" 'Payload/*.app/Info.plist' > /tmp/ipa-info.plist || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' /tmp/ipa-info.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /tmp/ipa-info.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /tmp/ipa-info.plist 2>/dev/null || true
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: ios-release-artifacts
+          path: |
+            dist/ios/**/*.ipa
+            dist/ios/ExportOptions-*.plist
+          if-no-files-found: warn

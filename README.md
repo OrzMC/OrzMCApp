@@ -15,6 +15,16 @@ OrzMC 是用于 macOS/iOS 的 Minecraft Java Edition 启动器与辅助应用。
 改动 → 提交 → PR → squash 合并的完整流程、CI job 说明、发版步骤与已知坑，
 见 [`docs/iteration-flow.md`](docs/iteration-flow.md)。
 
+iOS 归档 / TestFlight / 真机装开发签名包见 [`docs/ios-release.md`](docs/ios-release.md)：
+
+```bash
+./scripts/release-ios.sh                     # 归档 + 导出开发签名 ipa
+./scripts/release-ios.sh --export app-store-connect --upload   # 归档 + 上传 TestFlight
+./scripts/release-ios.sh --install           # 归档 + 装到已连接的 iPhone
+```
+
+macOS 发版：`gh workflow run release-app.yml --ref main`（版本号见 `OrzMC/Configuration/Config.xcconfig`）。
+
 ---
 
 <!-- ORZMC:COMPLIANCE:BEGIN (auto-generated; do not edit by hand. Single source: docs/compliance/ + scripts/sync_compliance.py in the OrzMC/OrzMC umbrella repo) -->
