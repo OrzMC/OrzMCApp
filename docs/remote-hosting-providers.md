@@ -111,14 +111,26 @@ RemoteHostingGrouping.groups(from: instances)
 
 界面按这个结果渲染 section；**没有实例的供应商不出现**（不给空 section）。
 
+## MCSManager 接入要点（第 3–4 步实测/查证）
+
+| 项 | 事实 |
+|---|---|
+| 鉴权 | 面板接受 `X-Request-API-Key` 头或 `?apikey=`；**必须在面板设置里打开 API Key 功能**，否则一律 403 |
+| 实例归属 | 面板 → 节点（daemon）→ 实例：列表要按节点查，所以实例 id 用 `daemonId/instanceUuid` |
+| 状态 | 面板给 `-1 busy / 0 stopped / 1 stopping / 2 starting / 3 running`；`busy` 底层状态不明 → 归一化 `.unknown`（禁用动作） |
+| 实时性 | **没有 WebSocket**：只能 HTTP 轮询；`RemoteStatusCenter` 在"从未有 WS 消息"时自然按最小间隔轮询，不用另写节律 |
+| 内存 | Docker 实例的内存上限在 `config.docker.memory`（MB）；普通实例没有统一字段 |
+| 分页 | 实例列表 `page_size` 最多 50，按 `maxPage` 翻页（模型里有 20 页防御上限） |
+
 ## 进度
 
 | 步骤 | 内容 | 状态 |
 |---|---|---|
 | 1 | `RemoteHostingProvider` / `ProviderKind` / `RemoteInstanceSummary` 定稿 + exaroton 适配器（行为不变） | ✅ 2026-10-25 |
 | 2 | `ExarotonStatusCenter` → 供应商无关的 `RemoteStatusCenter`（`RemoteStatusRefreshPolicy` 下沉到库） | ✅ 2026-10-25 |
-| 3 | `Sources/MCSMAPI`（新仓库 `OrzMC/MCSManagerAPI`）：列实例 + 实例状态 | 待做 |
-| 4 | app 侧 MCSM 适配器（只读）：列实例 + 轮询状态，凭据进 Keychain，UI 按供应商分组 | 待做 |
+| 3 | `swift/lib/MCSManagerAPI`（新仓库 `OrzMC/MCSManagerAPI`）：节点列表 + 实例列表 + 实例详情 | ✅ 2026-10-25 |
+| 4a | app 侧 MCSM **数据层**：`MCSManagerPanel`（地址规范化）+ Keychain 凭据 + `MCSManagerModel`（列实例 / 轮询状态 / 挂 `RemoteHostingProvider`） | ✅ 2026-10-25 |
+| 4b | app 侧 MCSM **界面**：远程托管页按供应商分组、面板配置（URL + apikey）入口、实例卡片 | 待做 |
 | 5 | 动作 / 命令 / 多账号管理界面 | 待做 |
 
 验收口径（维护者）：新增一个 MCSM 面板（URL + apikey）后，在同一个「远程托管」页里能看到实例并
@@ -128,6 +140,12 @@ RemoteHostingGrouping.groups(from: instances)
 
 | 文件 | 作用 |
 |---|---|
+| `swift/lib/MCSManagerAPI`（子模块） | MCSManager 面板 API 客户端（OpenAPI 生成；端点/口径见该仓库 README） |
+| `OrzMC/Common/MCSManager/MCSManagerPanel.swift` | 面板身份（地址规范化）+ 凭据存储（面板在 `UserDefaults`、API Key 在 Keychain） |
+| `OrzMC/Common/MCSManager/MCSManagerPanelAPI.swift` | app 内部的**只读面板接口**（模型只依赖它 → 单测不碰 OpenAPI 类型） |
+| `OrzMC/Common/MCSManager/MCSManagerAPIClient.swift` | 真实实现：`MCSMAPI` 生成类型 → 上面的接口（403 → `unauthorized` 等） |
+| `OrzMC/Common/MCSManager/MCSManagerModel.swift` | `@MainActor @Observable`：列实例（分页取全）、按 `RemoteStatusRefreshPolicy` 轮询、状态写进 `RemoteStatusCenter`、`MCSManagerHostingProvider`（只读） |
+| `OrzMC/Common/MCSManager/MCSManagerErrorText.swift` | 面板错误 → 一句人话（403 的含义与 exaroton 不同：可能是"没开 API Key 功能"） |
 | `Sources/OrzMCRemoteHosting/RemoteHostingProvider.swift` | `ProviderKind` / `RemoteInstanceID` / `RemoteInstanceSummary` / 协议 / 分组 / 闭包适配器 |
 | `Sources/OrzMCRemoteHosting/RemoteServerState.swift` | 归一化状态、动作、列表策略（搜索 + 动作可用性） |
 | `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift` | 供应商无关的状态中心 + `RemoteStatusRefreshPolicy`（30 秒判据） |

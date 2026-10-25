@@ -451,6 +451,16 @@
         }
       }
     },
+    "Can't reach the MCSManager panel. Check the address and your connection.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连不上 MCSManager 面板。请检查面板地址和网络连接。"
+          }
+        }
+      }
+    },
     "Can't reach the remote service. Check your connection and try again.": {
       "localizations": {
         "zh-Hans": {
@@ -4417,6 +4427,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "还不知道这个实例的目录。"
+          }
+        }
+      }
+    },
+    "The panel did not answer as expected. Try again later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板的响应不符合预期，请稍后重试。"
+          }
+        }
+      }
+    },
+    "The panel rejected this API key. Check that the key is valid and that API Key access is enabled in the panel settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板拒绝了这个 API Key。请确认 Key 有效，并在面板设置中开启 API Key 功能。"
+          }
+        }
+      }
+    },
+    "The panel returned an error (HTTP %lld). Try again later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板返回了错误（HTTP %lld），请稍后重试。"
           }
         }
       }
