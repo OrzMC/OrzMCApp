@@ -169,11 +169,7 @@ final class MCSManagerPanelsModelTests: XCTestCase {
 
         let result = await model.verifyConnection(rawURL: "panel.example.com", apiKey: "k", panelID: nil)
 
-        guard case .connected(let message) = result else {
-            return XCTFail("应该是连接成功：\(result)")
-        }
-        XCTAssertTrue(message.contains("管理员"), "实际：\(message)")
-        XCTAssertTrue(message.contains("1"), "实例数要报出来：\(message)")
+        XCTAssertEqual(result, .connected(role: .administrator, instanceCount: 1))
     }
 
     func testVerifyConnectionSurfacesPanelMessage() async {

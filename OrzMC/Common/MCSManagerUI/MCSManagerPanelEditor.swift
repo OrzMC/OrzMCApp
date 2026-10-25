@@ -232,8 +232,10 @@ struct MCSManagerPanelEditor: View {
         defer { isTesting = false }
 
         switch await mcsm.verifyConnection(rawURL: url, apiKey: apiKey, panelID: panelID) {
-        case .connected(let message):
-            testResult = .success(message)
+        case .connected(let role, let instanceCount):
+            testResult = .success(
+                String(localized: "Connected as \(role.localizedName) (\(instanceCount) instances owned).")
+            )
         case .failed(let message):
             testResult = .failure(message)
         }

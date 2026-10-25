@@ -149,10 +149,24 @@ final class MCSManagerPanelsModel {
 
     // MARK: - 连接自检（添加/编辑面板时的"测试连接"）
 
-    /// 「测试连接」的结果（文案已本地化）。
+    /// 「测试连接」的结果。
+    ///
+    /// 成功时返回**结构化**信息（角色 + 名下实例数），文案由界面拼 —— 这样单测不依赖运行语言。
     enum ConnectionCheck: Equatable {
-        case connected(String)
+        case connected(role: Role, instanceCount: Int)
         case failed(String)
+    }
+
+    enum Role: Equatable {
+        case administrator
+        case user
+
+        var localizedName: String {
+            switch self {
+            case .administrator: return String(localized: "administrator")
+            case .user: return String(localized: "user")
+            }
+        }
     }
 
     /// 用**还没保存**的地址 + Key 打一次面板，返回给用户看的一句话。
@@ -172,13 +186,12 @@ final class MCSManagerPanelsModel {
 
         do {
             let user = try await makeAPI(url, key).currentUser(advancedInstances: false)
-            let role: String = if let permission = user.permission, permission < MCSManagerRole.admin {
-                String(localized: "user")
+            let role: Role = if let permission = user.permission, permission < MCSManagerRole.admin {
+                .user
             } else {
-                String(localized: "administrator")
+                .administrator
             }
-            let summary = String(localized: "Connected as \(role) (\(user.instances.count) instances owned).")
-            return .connected(summary)
+            return .connected(role: role, instanceCount: user.instances.count)
         } catch {
             return .failed(
                 MCSManagerErrorText.describe(error)
