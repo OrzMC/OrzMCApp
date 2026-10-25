@@ -52,6 +52,10 @@ enum MCSManagerErrorText {
     }
 
     private static func serverText(_ status: Int) -> String {
-        String(localized: "The panel returned an error (HTTP \(status)). Try again later.")
+        // 2xx 还走到这里 = 响应体解不出来（面板版本差异），别对用户说"返回了错误（HTTP 200）"。
+        if (200..<300).contains(status) {
+            return String(localized: "The panel replied in a format this app does not understand yet (HTTP 200). Please report the panel version.")
+        }
+        return String(localized: "The panel returned an error (HTTP \(status)). Try again later.")
     }
 }
