@@ -31,7 +31,12 @@ CONFIGURATION="Debug"
 APP_SOURCE=""
 TMP_DIR=""
 
-cleanup() { [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]] && rm -rf "$TMP_DIR"; }
+# EXIT trap 里**必须显式返回 0**：否则 `[[ … ]]` 为假时 trap 的退出码会覆盖脚本本身的结果
+# （实测：装包和启动都成功，脚本却 exit 1，`release-ios.sh --install` 因此会误判失败）。
+cleanup() {
+  if [[ -n "${TMP_DIR:-}" && -d "${TMP_DIR:-}" ]]; then rm -rf "$TMP_DIR"; fi
+  return 0
+}
 trap cleanup EXIT
 
 while [[ $# -gt 0 ]]; do
