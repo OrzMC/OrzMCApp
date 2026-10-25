@@ -124,8 +124,10 @@
 		CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000004 /* MCSManagerAPIClient.swift */; };
 		CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000012 /* RemoteServerState+Presentation.swift */; };
 		CD2026102700000000000021 /* MCSManagerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000022 /* MCSManagerSection.swift */; };
+		CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000042 /* MCSManagerPanelEditor.swift */; };
 		CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000032 /* MCSManagerPanelsModel.swift */; };
 		CD20261026E0000000000001 /* MCSManagerModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261026E0000000000002 /* MCSManagerModelTests.swift */; };
+		CD2026102700000000000051 /* MCSManagerPanelsModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000052 /* MCSManagerPanelsModelTests.swift */; };
 		E20C65942C8AFE4F00831909 /* ExarotonWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = E20C65932C8AFE4F00831909 /* ExarotonWebSocket */; };
 		F30F00ED2BDBDF7000CAA802 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30F00EC2BDBDF7000CAA802 /* GameView.swift */; platformFilters = (macos, ); };
 		F30F00F12BDCC6D900CAA802 /* GUIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30F00F02BDCC6D900CAA802 /* GUIClient.swift */; platformFilters = (macos, ); };
@@ -207,8 +209,10 @@
 		CD2026102700000000000004 /* MCSManagerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerAPIClient.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000012 /* RemoteServerState+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteServerState+Presentation.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000022 /* MCSManagerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerSection.swift"; sourceTree = "<group>"; };
+		CD2026102700000000000042 /* MCSManagerPanelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelEditor.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000032 /* MCSManagerPanelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModel.swift"; sourceTree = "<group>"; };
 		CD20261026E0000000000002 /* MCSManagerModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerModelTests.swift"; sourceTree = "<group>"; };
+		CD2026102700000000000052 /* MCSManagerPanelsModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModelTests.swift"; sourceTree = "<group>"; };
 		2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+WebSocket.swift"; sourceTree = "<group>"; };
 		2B5ACA622BFB2A8300397BFC /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonCreditView.swift; sourceTree = "<group>"; };
@@ -548,6 +552,7 @@
 			isa = PBXGroup;
 			children = (
 				CD2026102700000000000022 /* MCSManagerSection.swift */,
+				CD2026102700000000000042 /* MCSManagerPanelEditor.swift */,
 			);
 			path = MCSManagerUI;
 			sourceTree = "<group>";
@@ -718,6 +723,7 @@
 				CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */,
 				CD20261026B0000000000001 /* ExarotonHostingProviderTests.swift */,
 				CD20261026E0000000000002 /* MCSManagerModelTests.swift */,
+				CD2026102700000000000052 /* MCSManagerPanelsModelTests.swift */,
 				CE202610230000000000F100 /* ServerStatusNotificationTests.swift */,
 			);
 			path = OrzMCTests;
@@ -962,6 +968,7 @@
 				CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */,
 				CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */,
 				CD2026102700000000000021 /* MCSManagerSection.swift in Sources */,
+				CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */,
 				CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */,
 				CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,
@@ -1004,6 +1011,7 @@
 				CD20261025C0000000000001 /* RemoteHostingErrorTextTests.swift in Sources */,
 				CD20261026B0000000000002 /* ExarotonHostingProviderTests.swift in Sources */,
 				CD20261026E0000000000001 /* MCSManagerModelTests.swift in Sources */,
+				CD2026102700000000000051 /* MCSManagerPanelsModelTests.swift in Sources */,
 				CE202610230000000000F200 /* ServerStatusNotificationTests.swift in Sources */,
 				C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */,
 			);

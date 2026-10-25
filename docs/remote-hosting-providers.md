@@ -121,10 +121,19 @@ RemoteHostingGrouping.groups(from: instances)
   将来做"统一实例列表"时直接用，不必再动模型。
 - **状态徽章只有一个实现**：`OrzMCStatusBadge` + `RemoteServerState.localizedTitle/statusStyle`
   （文案复用 exaroton 那套已翻译的键，所以没有新增状态文案）。
-- **多面板**：添加/删除面板在界面上就能做（URL + API Key + 可选名称）；
+- **多面板**：添加 / **编辑** / 删除面板都在界面上做（URL + API Key + 可选名称）；
   删面板会同时停掉它的心跳、清掉 Keychain 里的 key —— 不影响其它面板的轮询。
+- **编辑面板**（2026-10-26）：`⋯ → 编辑面板`。Key 留空 = 不修改（只换地址/名称时不用重新粘 key）；
+  编辑不换面板 id（Keychain 里的 key 按 id 存），保存后立刻按新地址重新拉一次。
+- **表单（含 macOS）**：地址边输入边校验；「测试连接」用**还没保存**的地址 + key 打一次
+  `GET /api/auth`，直接报"连接成功、什么角色、名下几台实例"或**面板自己的错误文案**；
+  macOS 上给足窗口尺寸（`minWidth 520 / minHeight 520`），iOS 用 `.large` detent。
 
 ### 界面验收钩子（仅 DEBUG）
+
+- `ORZMC_DEMO_MCSM_DIAGNOSE=1`：每次刷新把结果写到 `Caches/orzmc-mcsm-<面板 id>.json`
+  （面板名/角色/实例数/每台实例的归一化状态/失败原因）。**没有截图也能核对**——
+  iPhone SE 上 MCSM 分组在折叠线下，光靠截图容易看漏。
 
 - `ORZMC_DEMO_MCSM_FAKE=1`：内存里的假面板（两台实例：一在线一停止），不碰 Keychain、不发网络；
   UI 测试 `testMCSManagerSectionShowsInstancesAndStatus` 用它断言"能看到实例 + 状态徽章"。

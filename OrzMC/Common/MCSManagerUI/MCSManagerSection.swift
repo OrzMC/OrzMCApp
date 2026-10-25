@@ -17,7 +17,7 @@ struct MCSManagerSection: View {
 
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
-    @State private var isAddingPanel = false
+    @State private var editorMode: MCSManagerPanelEditor.Mode?
 
     private var instanceCount: Int {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
@@ -36,7 +36,7 @@ struct MCSManagerSection: View {
             }
 
             Button {
-                isAddingPanel = true
+                editorMode = .add
             } label: {
                 Label(String(localized: "Add Panel"), systemImage: "plus.circle")
                     .font(.callout)
@@ -47,20 +47,30 @@ struct MCSManagerSection: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("mcsm.section")
-        .sheet(isPresented: $isAddingPanel) {
+        .sheet(item: $editorMode) { mode in
             MCSManagerPanelEditor(
+                mode: mode,
                 onSave: { label, url, key in
-                    guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
-                    isAddingPanel = false
-                    Task { await mcsm.reloadAll() ; mcsm.start() }
+                    switch mode {
+                    case .add:
+                        guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
+                    case .edit(let panel):
+                        guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
+                            return false
+                        }
+                    }
+                    editorMode = nil
+                    Task { await mcsm.reloadAll(); mcsm.start() }
                     return true
                 },
-                onCancel: { isAddingPanel = false }
+                onCancel: { editorMode = nil }
             )
             .presentationDragIndicator(.visible)
-            .presentationDetents([.height(360)])
             .presentationCornerRadius(OrzMCTheme.Radius.lg)
             .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
+            #if os(iOS)
+            .presentationDetents([.large])
+            #endif
         }
         .task {
             if mcsm.panels.isEmpty { return }
@@ -117,6 +127,12 @@ struct MCSManagerSection: View {
                     ProgressView().controlSize(.mini)
                 }
                 Menu {
+                    Button {
+                        editorMode = .edit(panel)
+                    } label: {
+                        Label(String(localized: "Edit Panel"), systemImage: "slider.horizontal.3")
+                    }
+                    Divider()
                     Button(role: .destructive) {
                         mcsm.removePanel(id: panel.id)
                     } label: {
@@ -177,73 +193,6 @@ struct MCSManagerSection: View {
                 style: instance.status.remoteState.statusStyle
             )
 
-        }
-    }
-}
-
-/// 添加面板：地址 + API Key（+ 可选显示名）。
-struct MCSManagerPanelEditor: View {
-
-    let onSave: (_ label: String, _ url: String, _ apiKey: String) -> Bool
-    let onCancel: () -> Void
-
-    @Environment(MCSManagerPanelsModel.self) private var mcsm
-
-    @State private var label = ""
-    @State private var url = ""
-    @State private var apiKey = ""
-
-    private var canSave: Bool {
-        !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField(String(localized: "Panel name (optional)"), text: $label)
-                        .accessibilityIdentifier("mcsm.labelField")
-                    TextField(String(localized: "Panel address, e.g. panel.example.com"), text: $url)
-                        .textContentType(.URL)
-                        #if os(iOS)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .autocorrectionDisabled()
-                        .accessibilityIdentifier("mcsm.urlField")
-                    SecureField(String(localized: "API Key"), text: $apiKey)
-                        .accessibilityIdentifier("mcsm.apiKeyField")
-                } footer: {
-                    Text(
-                        String(
-                            localized: "Create the key in the panel under your user profile. API Key access must be enabled in the panel settings."
-                        )
-                    )
-                    .font(.caption)
-                }
-
-                if let error = mcsm.lastValidationError {
-                    Section {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(OrzMCTheme.Palette.danger)
-                    }
-                }
-            }
-            .navigationTitle(String(localized: "Add Panel"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "Cancel")) { onCancel() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "Save")) {
-                        _ = onSave(label, url, apiKey)
-                    }
-                    .disabled(!canSave)
-                    .accessibilityIdentifier("mcsm.savePanel")
-                }
-            }
         }
     }
 }

@@ -841,6 +841,16 @@
         }
       }
     },
+    "Connected as %@ (%lld instances owned).": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接：%@（名下 %lld 台实例）。"
+          }
+        }
+      }
+    },
     "Connected, waiting for the server handshake…": {
       "localizations": {
         "zh-Hans": {
@@ -1377,6 +1387,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "每个服务端核心有独立的目录、控制台与生命周期。"
+          }
+        }
+      }
+    },
+    "Edit Panel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑面板"
           }
         }
       }
@@ -1971,6 +1991,16 @@
         }
       }
     },
+    "Leave empty to keep the current key": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空表示不修改当前 API Key"
+          }
+        }
+      }
+    },
     "Level data (`level-name` in server.properties). Back this up before big changes.": {
       "localizations": {
         "zh-Hans": {
@@ -2461,6 +2491,16 @@
         }
       }
     },
+    "Only the http(s) address of the panel is needed. A missing scheme defaults to https://.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只需要面板的 http(s) 地址；不写协议时默认按 https:// 处理。"
+          }
+        }
+      }
+    },
     "Only used when the game mode is Server.": {
       "localizations": {
         "zh-Hans": {
@@ -2607,6 +2647,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "概览"
+          }
+        }
+      }
+    },
+    "Panel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板"
           }
         }
       }
@@ -4771,6 +4821,16 @@
         }
       }
     },
+    "This panel is already added.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个面板已经添加过了。"
+          }
+        }
+      }
+    },
     "This server returned status data this app doesn't understand.": {
       "localizations": {
         "zh-Hans": {
@@ -5061,6 +5121,16 @@
         }
       }
     },
+    "Uses the address and key above; nothing is saved until you press Save.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用上面的地址和 Key 试连一次；点「保存」之前不会写入任何配置。"
+          }
+        }
+      }
+    },
     "Verification": {
       "localizations": {
         "zh-Hans": {
@@ -5251,6 +5321,16 @@
         }
       }
     },
+    "administrator": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理员"
+          }
+        }
+      }
+    },
     "by Aternos": {
       "localizations": {
         "zh-Hans": {
@@ -5387,6 +5467,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "这个版本"
+          }
+        }
+      }
+    },
+    "user": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "普通用户"
           }
         }
       }
