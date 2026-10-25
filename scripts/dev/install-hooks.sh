@@ -18,7 +18,7 @@ if [ "${1:-}" = "--check" ]; then
     if [ -f "$HOOKS_DIR/$name" ] && cmp -s "$hook" "$HOOKS_DIR/$name"; then
       echo "[hooks] ✓ $name"
     else
-      echo "[hooks] ✗ $name（未安装或已过期，跑 ./scripts/dev/install-hooks.sh）"
+      echo "[hooks] ✗ ${name}（未安装或已过期，跑 ./scripts/dev/install-hooks.sh）"
       status=1
     fi
   done

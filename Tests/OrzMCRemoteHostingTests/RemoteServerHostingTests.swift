@@ -1,17 +1,39 @@
 import XCTest
 @testable import OrzMCRemoteHosting
 
-final class RemoteServerHostingTests: XCTestCase {
+final class RemoteServerListPolicyTests: XCTestCase {
+
+    private func instance(
+        _ rawID: String,
+        _ name: String,
+        address: String? = nil,
+        state: RemoteServerState = .offline,
+        provider: ProviderKind = .exaroton
+    ) -> RemoteInstanceSummary {
+        RemoteInstanceSummary(provider: provider, rawID: rawID, name: name, address: address, state: state)
+    }
+
     func testVisibleServersFilterByNameAndAddress() {
-        let servers = [
-            RemoteServerSummary(id: .init("1"), name: "Survival", address: "play.example.com", state: .online),
-            RemoteServerSummary(id: .init("2"), name: "Creative", address: "build.example.com", state: .offline)
+        let instances = [
+            instance("1", "Survival", address: "play.example.com"),
+            instance("2", "Creative", address: "build.example.com")
         ]
         let policy = RemoteServerListPolicy()
 
-        XCTAssertEqual(policy.visibleServers(from: servers, searchText: "surv"), [servers[0]])
-        XCTAssertEqual(policy.visibleServers(from: servers, searchText: "build"), [servers[1]])
-        XCTAssertEqual(policy.visibleServers(from: servers, searchText: "   "), servers)
+        XCTAssertEqual(policy.visibleInstances(from: instances, searchText: "surv"), [instances[0]])
+        XCTAssertEqual(policy.visibleInstances(from: instances, searchText: "build"), [instances[1]])
+        XCTAssertEqual(policy.visibleInstances(from: instances, searchText: "   "), instances)
+    }
+
+    /// 搜索**不按供应商过滤**（多供应商是按供应商分组展示，不是筛选）。
+    func testSearchMatchesAcrossProviders() {
+        let instances = [
+            instance("1", "Survival"),
+            instance("2", "Survival 二服", provider: .mcsmanager)
+        ]
+        let policy = RemoteServerListPolicy()
+
+        XCTAssertEqual(policy.visibleInstances(from: instances, searchText: "survival"), instances)
     }
 
     func testActionAvailability() {

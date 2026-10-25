@@ -77,6 +77,8 @@
 		CD20261024B0000000000004 /* ExarotonStatusCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024B0000000000003 /* ExarotonStatusCenter.swift */; };
 		CD20261025A0000000000001 /* RemoteHostingErrorText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261025A0000000000002 /* RemoteHostingErrorText.swift */; };
 		CD20261025C0000000000001 /* RemoteHostingErrorTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */; };
+		CD20261026A0000000000002 /* ExarotonHostingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261026A0000000000001 /* ExarotonHostingProvider.swift */; };
+		CD20261026B0000000000002 /* ExarotonHostingProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261026B0000000000001 /* ExarotonHostingProviderTests.swift */; };
 		2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */; };
 		2B5ACA632BFB2A8300397BFC /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA622BFB2A8300397BFC /* Config.swift */; };
 		2B5ACA682BFB312300397BFC /* ExarotonCreditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */; };
@@ -186,6 +188,8 @@
 		CD20261024B0000000000003 /* ExarotonStatusCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonStatusCenter.swift"; sourceTree = "<group>"; };
 		CD20261025A0000000000002 /* RemoteHostingErrorText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteHostingErrorText.swift"; sourceTree = "<group>"; };
 		CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteHostingErrorTextTests.swift"; sourceTree = "<group>"; };
+		CD20261026A0000000000001 /* ExarotonHostingProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonHostingProvider.swift"; sourceTree = "<group>"; };
+		CD20261026B0000000000001 /* ExarotonHostingProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonHostingProviderTests.swift"; sourceTree = "<group>"; };
 		2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+WebSocket.swift"; sourceTree = "<group>"; };
 		2B5ACA622BFB2A8300397BFC /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		2B5ACA672BFB312300397BFC /* ExarotonCreditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonCreditView.swift; sourceTree = "<group>"; };
@@ -368,6 +372,7 @@
 				2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */,
 				CD20261025A0000000000002 /* RemoteHostingErrorText.swift */,
 				CD20261024B0000000000003 /* ExarotonStatusCenter.swift */,
+				CD20261026A0000000000001 /* ExarotonHostingProvider.swift */,
 				CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */,
 			);
 			path = Model;
@@ -659,6 +664,7 @@
 				C0D000020000000000000003 /* ProtocolPacketTests.swift */,
 				CE202610230000000000C100 /* SelfHostedServersModelTests.swift */,
 				CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */,
+				CD20261026B0000000000001 /* ExarotonHostingProviderTests.swift */,
 				CE202610230000000000F100 /* ServerStatusNotificationTests.swift */,
 			);
 			path = OrzMCTests;
@@ -893,6 +899,7 @@
 				2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */,
 				CD20261025A0000000000001 /* RemoteHostingErrorText.swift in Sources */,
 				CD20261024B0000000000004 /* ExarotonStatusCenter.swift in Sources */,
+				CD20261026A0000000000002 /* ExarotonHostingProvider.swift in Sources */,
 				CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,
 				2B54E0872BDDFB16001B6877 /* Version+.swift in Sources */,
@@ -932,6 +939,7 @@
 				C0D000010000000000000002 /* LauncherServicesTests.swift in Sources */,
 				CE202610230000000000D100 /* SelfHostedServersModelTests.swift in Sources */,
 				CD20261025C0000000000001 /* RemoteHostingErrorTextTests.swift in Sources */,
+				CD20261026B0000000000002 /* ExarotonHostingProviderTests.swift in Sources */,
 				CE202610230000000000F200 /* ServerStatusNotificationTests.swift in Sources */,
 				C0D000010000000000000003 /* ProtocolPacketTests.swift in Sources */,
 			);
