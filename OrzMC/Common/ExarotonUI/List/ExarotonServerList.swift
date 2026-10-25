@@ -88,6 +88,10 @@ struct ExarotonServerList: View {
                         }
                     }
                 }
+
+                // MCSManager 面板（P2-7 第 4 步）：同一页、按供应商分组。
+                // 即使没有 exaroton 账号也显示，所以放在上面的分支之外。
+                MCSManagerSection()
             }
             .padding(20)
             .frame(maxWidth: 780)
@@ -364,4 +368,5 @@ extension ExarotonServerList {
 #Preview {
     ExarotonServerList()
         .environment(ExarotonServerModel())
+        .environment(MCSManagerPanelsModel())
 }

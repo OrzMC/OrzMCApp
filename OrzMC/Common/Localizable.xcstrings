@@ -141,6 +141,16 @@
         }
       }
     },
+    "API Key": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key"
+          }
+        }
+      }
+    },
     "About": {
       "localizations": {
         "zh-Hans": {
@@ -211,6 +221,16 @@
         }
       }
     },
+    "Add Panel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加面板"
+          }
+        }
+      }
+    },
     "Add Server": {
       "localizations": {
         "zh-Hans": {
@@ -237,6 +257,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加服务器…"
+          }
+        }
+      }
+    },
+    "Add an MCSManager panel (address + API key) to see its instances here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一个 MCSManager 面板（地址 + API Key），这里就会列出它上面的实例。"
           }
         }
       }
@@ -1077,6 +1107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已崩溃"
+          }
+        }
+      }
+    },
+    "Create the key in the panel under your user profile. API Key access must be enabled in the panel settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在面板的「用户信息」里生成 Key，并在面板设置中开启 API Key 功能。"
           }
         }
       }
@@ -2011,6 +2051,16 @@
         }
       }
     },
+    "MCSManager": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCSManager"
+          }
+        }
+      }
+    },
     "Manage exaroton remote servers in a separate window": {
       "localizations": {
         "zh-Hans": {
@@ -2201,12 +2251,32 @@
         }
       }
     },
+    "No instances": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有实例"
+          }
+        }
+      }
+    },
     "No instances yet": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "还没有任何实例"
+          }
+        }
+      }
+    },
+    "No panels yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有面板"
           }
         }
       }
@@ -2537,6 +2607,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "概览"
+          }
+        }
+      }
+    },
+    "Panel address, e.g. panel.example.com": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板地址，例如 panel.example.com"
+          }
+        }
+      }
+    },
+    "Panel name (optional)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板名称（可选）"
           }
         }
       }
@@ -3097,6 +3187,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除"
+          }
+        }
+      }
+    },
+    "Remove Panel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除面板"
           }
         }
       }
@@ -4411,6 +4511,16 @@
         }
       }
     },
+    "The API key is empty.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 不能为空。"
+          }
+        }
+      }
+    },
     "The input isn't valid. Check the settings and try again.": {
       "localizations": {
         "zh-Hans": {
@@ -4427,6 +4537,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "还不知道这个实例的目录。"
+          }
+        }
+      }
+    },
+    "The panel address is not valid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板地址无效。"
           }
         }
       }
