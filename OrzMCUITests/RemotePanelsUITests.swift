@@ -58,6 +58,114 @@ final class RemotePanelsUITests: XCTestCase {
         return app
     }
 
+    /// **控制台空态位置**（P1-2）：没有日志时，「等待服务器输出…」必须在面板**左上**，
+    /// 而不是贴左下角。
+    ///
+    /// 用「发送命令」按钮当锚点量：占位在顶部 → 占位下方还有大半个面板（≥80pt）；
+    /// 旧实现（`ScrollView` + `.defaultScrollAnchor(.bottom)` + `Spacer`）会把文字推到面板底部，
+    /// 于是占位到按钮之间几乎没有空白。
+    func testConsoleEmptyStateSitsTopLeft() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
+                           "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_LIVE": "1",
+                           // 假 live 默认会塞几条日志；空态验收要真的空。
+                           "ORZMC_DEMO_EMPTY_CONSOLE": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+
+        let placeholder = app.staticTexts["等待服务器输出…"]
+        for _ in 0..<8 where !placeholder.exists { app.swipeUp() }
+        XCTAssertTrue(placeholder.waitForExistence(timeout: 10), "控制台空态应显示占位")
+
+        let send = app.buttons["发送命令"]
+        for _ in 0..<8 where !send.exists { app.swipeUp() }
+        XCTAssertTrue(send.waitForExistence(timeout: 10), "控制台下方应有「发送命令」")
+
+        // SwiftUI 把这一行合成/撑大成一个无障碍元素（Text 的框会是整行 343×190），量 frame 判不出
+        // 文字在左上还是左下 —— 只能看像素。面板框本身是准的（`children: .contain` 的容器元素）。
+        let panel = app.otherElements["remote.consolePanel"]
+        guard panel.exists else { return XCTFail("找不到控制台面板（remote.consolePanel）") }
+        let frame = panel.frame
+        // 左右各留 20pt：避开圆角与 1pt 描边，只统计中间那条竖带。
+        let band = CGRect(x: frame.minX + 20, y: frame.minY, width: frame.width - 40, height: frame.height)
+        // 上下各再让 4pt：避开 1pt 描边（否则整条边框都被算成"墨水"，实测 ~1080 像素）。
+        let topStrip = CGRect(x: band.minX, y: band.minY + 4, width: band.width, height: 28)
+        let bottomStrip = CGRect(x: band.minX, y: band.maxY - 32, width: band.width, height: 28)
+        let topLeft = CGRect(x: topStrip.minX, y: topStrip.minY, width: topStrip.width / 2, height: 30)
+        let topRight = CGRect(x: topStrip.midX, y: topStrip.minY, width: topStrip.width / 2, height: 30)
+
+        let inkTop = inkPixels(app, in: topStrip)
+        let inkBottom = inkPixels(app, in: bottomStrip)
+        let inkLeft = inkPixels(app, in: topLeft)
+        let inkRight = inkPixels(app, in: topRight)
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+
+        XCTAssertGreaterThan(inkTop, 100, "占位应在面板**顶部**（顶部 30pt ink=\(inkTop)）")
+        XCTAssertLessThan(inkBottom, 10, "面板**底部**不该有文字（底部 ink=\(inkBottom)，顶部 \(inkTop)）")
+        XCTAssertGreaterThan(inkLeft, inkRight, "占位应**左**对齐（左 ink=\(inkLeft)，右 \(inkRight)）")
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+    }
+
+    /// **内存行一行布局**（P1-3）：标签与「4 GB」+ Stepper 必须在同一行。
+    ///
+    /// 旧实现用 `LabeledContent`，iPhone 宽度下系统会把值折到下一行（真机反馈"看着很散"）。
+    func testMemoryRowIsSingleLine() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+
+        let label = app.staticTexts["分配内存"]
+        for _ in 0..<6 where !label.exists { app.swipeUp() }
+        XCTAssertTrue(label.waitForExistence(timeout: 10), "详情页应有内存区")
+
+        let value = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'GB'")).firstMatch
+        XCTAssertTrue(value.waitForExistence(timeout: 10), "应有内存数值")
+        XCTAssertLessThan(
+            abs(label.frame.midY - value.frame.midY), 14,
+            "标签与数值应同一行：label=\(label.frame) value=\(value.frame)"
+        )
+        let stepper = app.steppers.firstMatch
+        XCTAssertTrue(stepper.exists, "应有内存步进器")
+        XCTAssertLessThan(
+            abs(label.frame.midY - stepper.frame.midY), 20,
+            "Stepper 也应与标签同一行：label=\(label.frame) stepper=\(stepper.frame)"
+        )
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+    }
+
+    /// **「我的服务器」菜单**（P1-4）：点胶囊**空白处**也能打开；菜单里只剩服务器列表
+    /// （不再有「编辑…」/「删除…」，那两个在设置里）。
+    func testServerMenuOpensFromCapsuleBlankArea() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        let picker = app.buttons["selfHosted.serverPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 20), "应有服务器选择胶囊")
+
+        // 点在胶囊右侧空白处（文字之后）：旧实现的热区只覆盖文字，这里点不开。
+        picker.coordinate(withNormalizedOffset: CGVector(dx: 0.72, dy: 0.5)).tap()
+
+        // 服务器卡标题是 staticText，胶囊是无障碍标签「服务器」的按钮 ——
+        // 能匹配到这个**按钮**就说明菜单真的弹出来了。
+        let item = app.buttons.matching(NSPredicate(format: "label CONTAINS '演示服'")).firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "点胶囊空白处应弹出服务器菜单")
+        XCTAssertFalse(app.buttons["编辑…"].exists, "菜单里不该再有「编辑…」")
+        XCTAssertFalse(app.buttons["删除…"].exists, "菜单里不该再有「删除…」")
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+
+        item.tap()   // 选中同一台 → 菜单关闭
+        XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 5))
+    }
+
     /// 自建服务器页：状态卡、玩家卡、控制台是否都出来（假服务端在线）。
     func testSelfHostedPageShowsLiveStatus() {
         let app = makeApp()
@@ -335,6 +443,45 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["尚未保存的更改"].exists, "还原后不应再有未保存提示")
     }
 
+    /// 数一块区域里和背景有明显亮度差的像素数（≈文字墨水）。
+    /// 背景取区域最右侧中段的像素（文案左对齐，右边一定是空白），
+    /// 所以浅色 / 深色模式都能用。
+    private func inkPixels(_ app: XCUIApplication, in rect: CGRect) -> Int {
+        guard let cgImage = XCUIScreen.main.screenshot().image.cgImage else { return 0 }
+        let scaleX = CGFloat(cgImage.width) / app.frame.width
+        let scaleY = CGFloat(cgImage.height) / app.frame.height
+        let crop = CGRect(
+            x: rect.minX * scaleX, y: rect.minY * scaleY,
+            width: rect.width * scaleX, height: rect.height * scaleY
+        ).integral
+        guard let sub = cgImage.cropping(to: crop), sub.width > 4, sub.height > 4 else { return 0 }
+
+        let width = sub.width
+        let height = sub.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        guard let context = CGContext(
+            data: &pixels, width: width, height: height, bitsPerComponent: 8,
+            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return 0 }
+        context.draw(sub, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        func luminance(_ x: Int, _ y: Int) -> Double {
+            let base = (y * width + x) * 4
+            return 0.299 * Double(pixels[base])
+                + 0.587 * Double(pixels[base + 1])
+                + 0.114 * Double(pixels[base + 2])
+        }
+        let background = luminance(width - 3, height / 2)
+        var count = 0
+        for y in 0..<height {
+            for x in 0..<width where abs(luminance(x, y) - background) > 20 {
+                count += 1
+            }
+        }
+        return count
+    }
+
     /// 内存行显示的值 —— `LabeledContent` 会把标签和值合成一个可访问性元素
     /// （实测 label 是「分配内存、4 GB」），所以按"包含 GB 的文本"取再到里面找数字。
     private func memoryValue(_ app: XCUIApplication) -> String {
@@ -360,17 +507,34 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "列表卡片的徽章图标应在旋转")
 
         // ② 进详情 → 返回 → 再进：视图被重建后仍要转（这是原来的 bug）
-        card.tap()
-        XCTAssertTrue(app.staticTexts["启动中…"].firstMatch.waitForExistence(timeout: 20), "详情页应有状态徽章")
+        //
+        // “已进详情”的判据用**只有详情页才有的「概览」分区标题**，
+        // 不用「启动中…」（列表里也有，点没点进去都能匹配到）。
+        let detailMarker = app.staticTexts["概览"]
+        openDetail(app, card: card, detailMarker: detailMarker)
+        XCTAssertTrue(detailMarker.exists, "应进入详情页")
         XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "详情页的徽章图标应在旋转")
 
         for round in 1...2 {
-            app.navigationBars.buttons.firstMatch.tap()          // 返回列表
+            let back = app.navigationBars.buttons.firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 10), "第 \(round) 次：详情页应有返回按钮")
+            back.tap()
             XCTAssertTrue(card.waitForExistence(timeout: 20), "第 \(round) 次返回后应回到列表")
             XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "第 \(round) 次返回后列表徽章仍应在转")
-            card.tap()
-            XCTAssertTrue(app.staticTexts["启动中…"].firstMatch.waitForExistence(timeout: 20))
+            openDetail(app, card: card, detailMarker: detailMarker)
+            XCTAssertTrue(detailMarker.exists, "第 \(round) 次应重进详情页")
             XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "第 \(round) 次重进详情后徽章仍应在转")
+        }
+    }
+
+    /// 点开详情页，**点不开就重试**：假服务器的列表会在启动后刷新一次，
+    /// 刷新那一帧里的点击会被吞掉（实测偶发：弹不出详情页）。
+    private func openDetail(_ app: XCUIApplication, card: XCUIElement, detailMarker: XCUIElement) {
+        for attempt in 1...3 {
+            if detailMarker.exists { return }
+            if card.waitForExistence(timeout: 10) { card.tap() }
+            if detailMarker.waitForExistence(timeout: attempt == 1 ? 10 : 5) { return }
+            Thread.sleep(forTimeInterval: 1)
         }
     }
 

@@ -36,19 +36,24 @@ struct ExarotonMemorySection: View {
         if memory.draft != nil || loadFailure != nil {
             Section("Memory") {
                 if let draft = memory.draft {
-                    LabeledContent("Allocated memory") {
-                        HStack(spacing: OrzMCTheme.Spacing.sm) {
-                            Text("\(Int(draft)) GB")
-                                .font(OrzMCTheme.Typography.numeric)
-                                .foregroundStyle(.secondary)
-                            Stepper("Allocated memory", value: Binding(get: { draft }, set: onEdit), in: 2...16, step: 1)
-                                .labelsHidden()
-                            if memory.isSaving {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .accessibilityLabel("Saving memory")
-                            }
+                    // **一行放完**：标题 + 值 + Stepper。
+                    // 不用 `LabeledContent`：iPhone 宽度下它会自己折成上下两行
+                    // （真机反馈"「分配内存」一行、数值+stepper 另一行"，看着很散）。
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
+                        Text("Allocated memory")
+                        Spacer(minLength: OrzMCTheme.Spacing.sm)
+                        Text("\(Int(draft)) GB")
+                            .font(OrzMCTheme.Typography.numeric)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        if memory.isSaving {
+                            ProgressView()
+                                .controlSize(.small)
+                                .accessibilityLabel("Saving memory")
                         }
+                        Stepper("Allocated memory", value: Binding(get: { draft }, set: onEdit), in: 2...16, step: 1)
+                            .labelsHidden()
+                            .controlSize(.small)
                     }
                     .disabled(isBusy || serverStatus != .OFFLINE)
 
