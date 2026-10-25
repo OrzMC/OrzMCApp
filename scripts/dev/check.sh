@@ -94,7 +94,7 @@ case "$MODE" in
   --full)  static_checks; swift_tests; app_tests; build_macos; build_ios; live_protocol ;;
   default) static_checks; swift_tests; app_tests; build_macos ;;
   *)
-    echo "unknown mode: $MODE（--fast / --build / --ios / --full 或留空）" >&2
+    echo "unknown mode: ${MODE}（--fast / --build / --ios / --full 或留空）" >&2
     exit 2
     ;;
 esac
