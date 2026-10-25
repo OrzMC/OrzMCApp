@@ -27,7 +27,24 @@ struct MCSManagerInstancePage: Equatable, Sendable {
     let maxPage: Int?
 }
 
+/// 面板账号角色（面板源码 `ROLE`）。普通 key 用不了管理员端点，界面/模型据此选入口。
+enum MCSManagerRole {
+    static let guest = 0
+    static let user = 1
+    static let admin = 10
+}
+
+/// 当前登录用户（面板 `GET /api/auth`）。
+///
+/// `permission`：0 guest / 1 user / 10 admin。**普通用户的 key 用不了管理员端点**，
+/// 必须走 `GET /api/auth?advanced=true` 列"自己的"实例；管理员则要按节点列全部实例。
+struct MCSManagerCurrentUser: Equatable, Sendable {
+    let permission: Int
+    let instances: [MCSManagerInstance]
+}
+
 protocol MCSManagerPanelAPI: Sendable {
+    func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser
     func daemons() async throws -> [MCSManagerDaemon]
     func instances(daemonID: String, page: Int, pageSize: Int) async throws -> MCSManagerInstancePage
 }

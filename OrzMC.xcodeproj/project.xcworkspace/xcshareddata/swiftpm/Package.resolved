@@ -42,8 +42,8 @@
       "kind": "remoteSourceControl",
       "location": "https://github.com/OrzMC/MCSManagerAPI.git",
       "state": {
-        "revision": "a18b51c42c835140f10708a15eeed70a21e521e9",
-        "version": "0.1.1"
+        "revision": "7a7f1e9fe09e78fc21c4b1ef3a23bfb2eb6a169e",
+        "version": "0.2.0"
       }
     },
     {

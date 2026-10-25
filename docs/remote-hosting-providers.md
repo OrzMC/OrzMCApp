@@ -137,6 +137,7 @@ RemoteHostingGrouping.groups(from: instances)
 | 项 | 事实 |
 |---|---|
 | 鉴权 | 面板接受 `X-Request-API-Key` 头或 `?apikey=`；**必须在面板设置里打开 API Key 功能**，否则一律 403 |
+| **权限分级** | **管理员**（`permission = 10`）用 `GET /api/service/remote_services` → `…/remote_service_instances` 列**全部**实例；**普通用户**（`permission = 1`）只能 `GET /api/auth?advanced=true` 列**自己的**实例（管理员端点对普通 key 一律 403，面板文案还可能误导成「密钥不正确」）。模型先取 `/api/auth` 看 `permission` 再选入口；普通用户没有实例时是正常结果（不报错、不去试管理员端点） |
 | 403 的含义 | 面板会说明具体原因（`{"status":403,"data":"密钥不正确"}` / 「API Key功能已关闭」/「权限不足」）。app 现在**转述面板原话**（`MCSManagerModelError.unauthorized(panelMessage:)`），比统一猜一句准 —— 只有响应体读不出来时才用兜底句子 |
 | 请求超时 | 20 秒（`MCSMClient.defaultTimeout`）。面板在 Cloudflare Tunnel 后面时首次请求实测要 17 秒；超时太短会误报，太长会一直停在「加载中…」 |
 | 实例归属 | 面板 → 节点（daemon）→ 实例：列表要按节点查，所以实例 id 用 `daemonId/instanceUuid` |
