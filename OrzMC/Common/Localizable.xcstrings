@@ -296,7 +296,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "会永久删除 %@ 的全部 %lld 个实例目录，含存档、配置、插件与资源。"
+            "value": "会永久删除全部 %lld 个实例目录（%@），含存档、配置、插件与资源。"
           }
         }
       }
