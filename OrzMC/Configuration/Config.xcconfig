@@ -9,8 +9,8 @@
 // https://help.apple.com/xcode/#/dev745c5c974
 
 // App Release Version
-MARKETING_VERSION=0.1.3
-CURRENT_PROJECT_VERSION=55
+MARKETING_VERSION=0.1.4
+CURRENT_PROJECT_VERSION=56
 
 // Swift Config
 SWIFT_VERSION=6.0
