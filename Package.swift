@@ -58,7 +58,14 @@ let package = Package(
         ),
         .target(
             name: "OrzMCDesignSystem",
+            // 设计系统要认识 `ConsoleTextSegment`（终端文本渲染），所以依赖 Foundation 层。
+            dependencies: ["OrzMCFoundation"],
             path: "Sources/OrzMCDesignSystem"
+        ),
+        .testTarget(
+            name: "OrzMCFoundationTests",
+            dependencies: ["OrzMCFoundation"],
+            path: "Tests/OrzMCFoundationTests"
         ),
         .testTarget(
             name: "OrzMCProtocolTests",

@@ -110,6 +110,38 @@ final class RemotePanelsUITests: XCTestCase {
         keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
     }
 
+    /// **ANSI / `§` 渲染**（P2-6）：控制台按颜色渲染，且**不许残留**控制字符。
+    ///
+    /// 假 live 的样本行带真实颜色码（`\u{1B}[32m…`、`\u{00A7}e`），
+    /// 渲染后无障碍文案必须等于"去掉码的纯文本"。
+    func testConsoleRendersANSIColorsWithoutEscapeResidue() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
+                           "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_LIVE": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+
+        let done = app.staticTexts["[20:11:12] [Server thread/INFO]: Done (9.874s)! For help, type \"help\""]
+        for _ in 0..<8 where !done.exists { app.swipeUp() }
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "ANSI 前缀应被去掉，文本原样保留")
+
+        // `§e` / `§r` 是 Minecraft 颜色码，渲染后应该只剩文字。
+        XCTAssertTrue(
+            app.staticTexts["[20:11:10] [Server thread/ERROR]: Missing eula.txt, using defaults"].exists,
+            "§ 颜色码应被吃掉"
+        )
+
+        let residue = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "\u{1B}", "\u{00A7}")
+        )
+        XCTAssertEqual(residue.count, 0, "界面上不许残留 ESC / § 控制字符")
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+    }
+
     /// **内存行一行布局**（P1-3）：标签与「4 GB」+ Stepper 必须在同一行。
     ///
     /// 旧实现用 `LabeledContent`，iPhone 宽度下系统会把值折到下一行（真机反馈"看着很散"）。

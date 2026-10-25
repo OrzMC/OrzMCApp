@@ -16,7 +16,7 @@ scripts/swift-check.sh app-test                       # 全部单测
 
 | 关注点 | 怎么验 |
 |---|---|
-| ANSI 颜色码剥离 | `\u{1B}[32m…\u{1B}[0m` → 纯文本 |
+| ANSI 颜色码解析 | `\u{1B}[32m…\u{1B}[0m` → 分段 + 颜色（文本里不残留 ESC），见 [`console-rendering.md`](console-rendering.md) |
 | 字节块切成行 | 半行等齐再出，停止时 `flush` 不丢最后一行 |
 | `\r` 进度条覆盖 | 只保留最后状态，不留"半行垃圾" |
 | 上限与裁剪 | 2000 行、命令历史 100 条、连续重复不重复记 |

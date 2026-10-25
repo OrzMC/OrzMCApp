@@ -1,15 +1,30 @@
 import Foundation
+import OrzMCFoundation
 
-/// 服务端控制台的一行（已去掉 ANSI 颜色码、已分好行）。
+/// 服务端控制台的一行（已分好行、已解析颜色）。
 public struct ConsoleLine: Identifiable, Equatable, Sendable {
     public let id: Int
+    /// 纯文本（去掉了所有控制序列；导出日志、搜索都用它）。
     public let text: String
+    /// 解析后的分段（颜色 / 加粗），界面渲染用它。
+    public let segments: [ConsoleTextSegment]
     /// 是否用户自己发出的命令行（在 UI 里以不同样式显示，便于和日志区分）。
     public let isCommand: Bool
 
     public init(id: Int, text: String, isCommand: Bool = false) {
+        self.init(
+            id: id,
+            text: text,
+            segments: ConsoleTextParser.parse(text),
+            isCommand: isCommand
+        )
+    }
+
+    /// 已经解析好分段时用它（避免重复解析）。
+    public init(id: Int, text: String, segments: [ConsoleTextSegment], isCommand: Bool = false) {
         self.id = id
         self.text = text
+        self.segments = segments
         self.isCommand = isCommand
     }
 }
@@ -46,8 +61,9 @@ public struct ServerConsoleBuffer: Equatable, Sendable {
     /// 只按 `\n` 切；`\r` 视为行内回车（服务端进度条用）→ 丢弃当前半行，保留最后内容。
     public mutating func append(_ chunk: String) {
         guard !chunk.isEmpty else { return }
-        let cleaned = Self.strippingANSI(chunk)
-        partial += cleaned
+        // **不在这里剥 ANSI**：颜色要留到 `push` 里解析成 `segments`。
+        // 颜色码里不会有 `\n` / `\r`，所以直接按行切是安全的。
+        partial += chunk
 
         while let breakIndex = partial.firstIndex(where: { $0 == "\n" || $0 == "\r" }) {
             let line = String(partial[partial.startIndex..<breakIndex])
@@ -77,9 +93,10 @@ public struct ServerConsoleBuffer: Equatable, Sendable {
     }
 
     private mutating func push(_ raw: String) {
-        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let segments = ConsoleTextParser.trimmingWhitespace(ConsoleTextParser.parse(raw))
+        let text = segments.reduce(into: "") { $0 += $1.text }
         guard !text.isEmpty else { return }
-        lines.append(ConsoleLine(id: nextId, text: text))
+        lines.append(ConsoleLine(id: nextId, text: text, segments: segments))
         nextId += 1
         if lines.count > capacity {
             lines.removeFirst(lines.count - capacity)
@@ -100,7 +117,12 @@ public struct ServerConsoleBuffer: Equatable, Sendable {
             }
         }
 
-        lines.append(ConsoleLine(id: nextId, text: command, isCommand: true))
+        lines.append(ConsoleLine(
+            id: nextId,
+            text: command,
+            segments: [ConsoleTextSegment(text: command)],
+            isCommand: true
+        ))
         nextId += 1
         if lines.count > capacity {
             lines.removeFirst(lines.count - capacity)
@@ -117,31 +139,11 @@ public struct ServerConsoleBuffer: Equatable, Sendable {
     // MARK: ANSI
 
     /// 去掉 ANSI 转义序列（颜色/光标控制）。服务端日志全是 `\u{1B}[32m…`。
+    ///
+    /// 具体规则在 `OrzMCFoundation.ConsoleTextParser`（三种控制台共用同一套解析），
+    /// 这里保留旧名字以便调用方/测试平滑迁移。
     public static func strippingANSI(_ text: String) -> String {
-        guard text.contains("\u{1B}") else { return text }
-        var result = String()
-        result.reserveCapacity(text.count)
-        var iterator = Array(text)
-        var index = 0
-        while index < iterator.count {
-            guard iterator[index] == "\u{1B}" else {
-                result.append(iterator[index])
-                index += 1
-                continue
-            }
-            index += 1
-            guard index < iterator.count else { break }
-            if iterator[index] == "[" {
-                // CSI: ESC [ 参数… 终止字节 (@-~)
-                index += 1
-                while index < iterator.count, !("@"..."~").contains(iterator[index]) {
-                    index += 1
-                }
-                index += 1  // 跳过终止字节
-            } else {
-                index += 1  // 其它两字节转义，直接跳过
-            }
-        }
-        return result
+        ConsoleTextParser.plainText(text)
     }
+
 }
