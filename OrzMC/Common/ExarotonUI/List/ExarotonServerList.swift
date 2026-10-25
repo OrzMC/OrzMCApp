@@ -351,6 +351,8 @@ extension ExarotonServerList {
             model.memoryErrors = [:]
             model.memoryLoadErrors = [:]
             model.gate.reset()
+            // 旧账号的状态/刷新节律不带到新账号（状态中心按账号一份）。
+            model.resetRemoteStatus()
             model.path = NavigationPath()
         }
         model.token = validToken

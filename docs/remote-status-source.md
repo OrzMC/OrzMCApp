@@ -1,6 +1,8 @@
 # 远程服务器状态：唯一来源
 
-> 状态：生效中（2026-10-24）· 对应改动 `ExarotonServerModel.liveStatuses`
+> 状态：生效中（2026-10-24；2026-10-25 泛化成供应商无关的 `RemoteStatusCenter`）
+> 对应代码 `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift` +
+> `OrzMC/Common/ExarotonUI/Model/ExarotonServerModel+StatusCenter.swift`
 
 ## 问题
 
@@ -37,7 +39,8 @@ WebSocket 与 HTTP 轮询**不是二选一**，而是同一件事的两个来源
 model.publishStatus(.ONLINE, for: serverID, source: .webSocket)
 
 // 业务侧统一订阅（只在该服务器状态**真的变化**时收到）
-for await event in model.statusEvents() where event.serverID == id {
+let instance = model.instanceID(serverID)          // RemoteInstanceID（供应商 + 原始 id）
+for await event in model.statusEvents() where event.instance == instance {
     // event.previous / event.status / event.source / event.at
 }
 
@@ -45,7 +48,21 @@ for await event in model.statusEvents() where event.serverID == id {
 model.effectiveStatus(for: server)
 ```
 
-轮询节奏由 `RemoteStatusRefreshPolicy` 决定，关键判据是 **WebSocket 是否安静**：
+状态中心本身与供应商无关（P2-7 第 2 步），实现在 `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift`：
+
+| 概念 | 说明 |
+|---|---|
+| `RemoteInstanceID` | 全局键：供应商 + 该供应商内部 ID（两家 ID 撞车不会串） |
+| `RemoteInstanceStatus` | `state`（归一化：`online/offline/starting/…`）+ `rawStatus`（供应商自己的状态码，界面靠它区分 LOADING/PREPARING） |
+| `RemoteStatusChange` | `instance` / `previous` / `status` / `source` / `at`；`isChange` 在首次观测时为 false |
+| `RemoteStatusCenter` | **一个账号/面板一份**：快照 + 订阅 + 刷新节律（`beginRefresh` / `finishRefresh` / `noteWebSocketActivity` / `shouldRefresh`） |
+
+app 侧只做接缝（`ExarotonServerModel+StatusCenter.swift`）：SDK 状态码 ↔ 归一化状态、
+字符串 id ↔ `RemoteInstanceID`、`statusVersion`（`@Observable` 版本号）跟着状态变化走。
+换账号时 `resetRemoteStatus()` 清空快照（旧账号的状态不会漂到新账号列表上）。
+
+轮询节奏由 `RemoteStatusRefreshPolicy`（同在 `Sources/OrzMCRemoteHosting`，纯函数，可单测）决定，
+关键判据是 **WebSocket 是否安静**：
 
 | 条件 | 行为 |
 |---|---|

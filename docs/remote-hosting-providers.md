@@ -1,7 +1,8 @@
 # 远程托管供应商抽象层（多供应商 / 多实例）
 
-> 状态：生效中（P2-7 第 1 步已完成，2026-10-25）· 对应代码 `Sources/OrzMCRemoteHosting/` +
-> `OrzMC/Common/ExarotonUI/Model/ExarotonHostingProvider.swift`
+> 状态：生效中（P2-7 第 1–2 步已完成，2026-10-25）· 对应代码 `Sources/OrzMCRemoteHosting/` +
+> `OrzMC/Common/ExarotonUI/Model/ExarotonHostingProvider.swift` /
+> `OrzMC/Common/ExarotonUI/Model/ExarotonServerModel+StatusCenter.swift`
 > 交接入口：[`../../../HANDOFF.md`](../../../HANDOFF.md) §1 · 待办看板：[`backlog-2026-10-25.md`](backlog-2026-10-25.md) P2-7
 
 ## 目标
@@ -76,6 +77,26 @@ public struct ClosureRemoteHostingProvider: RemoteHostingProvider { … }  // �
 判"该不该轮询"的逻辑只有一份：`RemoteStatusRefreshPolicy` + 唯一写入口 `publishStatus` +
 订阅 `statusEvents()`。详见 [`remote-status-source.md`](remote-status-source.md)。
 
+第 2 步把状态中心下沉成供应商无关的 `RemoteStatusCenter`（`Sources/OrzMCRemoteHosting`）：
+
+```swift
+let center = RemoteStatusCenter()                       // 一个账号/面板一份
+center.publish(.init(state: .online, rawStatus: 1),     // 唯一写入口（WS / 轮询 / 调试注入）
+               for: RemoteInstanceID(provider: .exaroton, rawValue: "srv"),
+               source: .webSocket)
+for await change in center.events() { /* 只在真变化时收到 */ }
+center.noteWebSocketActivity()                          // 推送通道还活着
+center.beginRefresh(); center.finishRefresh()
+center.shouldRefresh(hasCredentials: true, isAppActive: true, isLoading: false)
+```
+
+- 键是 `RemoteInstanceID`（供应商 + 原始 ID），不是裸字符串；
+- `RemoteInstanceStatus` 同时保留 `state`（归一化）与 `rawStatus`（供应商状态码），
+  细节（LOADING / PREPARING）不丢；
+- MCSM 没有 WS：从不记 activity，`shouldRefresh` 自然退化成"按最小间隔轮询"，
+  **不需要给 MCSM 另写一套节律**；
+- 换账号 `reset()` / 实例消失 `forget()`；订阅者保留，界面不用重订阅。
+
 ⚠️ 三条红线（P2-7 全程有效）：
 1. **不要**改"WebSocket 是否安静 30 秒"这个轮询判据；
 2. 状态徽章只有 `OrzMCStatusBadge` 一个实现；
@@ -95,7 +116,7 @@ RemoteHostingGrouping.groups(from: instances)
 | 步骤 | 内容 | 状态 |
 |---|---|---|
 | 1 | `RemoteHostingProvider` / `ProviderKind` / `RemoteInstanceSummary` 定稿 + exaroton 适配器（行为不变） | ✅ 2026-10-25 |
-| 2 | `ExarotonStatusCenter` → 供应商无关的 `RemoteStatusCenter` | 待做 |
+| 2 | `ExarotonStatusCenter` → 供应商无关的 `RemoteStatusCenter`（`RemoteStatusRefreshPolicy` 下沉到库） | ✅ 2026-10-25 |
 | 3 | `Sources/MCSMAPI`（新仓库 `OrzMC/MCSManagerAPI`）：列实例 + 实例状态 | 待做 |
 | 4 | app 侧 MCSM 适配器（只读）：列实例 + 轮询状态，凭据进 Keychain，UI 按供应商分组 | 待做 |
 | 5 | 动作 / 命令 / 多账号管理界面 | 待做 |
@@ -109,6 +130,8 @@ RemoteHostingGrouping.groups(from: instances)
 |---|---|
 | `Sources/OrzMCRemoteHosting/RemoteHostingProvider.swift` | `ProviderKind` / `RemoteInstanceID` / `RemoteInstanceSummary` / 协议 / 分组 / 闭包适配器 |
 | `Sources/OrzMCRemoteHosting/RemoteServerState.swift` | 归一化状态、动作、列表策略（搜索 + 动作可用性） |
+| `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift` | 供应商无关的状态中心 + `RemoteStatusRefreshPolicy`（30 秒判据） |
+| `OrzMC/Common/ExarotonUI/Model/ExarotonServerModel+StatusCenter.swift` | exaroton 接缝：状态码换算、`publishStatus` / `statusEvents` / `effectiveStatus` / `liveStatuses` |
 | `OrzMC/Common/ExarotonUI/Model/ExarotonHostingProvider.swift` | exaroton 适配器：`servers` → 摘要（状态取 `effectiveStatus`）、动作 → 现有 start/stop/restart |
 | `Tests/OrzMCRemoteHostingTests/RemoteHostingProviderTests.swift` | 抽象层单测（命名空间、分组、闭包适配器、错误透传） |
 | `OrzMCTests/ExarotonHostingProviderTests.swift` | exaroton 适配器单测（映射、静态地址优先、无 id 跳过、拒绝别家实例） |

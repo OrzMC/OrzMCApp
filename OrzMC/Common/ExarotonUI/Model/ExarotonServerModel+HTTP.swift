@@ -14,10 +14,10 @@ extension ExarotonServerModel {
         let requestedToken = token
         isLoadingList = true
         listLoadError = nil
-        refreshStartedAt = Date()
+        statusCenter.beginRefresh()
         defer {
             isLoadingList = false
-            lastRefreshFinished = Date()
+            statusCenter.finishRefresh()
         }
         do {
             async let serversResponse = httpClient.getServers()
