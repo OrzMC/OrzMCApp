@@ -5,9 +5,14 @@ name: Release iOS
 # 与 `release-app.yml`（macOS：Developer ID + notarize + Sparkle）分开：iOS 没有 notarize，
 # 走的是 App Store Connect 的签名与（可选）TestFlight 上传。
 #
-# 签名方式：**云签名**。CI 不往钥匙串里塞 iOS 证书，靠 App Store Connect API key
-# （`APPSTORE_PRIVATE_KEY` / `APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID`）让 xcodebuild 自己
-# 申请证书与描述文件（`-authenticationKey*` + `-allowProvisioningUpdates`，见 scripts/release-ios.sh）。
+# 签名方式（两条，脚本自动挑）：
+# 1) **云签名**：`APPSTORE_PRIVATE_KEY` / `APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID` +
+#    `-allowProvisioningUpdates`。**开发签名（debugging）可用**（实测），但分发签名
+#    （app-store-connect / release-testing）会被 API key 的角色挡住：
+#    `Cloud signing permission error` / `No signing certificate "iOS Distribution" found`。
+# 2) **manual signing**：额外提供 `IOS_DIST_CERT_P12`（base64 的 .p12，含 Apple Distribution 私钥）
+#    + `IOS_DIST_CERT_PASSWORD` + `IOS_PROFILE`（base64 的 App Store .mobileprovision）。
+#    脚本会把证书导进临时钥匙串、装上描述文件，导出后恢复现场（见 docs/ios-release.md）。
 #
 # ⚠️ `upload=true` 会**真的**产生一个 TestFlight 构建（会通知测试员），
 #    并且同一版本号不能重复上传 —— 再传要先把 `CURRENT_PROJECT_VERSION` 提升。
@@ -16,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       export:
-        description: "导出方式（app-store-connect 需要分发签名权限，见 docs/ios-release.md）"
+        description: "导出方式（app-store-connect 需要 IOS_DIST_CERT_P12/IOS_PROFILE，见 docs/ios-release.md）"
         required: true
         default: debugging
         type: choice
@@ -40,6 +45,12 @@ jobs:
   archive:
     runs-on: macos-26
 
+    env:
+      # 分发签名（可选）：三个都配齐时脚本自动走 manual signing。
+      IOS_DIST_CERT_P12: ${{ secrets.IOS_DIST_CERT_P12 }}
+      IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+      IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+
     steps:
       - uses: actions/checkout@v5
 
@@ -62,6 +73,7 @@ jobs:
 
       - name: Archive, export, and (optionally) upload
         env:
+          # 云签名（开发签名用；分发签名见上面的 IOS_DIST_* / IOS_PROFILE）
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}

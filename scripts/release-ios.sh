@@ -24,6 +24,12 @@
 # * CI / 无本地证书：设置 `APPSTORE_PRIVATE_KEY`（base64 的 .p8）、`APPSTORE_KEY_ID`、
 #   `APPSTORE_ISSUER_ID`，脚本会把它们传给 xcodebuild 的 `-authenticationKey*`，
 #   由 Xcode 云签名拉证书与描述文件（不需要把证书塞进 CI 钥匙串）。
+# * 分发签名（`app-store-connect` / `release-testing`）需要 **Apple Distribution 证书 + 描述文件**。
+#   云签名的 API key 权限不够时会报 `Cloud signing permission error` / `No signing certificate`。
+#   这时改用 **manual signing**：给脚本 `IOS_DIST_CERT_P12`（base64 的 .p12，含私钥）+
+#   `IOS_DIST_CERT_PASSWORD` + `IOS_PROFILE`（base64 的 .mobileprovision）。
+#   脚本会把证书导入**临时钥匙串**、把描述文件装进 `~/Library/MobileDevice/Provisioning Profiles/`，
+#   导出后用原钥匙串列表恢复现场（退出时也会恢复）。
 #
 # TestFlight 上传（`--upload`）需要上面三个 App Store Connect API key 变量之一套；
 # `.p8` 只在临时目录里存在，退出即删。上传成功后 App Store Connect 还要处理几分钟。
@@ -47,6 +53,11 @@ SKIP_ARCHIVE=0
 ARCHIVE_PATH=""
 AUTH_ARGS=()
 KEY_DIR=""
+SIGNING_STYLE="automatic"
+PROFILE_NAME=""
+PROFILE_PATH=""
+TEMP_KEYCHAIN=""
+SAVED_KEYCHAINS=()
 
 log() { printf "\n\033[1m▶ %s\033[0m\n" "$1"; }
 warn() { printf "\nwarning: %s\n" "$*" >&2; }
@@ -54,6 +65,13 @@ fail() { printf "\nerror: %s\n" "$*" >&2; exit 1; }
 
 cleanup() {
   if [[ -n "$KEY_DIR" && -d "$KEY_DIR" ]]; then rm -rf "$KEY_DIR"; fi
+  if [[ -n "$TEMP_KEYCHAIN" ]]; then
+    # 把临时钥匙串从搜索列表里摘掉（无论成功失败），再删掉它。
+    if [[ ${#SAVED_KEYCHAINS[@]} -gt 0 ]]; then
+      security list-keychains -d user -s "${SAVED_KEYCHAINS[@]}" >/dev/null 2>&1 || true
+    fi
+    security delete-keychain "$TEMP_KEYCHAIN" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT
 
@@ -116,6 +134,60 @@ prepare_authentication() {
   echo "签名：本机钥匙串（Automatic + -allowProvisioningUpdates）"
 }
 
+# 分发签名（manual）：临时钥匙串导入分发证书 + 安装描述文件。
+# 只在给了 `IOS_DIST_CERT_P12` / `IOS_PROFILE` 时走这条路（CI 传 TestFlight 用）。
+prepare_manual_signing() {
+  local cert_b64="${IOS_DIST_CERT_P12:-}"
+  local cert_pass="${IOS_DIST_CERT_PASSWORD:-}"
+  local profile_b64="${IOS_PROFILE:-${IOS_APPSTORE_PROFILE:-}}"
+  if [[ -z "$cert_b64" || -z "$profile_b64" ]]; then
+    return 1
+  fi
+
+  SIGNING_STYLE="manual"
+
+  # 1) 描述文件：解出 Name（ExportOptions 的 provisioningProfiles 要它）。
+  PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
+  mkdir -p "$PROFILE_PATH"
+  local tmp_profile
+  tmp_profile="$(mktemp -t orzmc-profile)"
+  decode_base64_to_file "$profile_b64" "$tmp_profile"
+  PROFILE_NAME="$(security cms -D -i "$tmp_profile" 2>/dev/null | plutil -extract Name raw - 2>/dev/null)"
+  local profile_uuid
+  profile_uuid="$(security cms -D -i "$tmp_profile" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null)"
+  [[ -n "$PROFILE_NAME" && -n "$profile_uuid" ]] || fail "描述文件解析失败（IOS_PROFILE 不是有效的 .mobileprovision？）"
+  cp "$tmp_profile" "$PROFILE_PATH/${profile_uuid}.mobileprovision"
+  rm -f "$tmp_profile"
+  echo "描述文件：${PROFILE_NAME}（${profile_uuid}）"
+
+  # 2) 分发证书：导入临时钥匙串，并把它挂到搜索列表最前面（退出时恢复）。
+  if ! security find-identity -v -p codesigning | grep -q '"Apple Distribution'; then
+    local pass
+    pass="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
+    TEMP_KEYCHAIN="$HOME/Library/Keychains/orzmc-ios-signing-$$.keychain-db"
+    security create-keychain -p "$pass" "$TEMP_KEYCHAIN" >/dev/null
+    security set-keychain-settings -lut 3600 "$TEMP_KEYCHAIN" >/dev/null
+    security unlock-keychain -p "$pass" "$TEMP_KEYCHAIN" >/dev/null
+    local cert_file
+    cert_file="$(mktemp -t orzmc-dist).p12"
+    decode_base64_to_file "$cert_b64" "$cert_file"
+    security import "$cert_file" -k "$TEMP_KEYCHAIN" -P "$cert_pass" -T /usr/bin/codesign >/dev/null
+    rm -f "$cert_file"
+    # codesign 访问私钥时不再弹授权框（CI 必需）。
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pass" "$TEMP_KEYCHAIN" >/dev/null
+    # 保存原列表 → 把临时钥匙串加进去。
+    SAVED_KEYCHAINS=()
+    while IFS= read -r line; do
+      line="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*"//' -e 's/"[[:space:]]*$//')"
+      [[ -n "$line" ]] && SAVED_KEYCHAINS+=("$line")
+    done < <(security list-keychains -d user)
+    security list-keychains -d user -s "$TEMP_KEYCHAIN" ${SAVED_KEYCHAINS[@]+"${SAVED_KEYCHAINS[@]}"} >/dev/null
+  fi
+  security find-identity -v -p codesigning | grep -q '"Apple Distribution'     || fail "钥匙串里没有 Apple Distribution 证书（IOS_DIST_CERT_P12 里有私钥吗？）"
+  echo "签名：Manual（Apple Distribution + ${PROFILE_NAME}）"
+  return 0
+}
+
 preflight() {
   log "检查环境"
   require_command xcodebuild
@@ -136,6 +208,7 @@ MSG
   echo "版本：$MARKETING_VERSION ($BUILD_VERSION) · 导出方式：$EXPORT_METHOD"
   echo "产物目录：$DIST_DIR"
   prepare_authentication
+  prepare_manual_signing || true
 }
 
 run_archive() {
@@ -164,6 +237,13 @@ run_archive() {
 
 write_export_options() {
   EXPORT_OPTIONS="$DIST_DIR/ExportOptions-${EXPORT_METHOD}.plist"
+  local extra=""
+  if [[ "$SIGNING_STYLE" == "manual" ]]; then
+    local bundle_id
+    bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleIdentifier' "$ARCHIVE_PATH/Info.plist" 2>/dev/null)"
+    [[ -n "$bundle_id" ]] || fail "读不到归档的 bundle id，无法配置 manual 签名"
+    extra="$(printf '\t<key>provisioningProfiles</key>\n\t<dict>\n\t\t<key>%s</key>\n\t\t<string>%s</string>\n\t</dict>\n' "$bundle_id" "$PROFILE_NAME")"
+  fi
   cat > "$EXPORT_OPTIONS" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -172,7 +252,8 @@ write_export_options() {
 	<key>method</key>
 	<string>${EXPORT_METHOD}</string>
 	<key>signingStyle</key>
-	<string>automatic</string>
+	<string>${SIGNING_STYLE}</string>
+${extra}
 	<key>teamID</key>
 	<string>${TEAM_ID}</string>
 	<key>destination</key>

@@ -97,19 +97,63 @@ OrzMC_0.1.4_56_20261025_045514_debugging/OrzMC.ipa
   包内 AppIcon60x60@2x.png / AppIcon76x76@2x~ipad.png + CFBundleIcons 齐全
 ```
 
-**分发（TestFlight）为什么不行**：App Store Connect API key 云签名建不了 **Apple Distribution**
-证书与 App Store 描述文件 —— 这是密钥角色（权限）问题，不是脚本问题。三条出路（按推荐顺序）：
+### 为什么"本机能、CI 不能"
 
-1. **本机导出 + 上传**（今天就能用）：维护者 Mac 的钥匙串里已经有
-   `Apple Distribution: Zhizhou Wang (2N62934Y28)`，在 Terminal.app 里跑
-   `./scripts/release-ios.sh --export app-store-connect --upload`。
-2. **把 API key 的角色提到 Admin**（App Store Connect → 用户与访问 → 集成），云签名才能自动建证书。
-3. **在 CI 里塞分发证书 + 描述文件**（manual signing）：需要在 workflow 里额外导入
-   `.p12` 与 `.mobileprovision` 并把 ExportOptions 改成 `signingStyle=manual` + `provisioningProfiles`；
-   脚本目前只实现了 automatic，要用这条路得先补这个能力。
+导出成 **App Store / Ad hoc** 包需要两样东西，缺一不可：
 
-> 换句话说：**归档/导出/装真机今天就能用**（本机全通、CI 的开发签名也通）；
-> **CI 直传 TestFlight** 还差权限或证书，按上面三条任选其一。
+| 需要 | 本机（维护者 Mac） | CI（只有 ASC API key） |
+|---|---|---|
+| **Apple Distribution 证书 + 私钥** | ✅ 钥匙串里有（`Apple Distribution: Zhizhou Wang`），`codesign` 直接用 | ❌ 云签名要创建/取回分发证书时被拒：`Cloud signing permission error` |
+| **App Store 描述文件**（App ID = `com.joker.OrzMC.iOS`） | ⚠️ 本地实测**也没有现成的**（只有 Team / Ad Hoc 描述文件）；第一次导出时由 **Xcode 里登录的 Apple ID** 现场创建（`-allowProvisioningUpdates`） | ❌ 同一权限问题：`No profiles for 'com.joker.OrzMC.iOS' were found` |
+
+也就是说：本机之所以能跑通，是因为**证书私钥在本地、而且 Xcode 登录的账号有权限现场建描述文件**；
+CI 里两者都没有，API key 的角色又不足以让 Xcode 云端代办 —— 这属于**权限**问题，不是脚本参数问题。
+
+> 自查命令（本机）：`security find-identity -v -p codesigning | grep Distribution` 看证书；
+> 下面这段看描述文件类型（App Store 的 `get-task-allow` 是 `false`）：
+>
+> ```bash
+> for f in ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision; do
+>   printf '%s\t%s\n' "$(security cms -D -i "$f" | plutil -extract Entitlements.get-task-allow raw - 2>/dev/null)" \
+>     "$(security cms -D -i "$f" | plutil -extract Name raw - 2>/dev/null)"
+> done
+> ```
+
+### 把这一步搬到 CI：三种方式
+
+| 方式 | 要做什么 | 优点 | 代价 |
+|---|---|---|---|
+| **A. manual signing（推荐给 CI）** | 加 3 个 secret：`IOS_DIST_CERT_P12`（base64 的 .p12，**含私钥**）、`IOS_DIST_CERT_PASSWORD`、`IOS_PROFILE`（base64 的 App Store `.mobileprovision`）。脚本已实现：导入临时钥匙串 → 装描述文件 → `signingStyle=manual` + `provisioningProfiles` → 导出后恢复现场 | 不需要动 API key 权限；CI 一条命令直传 TestFlight | 证书/描述文件会过期（通常 1 年），到期要换 secret |
+| **B. 提高 API key 角色** | App Store Connect → 用户与访问 → 集成，把密钥角色提到 **Admin** | 一个 secret 都不用加，云签名全自动 | 该 key 变成高权限（能建证书/改团队配置），泄露代价大 |
+| **C. 本机导出 + 上传** | 在 Terminal.app 里跑 `./scripts/release-ios.sh --export app-store-connect --upload` | 今天就能用，不碰 CI secret | 依赖个人机器与登录状态，不能自动化 |
+
+**方式 A 的 secret 怎么来**（在维护者 Mac 的 Terminal.app 里，逐个跑）：
+
+```bash
+# 1) 分发证书（含私钥）→ base64 → secret
+security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 \
+  -o ~/Desktop/ios-distribution.p12          # 会提示设置一个 p12 密码，记下来
+base64 -i ~/Desktop/ios-distribution.p12 | gh secret set IOS_DIST_CERT_P12 --repo OrzMC/OrzMCApp
+gh secret set IOS_DIST_CERT_PASSWORD --repo OrzMC/OrzMCApp   # 粘贴刚才的 p12 密码
+rm ~/Desktop/ios-distribution.p12
+
+# 2) App Store 描述文件（App ID = com.joker.OrzMC.iOS，证书选 Apple Distribution）
+#    developer.apple.com → Certificates, Identifiers & Profiles → Profiles → + → App Store
+base64 -i ~/Downloads/OrzMC_AppStore.mobileprovision | gh secret set IOS_PROFILE --repo OrzMC/OrzMCApp
+```
+
+配好之后：
+
+```bash
+gh workflow run release-ios.yml --ref main -f export=app-store-connect -f upload=true
+```
+
+> 描述文件也可以让 Xcode 代建：本机 Xcode 里 Archive 一次 → Distribute App → App Store Connect，
+> 生成后到 `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` 里按上面的命令挑出
+> `get-task-allow=false` 的那个即可。
+
+> 小结：**归档 / 导出 / 装真机今天就能用**（本机全通，CI 的开发签名也通）；
+> **CI 直传 TestFlight** 需要方式 A 的 3 个 secret（脚本已就绪），或者方式 B 提高 key 权限。
 
 ## 真机装开发签名包
 
