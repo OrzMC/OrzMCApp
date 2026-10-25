@@ -566,9 +566,9 @@ struct SelfHostedServerView: View {
                             .foregroundStyle(.tertiary)
                     }
                     ForEach(model.currentConsoleLines) { line in
-                        Text(verbatim: line.text)
-                            .font(OrzMCTheme.Typography.console)
-                            .foregroundStyle(color(for: line.kind))
+                        // 与 macOS 本地控制台 / exaroton 控制台同一个渲染组件：
+                        // ANSI 与 `§` 颜色由 `ConsoleTextParser` 解析，这里只给"没有颜色码时"兜底色。
+                        ConsoleLineText(segments: line.segments, fallback: color(for: line.kind))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                             .id(line.id)

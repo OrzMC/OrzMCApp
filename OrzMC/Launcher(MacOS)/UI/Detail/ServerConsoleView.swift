@@ -15,7 +15,8 @@ import UniformTypeIdentifiers
 ///   在控制台里就能管，不必退回详情页；
 /// - **客户端**：**只读**日志（Minecraft 客户端不接受控制台命令），底部明确说明。
 ///
-/// 日志由 `ServerConsoleModel` 处理干净（去 ANSI、按行切、限 2000 行），这里只渲染。
+/// 日志由 `ServerConsoleModel` 处理干净（按行切、限 2000 行、把 ANSI/`§` 解析成分段），
+/// 这里只渲染（`ConsoleLineText`，与另外两个控制台共用）。
 struct ServerConsoleView: View {
     /// 控制台属于**这个实例**（版本 + 客户端/某个服务端核心）——实例之间完全独立。
     let title: String
@@ -165,11 +166,14 @@ struct ServerConsoleView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 1) {
                     ForEach(filteredLines) { line in
-                        Text(line.text)
-                            .font(OrzMCTheme.Typography.console)
-                            .foregroundStyle(line.isCommand ? AnyShapeStyle(OrzMCTheme.Palette.accent) : AnyShapeStyle(.primary))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .id(line.id)
+                        // ANSI / `§` 颜色由共享解析器给出（`ConsoleTextParser`），这里只排版。
+                        // 本地回显的命令行没有颜色码 → 用主题强调色兜底。
+                        ConsoleLineText(
+                            segments: line.segments,
+                            fallback: line.isCommand ? OrzMCTheme.Palette.accent : nil
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .id(line.id)
                     }
                 }
                 .padding(OrzMCTheme.Spacing.sm)

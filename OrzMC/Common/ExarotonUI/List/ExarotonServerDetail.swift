@@ -149,13 +149,12 @@ struct ExarotonServerDetail: View {
                         } else {
                             ScrollView(.vertical, showsIndicators: true) {
                                 LazyVStack(alignment: .leading, spacing: 0) {
+                                    // 三个控制台共用同一套 ANSI/`§` 渲染（`ConsoleLineText`）。
                                     ForEach(model.consoleLines) { line in
-                                        Text(verbatim: line.text)
+                                        ConsoleLineText(segments: line.segments)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
-                                .font(OrzMCTheme.Typography.console)
-                                .foregroundStyle(.primary)
                                 .textSelection(.enabled)
                                 // 与空态同一内边距，日志首行和占位对得上（以前文字直接贴着圆角边框）。
                                 .padding(OrzMCTheme.Spacing.xs)
@@ -360,10 +359,14 @@ extension ExarotonServerDetail {
         guard ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_LIVE"] == "1",
               ProcessInfo.processInfo.environment["ORZMC_DEMO_EMPTY_CONSOLE"] != "1",
               model.consoleLines.isEmpty else { return }
+        // 带真实 ANSI / `§` 颜色码的样本：截图验收「颜色渲染 + 不残留控制字符」。
         for line in [
-            "[20:11:02] [Server thread/INFO]: Starting minecraft server version 26.3",
-            "[20:11:07] [Server thread/INFO]: Preparing level \"world\"",
-            "[20:11:12] [Server thread/INFO]: Done (9.874s)! For help, type \"help\"",
+            "\u{1B}[32m[20:11:02] [Server thread/INFO]\u{1B}[0m: Starting minecraft server version 26.3",
+            "\u{1B}[32m[20:11:07] [Server thread/INFO]\u{1B}[0m: Preparing level \"world\"",
+            "\u{1B}[33m[20:11:09] [Server thread/WARN]\u{1B}[0m: Can't keep up! Running 1234ms behind",
+            // `§e` 是颜色码，紧跟的 `eula.txt` 才是文本（写成一个 `§e` + 文本）。
+            "\u{1B}[31m[20:11:10] [Server thread/ERROR]\u{1B}[0m: Missing \u{00A7}eeula.txt\u{00A7}r, using defaults",
+            "\u{1B}[32m[20:11:12] [Server thread/INFO]\u{1B}[0m: Done (9.874s)! For help, type \"help\"",
         ] {
             model.appendConsoleLine(line)
         }

@@ -5,6 +5,7 @@
 
 import Foundation
 import Observation
+import OrzMCFoundation
 import OrzMCLauncher
 import OrzMCProtocol
 
@@ -34,7 +35,18 @@ final class SelfHostedServersModel {
         enum Kind: Equatable { case command, output, error }
         let id = UUID()
         let kind: Kind
+        /// 纯文本（去掉控制序列；搜索/无障碍读它）。
         let text: String
+        /// 解析后的分段（ANSI / `§` 颜色）；界面渲染用（`ConsoleLineText`）。
+        let segments: [ConsoleTextSegment]
+
+        init(kind: Kind, text: String) {
+            self.kind = kind
+            self.text = text
+            self.segments = kind == .command
+                ? [ConsoleTextSegment(text: text)]
+                : ConsoleTextParser.trimmingWhitespace(ConsoleTextParser.parse(text))
+        }
     }
 
     /// 每台服务器最多留多少行控制台输出。
