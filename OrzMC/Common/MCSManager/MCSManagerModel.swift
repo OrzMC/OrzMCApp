@@ -82,12 +82,16 @@ struct MCSManagerInstance: Identifiable, Equatable, Sendable {
     var id: String { "\(daemonID)/\(instanceUUID)" }
 }
 
-/// 面板级错误（拿不到 HTTP 响应体里那些文案时用；文案由 `MCSManagerErrorText` 出）。
+/// 面板级错误（文案由 `MCSManagerErrorText` 出）。
+///
+/// `panelMessage` 是**面板自己返回的那句话**（`{"status":403,"data":"密钥不正确"}` 里的 `data`）：
+/// MCSManager 的 403 有好几种含义（密钥不正确 / API Key 功能已关闭 / 权限不足），
+/// 面板已经把它说清楚了，界面直接转述比我们自己猜更准。
 enum MCSManagerModelError: Error, Equatable {
-    /// 403：API Key 失效 / 面板没开 API Key 功能。
-    case unauthorized
+    /// 403：API Key 失效 / 面板没开 API Key 功能 / 权限不足。
+    case unauthorized(panelMessage: String?)
     /// 其它 HTTP 状态码（5xx 等）。
-    case server(Int)
+    case server(Int, panelMessage: String?)
 }
 
 @MainActor

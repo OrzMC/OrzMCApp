@@ -1377,7 +1377,7 @@
 			repositoryURL = "https://github.com/OrzMC/MCSManagerAPI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
+				minimumVersion = 0.1.1;
 			};
 		};
 		2B8442F42E17B28D00CB0EA0 /* XCRemoteSwiftPackageReference "OrzMCKit" */ = {

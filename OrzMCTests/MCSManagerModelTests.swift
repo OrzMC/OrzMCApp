@@ -127,7 +127,7 @@ final class MCSManagerModelTests: XCTestCase {
 
     /// 面板 403（key 失效 / 没开 API Key 功能）→ 一句人话，而不是 NSError 转储。
     func testUnauthorizedSurfacesReadableError() async {
-        let api = FakePanelAPI(failing: MCSManagerModelError.unauthorized)
+        let api = FakePanelAPI(failing: MCSManagerModelError.unauthorized(panelMessage: nil))
         let model = makeModel(api: api)
 
         await model.reload()
@@ -135,10 +135,43 @@ final class MCSManagerModelTests: XCTestCase {
         XCTAssertNotNil(model.errorMessage)
         XCTAssertEqual(
             model.errorMessage,
-            MCSManagerErrorText.describe(MCSManagerModelError.unauthorized)
+            MCSManagerErrorText.describe(MCSManagerModelError.unauthorized(panelMessage: nil))
         )
         XCTAssertFalse(model.hasLoaded)
         XCTAssertTrue(model.instances.isEmpty)
+    }
+
+    /// 面板会说明 403 到底是哪一种（密钥不正确 / API Key 功能已关闭 / 权限不足）：
+    /// 有面板文案就转述它，没有才用兜底句子。
+    func testPanelMessageIsPreferredWhenAvailable() {
+        let panelSaid = "密钥不正确"
+        XCTAssertEqual(
+            MCSManagerErrorText.describe(MCSManagerModelError.unauthorized(panelMessage: panelSaid)),
+            String(localized: "The panel rejected this API key: \(panelSaid)")
+        )
+
+        let gateway = "Bad Gateway"
+        XCTAssertEqual(
+            MCSManagerErrorText.describe(MCSManagerModelError.server(502, panelMessage: gateway)),
+            String(localized: "The panel returned an error (HTTP \(502)): \(gateway)")
+        )
+
+        XCTAssertTrue(
+            MCSManagerErrorText
+                .describe(MCSManagerModelError.unauthorized(panelMessage: nil))?
+                .contains("API Key") == true,
+            "没有面板文案时用兜底句子"
+        )
+    }
+
+    /// 面板回了 403 + JSON 文案：模型的 `errorMessage` 要带上面板原话（用户据此才知道该改哪）。
+    func testReloadSurfacesPanelMessage() async {
+        let api = FakePanelAPI(failing: MCSManagerModelError.unauthorized(panelMessage: "密钥不正确"))
+        let model = makeModel(api: api)
+
+        await model.reload()
+
+        XCTAssertEqual(model.errorMessage?.contains("密钥不正确"), true, "实际：\(model.errorMessage ?? "nil")")
     }
 
     /// 没有 key 就不发请求（也没必要打扰用户）。
