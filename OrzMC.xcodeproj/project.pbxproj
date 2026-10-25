@@ -74,7 +74,7 @@
 		2B5ACA5D2BFB28E700397BFC /* String+.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA5C2BFB28E700397BFC /* String+.swift */; };
 		2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */; };
 		CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */; };
-		CD20261024B0000000000004 /* ExarotonStatusCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024B0000000000003 /* ExarotonStatusCenter.swift */; };
+		CD20261024B0000000000004 /* ExarotonServerModel+StatusCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261024B0000000000003 /* ExarotonServerModel+StatusCenter.swift */; };
 		CD20261025A0000000000001 /* RemoteHostingErrorText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261025A0000000000002 /* RemoteHostingErrorText.swift */; };
 		CD20261025C0000000000001 /* RemoteHostingErrorTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */; };
 		CD20261026A0000000000002 /* ExarotonHostingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261026A0000000000001 /* ExarotonHostingProvider.swift */; };
@@ -185,7 +185,7 @@
 		2B5ACA5C2BFB28E700397BFC /* String+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+.swift"; sourceTree = "<group>"; };
 		2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+HTTP.swift"; sourceTree = "<group>"; };
 		CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+Refresh.swift"; sourceTree = "<group>"; };
-		CD20261024B0000000000003 /* ExarotonStatusCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonStatusCenter.swift"; sourceTree = "<group>"; };
+		CD20261024B0000000000003 /* ExarotonServerModel+StatusCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+StatusCenter.swift"; sourceTree = "<group>"; };
 		CD20261025A0000000000002 /* RemoteHostingErrorText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteHostingErrorText.swift"; sourceTree = "<group>"; };
 		CD20261025C0000000000002 /* RemoteHostingErrorTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteHostingErrorTextTests.swift"; sourceTree = "<group>"; };
 		CD20261026A0000000000001 /* ExarotonHostingProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonHostingProvider.swift"; sourceTree = "<group>"; };
@@ -371,7 +371,7 @@
 				2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */,
 				2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */,
 				CD20261025A0000000000002 /* RemoteHostingErrorText.swift */,
-				CD20261024B0000000000003 /* ExarotonStatusCenter.swift */,
+				CD20261024B0000000000003 /* ExarotonServerModel+StatusCenter.swift */,
 				CD20261026A0000000000001 /* ExarotonHostingProvider.swift */,
 				CD20261024B0000000000001 /* ExarotonServerModel+Refresh.swift */,
 			);
@@ -898,7 +898,7 @@
 				2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */,
 				2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */,
 				CD20261025A0000000000001 /* RemoteHostingErrorText.swift in Sources */,
-				CD20261024B0000000000004 /* ExarotonStatusCenter.swift in Sources */,
+				CD20261024B0000000000004 /* ExarotonServerModel+StatusCenter.swift in Sources */,
 				CD20261026A0000000000002 /* ExarotonHostingProvider.swift in Sources */,
 				CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,

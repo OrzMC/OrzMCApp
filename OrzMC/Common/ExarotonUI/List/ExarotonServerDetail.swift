@@ -341,7 +341,8 @@ struct ExarotonServerDetail: View {
         // 不再各自比较快照。WS 推送和 HTTP 轮询都会走到这里。
         .task(id: server.id) {
             guard let id = server.id else { return }
-            for await event in model.statusEvents() where event.serverID == id {
+            let instance = model.instanceID(id)
+            for await event in model.statusEvents() where event.instance == instance {
                 if Task.isCancelled { return }
                 syncStreams()
             }

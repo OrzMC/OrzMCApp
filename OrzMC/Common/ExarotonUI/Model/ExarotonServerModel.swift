@@ -97,38 +97,12 @@ final class ExarotonServerModel {
     @ObservationIgnored
     var isSceneActive = true
 
-    // MARK: - 状态中心（唯一来源，见 ExarotonStatusCenter.swift）
+    // MARK: - 状态中心（唯一来源，见 ExarotonServerModel+StatusCenter.swift）
 
-    /// 状态订阅者（每个 `statusEvents()` 一条）。
+    /// 供应商无关的状态中心（实现在 `Sources/OrzMCRemoteHosting`）。
+    /// 一个账号一份：WS 活的/刷新节律都是账号级的，多账号互不干扰。
     @ObservationIgnored
-    var statusSubscribers: [UUID: AsyncStream<RemoteStatusEvent>.Continuation] = [:]
-    /// 最近一次 WebSocket 收到任何消息的时间；`nil` = 从未连上。
-    @ObservationIgnored
-    var lastWebSocketActivity: Date?
-    /// 最近一次状态来自哪一路（排查用）。
-    @ObservationIgnored
-    var lastStatusSource: [String: RemoteStatusEvent.Source] = [:]
-    /// 每个服务器的最近一次状态变化时间。
-    @ObservationIgnored
-    var lastStatusChangeAt: [String: Date] = [:]
-    /// 最近一次列表刷新完成的时间 / 开始时间。
-    @ObservationIgnored
-    var lastRefreshFinished: Date?
-    @ObservationIgnored
-    var refreshStartedAt: Date?
-
-    /// WebSocket 推送来的**权威状态**（`id → 状态`）。
-    ///
-    /// 之前只有详情页消费推送，列表读 HTTP 快照 → 两边会不一致：
-    /// 服务器其实已经在线/正在启动，列表却一直显示「离线」；
-    /// 一旦进详情页（收到推送）状态就"跳"成在线，看起来像 App 自己启动了服务器。
-    var liveStatuses: [String: ServerStatus] = [:]
-
-    /// 界面统一从这里取状态：优先用推送值，没有推送再退回 HTTP 快照。
-    func effectiveStatus(for server: ExarotonServer) -> ServerStatus? {
-        guard let id = server.id else { return server.serverStatus }
-        return liveStatuses[id] ?? server.serverStatus
-    }
+    let statusCenter = RemoteStatusCenter()
     var creditPools = [ExarotonCreditPool]()
     var errorMessage: String?
     var isLoadingList = false
@@ -175,6 +149,7 @@ final class ExarotonServerModel {
     var statusChangedServer: ExarotonWebSocket.Server?
     /// 状态推送的版本号：视图用 `.onChange(of:)` 响应，
     /// 而不是 `Optional.publisher`（那个只在订阅那一刻发一次，靠 body 重算才「碰巧」更新）。
+    /// 递增时机：状态中心里的状态**真的变化**时（`publishStatus`）或连接复位时（`reset`）。
     var statusVersion = 0
     /// 已订阅的远程流（由 `onStreamStarted` / `onStreamStopped` 回执维护）。
     var activeStreams: Set<StreamCategory> = []

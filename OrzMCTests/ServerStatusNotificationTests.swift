@@ -1,4 +1,5 @@
 import XCTest
+import OrzMCRemoteHosting
 
 @testable import OrzMC
 
@@ -77,58 +78,6 @@ final class RemoteStatusConsistencyTests: XCTestCase {
 
 // MARK: - 状态中心（WS + HTTP 统一入口）
 
-/// WS 与 HTTP 不是二选一：WS 安静了就必须靠轮询兜底。
-/// 之前用 `isLive`（含 `readyServerID`）判断，WS 掉线后 `readyServerID` 不清空 →
-/// 轮询被永久跳过 → 状态卡死（真机反馈「一直停在加载中」）。
-final class RemoteStatusRefreshPolicyTests2: XCTestCase {
-
-    private let now = Date()
-
-    private func should(
-        hasToken: Bool = true,
-        isAppActive: Bool = true,
-        wsActivity: TimeInterval? = nil,
-        finished: TimeInterval? = nil,
-        started: TimeInterval? = nil,
-        isLoading: Bool = false
-    ) -> Bool {
-        RemoteStatusRefreshPolicy.shouldRefresh(
-            hasToken: hasToken,
-            isAppActive: isAppActive,
-            lastWebSocketActivity: wsActivity.map { now.addingTimeInterval(-$0) },
-            lastRefreshFinished: finished.map { now.addingTimeInterval(-$0) },
-            refreshStartedAt: started.map { now.addingTimeInterval(-$0) },
-            isLoading: isLoading,
-            now: now
-        )
-    }
-
-    func testPollsWhenWebSocketIsSilent() {
-        // WS 30 秒前还有消息 → 该它了；再过 5 秒就静默超时
-        XCTAssertFalse(should(wsActivity: 10, finished: 30))
-        XCTAssertTrue(should(wsActivity: 40, finished: 30), "WS 静默超过 30 秒应交给轮询")
-    }
-
-    func testPollsWhenNeverConnected() {
-        XCTAssertTrue(should(wsActivity: nil, finished: nil))
-    }
-
-    func testRespectsMinimumInterval() {
-        XCTAssertFalse(should(finished: 3), "10 秒内不重复拉")
-        XCTAssertTrue(should(finished: 12))
-    }
-
-    func testHandlesStuckRefresh() {
-        XCTAssertFalse(should(started: 5, isLoading: true), "在途时等它")
-        XCTAssertTrue(should(started: 40, isLoading: true), "卡住超过 25 秒允许重来")
-    }
-
-    func testSkipsInBackgroundOrWithoutToken() {
-        XCTAssertFalse(should(isAppActive: false))
-        XCTAssertFalse(should(hasToken: false))
-    }
-}
-
 @MainActor
 final class RemoteStatusCenterTests: XCTestCase {
 
@@ -138,17 +87,23 @@ final class RemoteStatusCenterTests: XCTestCase {
 
         model.publishStatus(.STARTING, for: "srv", source: .webSocket)
         let first = await iterator.next()
-        XCTAssertEqual(first?.status, .STARTING)
+        XCTAssertEqual(first?.status.state, .starting)
+        XCTAssertEqual(first?.status.serverStatus, .STARTING, "原始状态码要保留")
         XCTAssertNil(first?.previous)
         XCTAssertEqual(first?.source, .webSocket)
+        XCTAssertFalse(first?.isChange ?? true, "第一次观测不是「变化」")
 
+        let versionAfterFirst = model.statusVersion
         model.publishStatus(.STARTING, for: "srv", source: .polling)   // 重复 → 不发事件
+        XCTAssertEqual(model.statusVersion, versionAfterFirst)
+
         model.publishStatus(.ONLINE, for: "srv", source: .polling)
         let second = await iterator.next()
-        XCTAssertEqual(second?.previous, .STARTING)
-        XCTAssertEqual(second?.status, .ONLINE)
+        XCTAssertEqual(second?.previous?.serverStatus, .STARTING)
+        XCTAssertEqual(second?.status.serverStatus, .ONLINE)
         XCTAssertEqual(second?.source, .polling)
         XCTAssertEqual(model.liveStatuses["srv"], .ONLINE)
+        XCTAssertGreaterThan(model.statusVersion, versionAfterFirst)
     }
 
     /// 两路来源先后到达时，快照以"最后一次"为准，且不会互相打架。
@@ -157,7 +112,20 @@ final class RemoteStatusCenterTests: XCTestCase {
         model.publishStatus(.LOADING, for: "srv", source: .webSocket)
         model.publishStatus(.ONLINE, for: "srv", source: .polling)
         XCTAssertEqual(model.effectiveStatus(for: Self.server(status: .OFFLINE)), .ONLINE)
-        XCTAssertEqual(model.lastStatusSource["srv"], .polling)
+        XCTAssertEqual(model.statusCenter.lastSource(for: model.instanceID("srv")), .polling)
+    }
+
+    /// 换账号时清空状态：旧账号的状态不能漂到新账号的列表上。
+    func testResetRemoteStatusClearsSnapshot() {
+        let model = ExarotonServerModel()
+        model.publishStatus(.ONLINE, for: "srv", source: .webSocket)
+        let version = model.statusVersion
+
+        model.resetRemoteStatus()
+
+        XCTAssertNil(model.statusCenter.status(for: model.instanceID("srv")))
+        XCTAssertTrue(model.liveStatuses.isEmpty)
+        XCTAssertGreaterThan(model.statusVersion, version, "界面要能感知到清空")
     }
 
     private static func server(status: ServerStatus) -> ExarotonServer {
