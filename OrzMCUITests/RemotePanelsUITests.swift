@@ -823,3 +823,35 @@ final class RemotePanelsUITests: XCTestCase {
     }
 
 }
+
+// MARK: - MCSManager（P2-7 第 4 步）
+
+extension RemotePanelsUITests {
+
+    /// MCSManager 面板与 exaroton **同页按供应商分组**：演示面板的两台实例要能看到，
+    /// 并且各自带状态徽章（"运行中" / "已停止"）。用 `ORZMC_DEMO_MCSM_FAKE=1` 走内存假面板，
+    /// 不需要真面板、也不碰 Keychain。
+    func testMCSManagerSectionShowsInstancesAndStatus() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let section = app.otherElements["mcsm.section"]
+        XCTAssertTrue(section.waitForExistence(timeout: 20), "MCSManager 分组应显示在远程托管页")
+
+        // 两台演示实例（名称来自假面板）
+        XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["演示创造服"].exists)
+
+        // 状态徽章文案（`RemoteServerState.localizedTitle`，中文环境）。
+        // ⚠️ 不要在容器（面板卡/行）上设 `accessibilityIdentifier`：SwiftUI 会把它**下发给
+        // 所有子元素**并覆盖子元素自己的 identifier（实测徽章因此查不到）。
+        XCTAssertTrue(
+            app.staticTexts["在线"].exists || app.staticTexts["启动中…"].exists,
+            "在线实例应显示「在线」或「启动中…」"
+        )
+        XCTAssertTrue(app.staticTexts["离线"].exists, "停止的实例应显示「离线」")
+        // 玩家数（在线实例才有）
+        XCTAssertTrue(app.staticTexts["3/20"].exists)
+    }
+}

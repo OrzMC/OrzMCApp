@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ExarotonContent: View {
     @State private var model = ExarotonServerModel()
+    /// MCSManager 面板（P2-7 第 4 步）：与 exaroton **同一页按供应商分组**。
+    @State private var mcsm = MCSManagerPanelsModel()
     @Environment(\.scenePhase) private var scenePhase
 
     #if DEBUG
@@ -60,7 +62,9 @@ struct ExarotonContent: View {
     #endif
     var body: some View {
         NavigationStack(path: $model.path) {
-            ExarotonServerList().environment(model)
+            ExarotonServerList()
+                .environment(model)
+                .environment(mcsm)
         }
         .alert("Remote Server Error", isPresented: Binding(
             get: { model.errorMessage != nil },
@@ -75,6 +79,7 @@ struct ExarotonContent: View {
         .task { model.startBackgroundRefresh() }
         .onChange(of: scenePhase) { _, phase in
             model.isSceneActive = phase == .active
+            mcsm.isSceneActive = phase == .active
             // 回到前台立刻拉一次：后台期间状态可能已经变了。
             if phase == .active, !model.token.isEmpty {
                 Task { await model.reloadList() }
