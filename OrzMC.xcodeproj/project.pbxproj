@@ -126,6 +126,7 @@
 		CD2026102700000000000021 /* MCSManagerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000022 /* MCSManagerSection.swift */; };
 		CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000042 /* MCSManagerPanelEditor.swift */; };
 		CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000032 /* MCSManagerPanelsModel.swift */; };
+		CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000062 /* MCSManagerDiagnose.swift */; };
 		CD20261026E0000000000001 /* MCSManagerModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261026E0000000000002 /* MCSManagerModelTests.swift */; };
 		CD2026102700000000000051 /* MCSManagerPanelsModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000052 /* MCSManagerPanelsModelTests.swift */; };
 		E20C65942C8AFE4F00831909 /* ExarotonWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = E20C65932C8AFE4F00831909 /* ExarotonWebSocket */; };
@@ -211,6 +212,7 @@
 		CD2026102700000000000022 /* MCSManagerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerSection.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000042 /* MCSManagerPanelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelEditor.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000032 /* MCSManagerPanelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModel.swift"; sourceTree = "<group>"; };
+		CD2026102700000000000062 /* MCSManagerDiagnose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerDiagnose.swift"; sourceTree = "<group>"; };
 		CD20261026E0000000000002 /* MCSManagerModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerModelTests.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000052 /* MCSManagerPanelsModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModelTests.swift"; sourceTree = "<group>"; };
 		2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerModel+WebSocket.swift"; sourceTree = "<group>"; };
@@ -562,6 +564,7 @@
 			children = (
 				CD20261026D0000000000002 /* MCSManagerPanel.swift */,
 				CD2026102700000000000032 /* MCSManagerPanelsModel.swift */,
+				CD2026102700000000000062 /* MCSManagerDiagnose.swift */,
 				CD2026102700000000000002 /* MCSManagerPanelAPI.swift */,
 				CD2026102700000000000004 /* MCSManagerAPIClient.swift */,
 				CD20261026D0000000000004 /* MCSManagerModel.swift */,
@@ -970,6 +973,7 @@
 				CD2026102700000000000021 /* MCSManagerSection.swift in Sources */,
 				CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */,
 				CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */,
+				CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */,
 				CD20261024B0000000000002 /* ExarotonServerModel+Refresh.swift in Sources */,
 				2B5ACA5F2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift in Sources */,
 				2B54E0872BDDFB16001B6877 /* Version+.swift in Sources */,
@@ -1385,7 +1389,7 @@
 			repositoryURL = "https://github.com/OrzMC/MCSManagerAPI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.0;
+				minimumVersion = 0.2.3;
 			};
 		};
 		2B8442F42E17B28D00CB0EA0 /* XCRemoteSwiftPackageReference "OrzMCKit" */ = {

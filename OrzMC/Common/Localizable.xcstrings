@@ -4631,6 +4631,16 @@
         }
       }
     },
+    "The panel replied in a format this app does not understand yet (HTTP 200). Please report the panel version.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板返回的格式这个版本还不认识（HTTP 200），请把面板版本告诉我们。"
+          }
+        }
+      }
+    },
     "The panel returned an error (HTTP %lld). Try again later.": {
       "localizations": {
         "zh-Hans": {

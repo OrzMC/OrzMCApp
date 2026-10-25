@@ -131,9 +131,19 @@ RemoteHostingGrouping.groups(from: instances)
 
 ### 界面验收钩子（仅 DEBUG）
 
-- `ORZMC_DEMO_MCSM_DIAGNOSE=1`：每次刷新把结果写到 `Caches/orzmc-mcsm-<面板 id>.json`
-  （面板名/角色/实例数/每台实例的归一化状态/失败原因）。**没有截图也能核对**——
-  iPhone SE 上 MCSM 分组在折叠线下，光靠截图容易看漏。
+- `ORZMC_DEMO_MCSM_DIAGNOSE=1`：**无界面**跑一遍所有面板（启动即拉、写文件后退出），
+  结果在 `Caches/orzmc-mcsm-<面板 id>.json`：面板名 / 角色 / 实例数 / 每台实例的归一化状态 /
+  失败原因 / **分支轨迹**（`currentUser` 的 permission、走的是管理员还是普通用户路径）。
+  macOS 上 `screencapture` 要屏幕录制权限、远程托管还在辅助窗口里；iPhone SE 上 MCSM 分组在
+  折叠线下 —— 有这个文件就不用靠截图猜。
+
+### 面板 10.18.0 的两个坑（2026-10-26 实测）
+
+| 坑 | 症状 | 处理 |
+|---|---|---|
+| `GET /api/auth` 的响应被包了一层 `{status, data: {…用户对象…}}` | 只按"裸用户对象"解 → `permission = nil / instances = 0`，普通用户永远看不到实例 | spec 同时声明两套字段，调用方取 `data ?? 顶层` |
+| `data.loginTime` / `registerTime` 是字符串（`"2026-10-24 16:26:49"`） | 按 int64 解码 → 整条响应失败，`permission`/`instances` 全拿不到 | 这两个字段我们不用 → 从 schema 删掉（未知字段解码时忽略） |
+| 错误响应 `Content-Type: text/plain`（body 是 JSON 文本） | 只声明 `application/json` → 面板的「密钥不正确」被丢掉 | 403/500 同时声明 `application/json` 与 `text/plain` |
 
 - `ORZMC_DEMO_MCSM_FAKE=1`：内存里的假面板（两台实例：一在线一停止），不碰 Keychain、不发网络；
   UI 测试 `testMCSManagerSectionShowsInstancesAndStatus` 用它断言"能看到实例 + 状态徽章"。

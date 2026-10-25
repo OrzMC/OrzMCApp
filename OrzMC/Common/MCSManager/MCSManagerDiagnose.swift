@@ -1,0 +1,62 @@
+//
+//  MCSManagerDiagnose.swift
+//  OrzMC
+//
+//  **仅 DEBUG** 的无界面验收：`ORZMC_DEMO_MCSM_DIAGNOSE=1` 时启动后立刻把所有面板拉一遍，
+//  结果写进 Caches（每个面板一个 `orzmc-mcsm-<id>.json`），然后退出。
+//
+//  为什么需要它：
+//  - macOS 上 `screencapture` 要屏幕录制权限（agent 会话拿不到），远程托管又在**辅助窗口**里，
+//    `osascript` 点窗口还要辅助功能权限；
+//  - iPhone SE 上 MCSM 分组在折叠线下，截图看不到实例行。
+//  有这个钩子就能直接核对「角色 / 实例数 / 每台实例的归一化状态 / 失败原因」。
+//
+
+#if DEBUG
+import Foundation
+
+@MainActor
+enum MCSManagerDiagnose {
+
+    static let environmentKey = "ORZMC_DEMO_MCSM_DIAGNOSE"
+
+    static var isRequested: Bool {
+        ProcessInfo.processInfo.environment[environmentKey] == "1"
+    }
+
+    /// 由 `OrzMCApp.init()` 触发（两端通用）。
+    static func runIfRequested() async {
+        guard isRequested else { return }
+
+        let model = MCSManagerPanelsModel()
+        model.isSceneActive = true
+
+        if model.panels.isEmpty {
+            writeSummary(error: "no MCSManager panel configured")
+        } else {
+            await model.reloadAll()
+            for panel in model.panels {
+                guard let panelModel = model.model(for: panel.id) else { continue }
+                // 成功时 reload 里已经写过；这里补写一次带上最终的错误文案。
+                panelModel.writeDiagnose(error: panelModel.errorMessage)
+            }
+        }
+
+        // 给写入留一点时间，然后退出（脚本据此判断"跑完了"）。
+        try? await Task.sleep(for: .seconds(2))
+        exit(0)
+    }
+
+    /// 一个面板都没配时也留个文件，免得"没文件"被误读成"没跑"。
+    private static func writeSummary(error: String) {
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return
+        }
+        let snapshot: [String: Any] = ["at": ISO8601DateFormatter().string(from: Date()), "error": error]
+        guard let data = try? JSONSerialization.data(withJSONObject: snapshot, options: [.prettyPrinted]) else {
+            return
+        }
+        try? data.write(to: directory.appendingPathComponent("orzmc-mcsm-nopanel.json"))
+    }
+}
+#endif

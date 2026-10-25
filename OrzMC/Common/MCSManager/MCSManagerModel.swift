@@ -128,6 +128,12 @@ final class MCSManagerModel {
     @ObservationIgnored
     private var backgroundRefreshTask: Task<Void, Never>?
 
+    #if DEBUG
+    /// 诊断轨迹（仅 DEBUG）：记录每次刷新走了哪条分支、拿到了什么，供 `ORZMC_DEMO_MCSM_DIAGNOSE` 导出。
+    @ObservationIgnored
+    var debugTrace: [String] = []
+    #endif
+
     /// App 是否在前台（由场景驱动）。后台时不轮询。
     @ObservationIgnored
     var isSceneActive = true
@@ -197,6 +203,7 @@ final class MCSManagerModel {
         } catch {
             errorMessage = MCSManagerErrorText.describe(error)
             #if DEBUG
+            debugTrace.append("error: \(String(describing: error))")
             writeDiagnose(error: errorMessage)
             #endif
         }
@@ -220,6 +227,7 @@ final class MCSManagerModel {
             "url": panel?.url.absoluteString ?? "-",
             "hasLoaded": hasLoaded,
             "error": error ?? NSNull(),
+            "trace": debugTrace,
             "instances": instances.map { instance in
                 [
                     "id": instance.id,
@@ -245,7 +253,15 @@ final class MCSManagerModel {
     /// - 普通用户：`GET /api/auth?advanced=true` 列**自己的**实例 —— 管理员端点对他们一律 403
     ///   （面板文案还可能误导成「密钥不正确」）。
     private func loadInstances(using api: any MCSManagerPanelAPI) async throws -> [MCSManagerInstance] {
+        #if DEBUG
+        debugTrace.removeAll()
+        #endif
         let user = try await api.currentUser(advancedInstances: true)
+        #if DEBUG
+        debugTrace.append(
+            "currentUser: permission=\(user.permission.map(String.init) ?? "nil"), instances=\(user.instances.count)"
+        )
+        #endif
 
         // 明确的普通用户：面板只允许列自己的实例，别去碰管理员端点（对普通 key 一律 403）。
         if let permission = user.permission, permission < MCSManagerRole.admin {
@@ -253,8 +269,15 @@ final class MCSManagerModel {
         }
 
         do {
-            return try await adminInstances(using: api)
+            let adminList = try await adminInstances(using: api)
+            #if DEBUG
+            debugTrace.append("admin: instances=\(adminList.count)")
+            #endif
+            return adminList
         } catch let error as MCSManagerModelError {
+            #if DEBUG
+            debugTrace.append("admin failed: \(error)")
+            #endif
             // 面板没给 permission（老版本）或值是管理员、但管理员端点仍 403：
             // 说明这个 key 其实是普通用户 —— 用它自己的实例，而不是把 403 丢给用户。
             if case .unauthorized = error, !user.instances.isEmpty {

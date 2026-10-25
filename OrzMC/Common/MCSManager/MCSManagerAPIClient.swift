@@ -24,10 +24,15 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
 
     func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser {
         let output = try await client.getCurrentUser(query: .init(advanced: advancedInstances))
-        let user = try Self.currentUser(from: output)
+        let response = try await Self.currentUser(from: output)
+        // 面板有两种形状：`{…用户字段…}`（裸）与 `{status, data: {…用户字段…}}`（带外壳）。
+        // 实测面板 10.x 是后者；只读顶层会得到 `permission = nil / instances = 空`。
+        let payload = response.data
         return MCSManagerCurrentUser(
-            permission: user.permission,
-            instances: (user.instances ?? []).compactMap { Self.instance(from: $0) }
+            permission: payload?.permission ?? response.permission,
+            instances: (payload?.instances ?? response.instances ?? []).compactMap {
+                Self.instance(from: $0)
+            }
         )
     }
 
@@ -56,14 +61,9 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         case .ok(let ok):
             return try ok.body.json.data
         case .forbidden(let response):
-            throw MCSManagerModelError.unauthorized(
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
         case .internalServerError(let response):
-            throw MCSManagerModelError.server(
-                500,
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
         case .undocumented(statusCode: let statusCode, let payload):
             throw MCSManagerModelError.server(
                 statusCode,
@@ -72,24 +72,16 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         }
     }
 
-    static func currentUser(from output: Operations.getCurrentUser.Output) throws -> Components.Schemas.CurrentUserResponse {
+    static func currentUser(from output: Operations.getCurrentUser.Output) async throws -> Components.Schemas.CurrentUserResponse {
         switch output {
         case .ok(let ok):
             return try ok.body.json
         case .forbidden(let response):
-            throw MCSManagerModelError.unauthorized(
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
         case .internalServerError(let response):
-            throw MCSManagerModelError.server(
-                500,
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
         case .undocumented(statusCode: let statusCode, let payload):
-            throw MCSManagerModelError.server(
-                statusCode,
-                panelMessage: nil
-            )
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
         }
     }
 
@@ -98,14 +90,9 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         case .ok(let ok):
             return try ok.body.json.data
         case .forbidden(let response):
-            throw MCSManagerModelError.unauthorized(
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
         case .internalServerError(let response):
-            throw MCSManagerModelError.server(
-                500,
-                panelMessage: panelMessage(from: try? response.body.json)
-            )
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
         case .undocumented(statusCode: let statusCode, let payload):
             throw MCSManagerModelError.server(
                 statusCode,
@@ -121,13 +108,57 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         return (text?.isEmpty == false) ? text : nil
     }
 
-    /// 无文档响应（状态码不在 spec 里）只能自己解 body。
+    /// 原始 body（`text/plain` 或未文档化响应）：先当 JSON 解 `ErrorResponse`，
+    /// 解不出来就把纯文本原样返回（面板有时直接回一句中文）。
     static func panelMessage(from body: HTTPBody?) async -> String? {
         guard let body,
-              let data = try? await Data(collecting: body, upTo: 64 * 1024),
-              let response = try? JSONDecoder().decode(Components.Schemas.ErrorResponse.self, from: data)
+              let data = try? await Data(collecting: body, upTo: 64 * 1024)
         else { return nil }
-        return panelMessage(from: response)
+        if let response = try? JSONDecoder().decode(Components.Schemas.ErrorResponse.self, from: data) {
+            return panelMessage(from: response)
+        }
+        let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
+    }
+
+
+    // MARK: - 错误响应体（同一份 schema 在三个操作里是不同的生成类型，只好逐个重载）
+
+    static func panelMessage(from body: Operations.getDaemons.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getInstances.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getCurrentUser.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getDaemons.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getInstances.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.getCurrentUser.Output.InternalServerError.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    /// 面板给的是 `application/json` 就取 `data`；给的是 `text/plain`（面板实际行为）
+    /// 就把原始文本当 JSON 再解一次，解不出就当普通文本返回。
+    static func panelMessage(fromErrorBody body: some Any) async -> String? {
+        switch body {
+        case let json as Components.Schemas.ErrorResponse:
+            return panelMessage(from: json)
+        case let httpBody as HTTPBody:
+            return await panelMessage(from: httpBody)
+        default:
+            return nil
+        }
     }
 
     // MARK: - 字段搬运

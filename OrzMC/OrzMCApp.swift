@@ -29,6 +29,12 @@ struct OrzMCApp: App {
         // UI 复审用：`--snapshot <前缀>` 时渲染自己的窗口并退出（不需要屏幕录制权限）。
         WindowSnapshot.runIfRequested()
 #endif
+#if DEBUG
+        // 无界面验收：`ORZMC_DEMO_MCSM_DIAGNOSE=1` 时拉一遍所有 MCSM 面板、写诊断文件后退出。
+        if MCSManagerDiagnose.isRequested {
+            Task { @MainActor in await MCSManagerDiagnose.runIfRequested() }
+        }
+#endif
     }
 
     var body: some Scene {
