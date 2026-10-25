@@ -133,6 +133,8 @@ public enum RemoteHostingError: Error, Equatable, Sendable {
     case wrongProvider(expected: ProviderKind, actual: ProviderKind)
     /// 供应商没接受这个动作（请求失败 / 被拒绝）。调用方决定怎么提示用户。
     case actionFailed(RemoteServerAction)
+    /// 这个供应商还没提供该动作（例如只读接入阶段）。调用方应把按钮置灰而不是假装成功。
+    case actionNotSupported(RemoteServerAction)
 }
 
 /// 用两个闭包把已有实现包成 `RemoteHostingProvider`。
