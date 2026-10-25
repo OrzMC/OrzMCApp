@@ -112,6 +112,11 @@ struct SelfHostedServerView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
+                // 选中态用「勾 + 加粗 + 着色」表达（菜单项没法上背景色）。
+                // 试过 `Picker` + `.menu`（系统自己打勾），但 iOS 上它的**触发按钮只显示
+                // 选中项的纯文本**：胶囊底色与 `server.rack` 图标都会被丢掉（实测截图），
+                // 外观比选中态更重要，所以保留 `Menu` + 自己表达选中。
+                // 编辑 / 删除不再放这里：设置里已经有了，重复且容易误触。
                 Menu {
                     ForEach(model.profiles.servers) { profile in
                         Button {
@@ -119,15 +124,12 @@ struct SelfHostedServerView: View {
                         } label: {
                             if profile.id == model.selected?.id {
                                 Label(profile.displayName, systemImage: "checkmark")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.tint)
                             } else {
                                 Text(profile.displayName)
                             }
                         }
-                    }
-                    Divider()
-                    if let selected = model.selected {
-                        Button("Edit…") { edit(selected) }
-                        Button("Delete…", role: .destructive) { edit(selected) }
                     }
                 } label: {
                     Label(model.selected?.displayName ?? String(localized: "Select Server"), systemImage: "server.rack")
@@ -135,13 +137,17 @@ struct SelfHostedServerView: View {
                         // 名字可能很长（"我的-超长-服务器名"）：截断，别把右边按钮挤没了。
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        // 点击热区：padding / 背景 / contentShape **放在 label 里**，
+                        // 否则胶囊背景画在外面、只有文字区能点（真机反馈"点胶囊空白没反应"）。
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(OrzMCTheme.Palette.controlFill, in: Capsule())
+                        .contentShape(Capsule())
                 }
                 .menuStyle(.borderlessButton)
                 .frame(maxWidth: 170, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(OrzMCTheme.Palette.controlFill, in: Capsule())
                 .accessibilityLabel(Text("Server"))
+                .accessibilityIdentifier("selfHosted.serverPicker")
             }
 
             Spacer(minLength: 0)

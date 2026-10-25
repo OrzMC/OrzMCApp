@@ -122,16 +122,32 @@ struct ExarotonServerDetail: View {
 
                     Section("Console") {
 
-                        ScrollView(.vertical, showsIndicators: true) {
-                            if model.consoleLines.isEmpty {
-                                VStack(alignment: .leading) {
-                                    Text("Waiting for the server output…")
-                                        .font(.callout)
-                                        .foregroundStyle(.tertiary)
-                                    Spacer(minLength: 0)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            } else {
+                        // 有日志才用滚动视图；空态**不进 `ScrollView`**：
+                        // `.defaultScrollAnchor(.bottom)` 会把空内容顶到下方（再叠个 `Spacer` 就跑到
+                        // 左下角），真机反馈的“等待服务器输出…”贴底就是这个组合造成的。
+                        // 空态直接给一块同尺寸面板，文字左上对齐 —— 与有日志时的首行位置一致。
+                        if model.consoleLines.isEmpty {
+                            // `VStack + Spacer` 在这里是安全的：**没有** ScrollView 的
+                            // `.defaultScrollAnchor(.bottom)` 把内容推到底部（那才是旧 bug 的根因）。
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("Waiting for the server output…")
+                                    .font(.callout)
+                                    .foregroundStyle(.tertiary)
+                                    // 单独一个标识供 UI 用例定位（Form 会把行内子视图合并成一个元素，
+                                    // 文案坐标靠像素判断，见 `testConsoleEmptyStateSitsTopLeft`）。
+                                    .accessibilityIdentifier("remote.consolePlaceholder")
+                                Spacer(minLength: 0)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(OrzMCTheme.Spacing.xs)
+                            .frame(height: 160)
+                            .consoleSurface()
+                            // `children: .contain`：不让 Form 把整行合并成一个无障碍元素，
+                            // 否则 UI 用例量到的文案框是"整块面板"，判断不了它在左上还是左下。
+                            .accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("remote.consolePanel")
+                        } else {
+                            ScrollView(.vertical, showsIndicators: true) {
                                 LazyVStack(alignment: .leading, spacing: 0) {
                                     ForEach(model.consoleLines) { line in
                                         Text(verbatim: line.text)
@@ -141,11 +157,14 @@ struct ExarotonServerDetail: View {
                                 .font(OrzMCTheme.Typography.console)
                                 .foregroundStyle(.primary)
                                 .textSelection(.enabled)
+                                // 与空态同一内边距，日志首行和占位对得上（以前文字直接贴着圆角边框）。
+                                .padding(OrzMCTheme.Spacing.xs)
                             }
+                            .frame(height: 160)
+                            .consoleSurface()
+                            .defaultScrollAnchor(.bottom)
+                            .accessibilityIdentifier("remote.consoleLog")
                         }
-                        .frame(height: 160)
-                        .consoleSurface()
-                        .defaultScrollAnchor(.bottom)
 
                         // 按钮自己排（`HStack(Image + Text)` + `fixedSize`）：
                         // Form 行里 `Button(_:systemImage:)` 会被拆成两行粗体字（"发送控制台命令…" 折行），
@@ -337,7 +356,9 @@ extension ExarotonServerDetail {
     /// 界面验收：`ORZMC_DEMO_FAKE_LIVE=1` 时塞几条日志，方便截控制台排版并验证断言。
     /// 必须放在 `startConnect` 之后——连接流程里的 `reset()` 会清空控制台缓冲。
     private func seedFakeConsoleForSnapshots() {
+        // `ORZMC_DEMO_EMPTY_CONSOLE=1` 时**不**塞日志：空态版面（占位在左上角）也要能验收。
         guard ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_LIVE"] == "1",
+              ProcessInfo.processInfo.environment["ORZMC_DEMO_EMPTY_CONSOLE"] != "1",
               model.consoleLines.isEmpty else { return }
         for line in [
             "[20:11:02] [Server thread/INFO]: Starting minecraft server version 26.3",
