@@ -131,7 +131,8 @@ extension ExarotonServerModel {
             actionMessages[serverId] = accepted
             return true
         } catch {
-            failAction(serverId, failed, detail: error.localizedDescription)
+            // 取消（页面消失 / 换代）不当作错误：`describe` 返回 nil 时只保留主句。
+            failAction(serverId, failed, detail: RemoteHostingErrorText.describe(error))
             return false
         }
     }
@@ -158,7 +159,9 @@ extension ExarotonServerModel {
                 return (nil, nil, nil)
             }
         } catch let error {
-            errorMessage = "Failed to fetch credit pool info: \(error.localizedDescription)"
+            // 曾经把原始 `NSError` 直接拼进弹窗正文（真机反馈：取消也弹「远程服务器错误」）。
+            // 现在只给一句人话；取消（`nil`）干脆不打断用户。
+            errorMessage = RemoteHostingErrorText.describe(error)
             return (nil, nil, nil)
         }
     }
@@ -198,7 +201,7 @@ extension ExarotonServerModel {
         } catch {
             memoryLoadErrors[serverId] = Self.failureText(
                 String(localized: "Could not load server memory."),
-                detail: error.localizedDescription
+                detail: RemoteHostingErrorText.describe(error)
             )
             return nil
         }
@@ -234,7 +237,7 @@ extension ExarotonServerModel {
                 return nil
             }
         } catch {
-            failMemory(serverId, detail: error.localizedDescription)
+            failMemory(serverId, detail: RemoteHostingErrorText.describe(error))
             return nil
         }
     }

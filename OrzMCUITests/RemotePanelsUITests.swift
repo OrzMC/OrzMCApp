@@ -154,6 +154,49 @@ final class RemotePanelsUITests: XCTestCase {
         }
     }
 
+    /// **真实账号 · 错误弹窗回归**：反复进出额度池详情 **不允许**弹「远程服务器错误」。
+    ///
+    /// 每次进入额度池都会并发拉 pool / members / servers，退出时请求被取消
+    /// （视图消失 / 换代）→ 底层 `NSURLErrorCancelled(-999)`。
+    /// 真机反馈过：取消被当成错误，弹窗正文还是整个 `NSError` 转储。
+    /// 现在 `RemoteHostingErrorText` 把取消映射成 `nil`（不弹），这个用例守住「确实没弹」。
+    func testRealCreditPoolReentryNeverAlerts() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_REAL_ACCOUNT"] == "1",
+                          "需要真实 exaroton Token，设置 ORZMC_UITEST_REAL_ACCOUNT=1 才跑")
+
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
+        app.launch()
+        allowSystemPrompts()
+
+        let poolCard = app.buttons.matching(identifier: "remote.creditPoolCard").firstMatch
+        guard poolCard.waitForExistence(timeout: 20) else {
+            throw XCTSkip("这个账号没有额度池，跳过（用例只针对额度池请求被取消的场景）")
+        }
+        let alert = app.alerts.firstMatch
+
+        for round in 1...20 {
+            poolCard.tap()
+            XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10),
+                          "第 \(round) 轮：额度池详情页没打开")
+            if alert.waitForExistence(timeout: 1) {
+                keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+                XCTFail("第 \(round) 轮进入额度池时弹了错误框：\(alert.label)")
+            }
+
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(poolCard.waitForExistence(timeout: 10), "第 \(round) 轮：返回后应回到列表")
+            if alert.waitForExistence(timeout: 1) {
+                keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+                XCTFail("第 \(round) 轮退出额度池时弹了错误框：\(alert.label)")
+            }
+            if round % 5 == 0 {
+                keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+            }
+        }
+        XCTAssertFalse(alert.exists, "20 轮进出后不应有任何弹窗")
+    }
+
     /// 远程托管：用假服务器进详情页，确认动作区三个按钮都在（不需要 exaroton Token）。
     func testRemoteDetailShowsActionButtons() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])

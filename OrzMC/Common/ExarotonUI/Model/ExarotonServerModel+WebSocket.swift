@@ -95,7 +95,10 @@ extension ExarotonServerModel {
         do {
             try websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.start, data: data))
         } catch {
-            errorMessage = "Failed to start stream: \(error.localizedDescription)"
+            errorMessage = Self.failureText(
+                String(localized: "Could not subscribe to the server stream."),
+                detail: RemoteHostingErrorText.describe(error)
+            )
         }
     }
 
@@ -103,7 +106,10 @@ extension ExarotonServerModel {
         do {
             try websocket?.send(message: ExarotonMessage(stream: .console, type: StreamType.command, data: cmd))
         } catch {
-            errorMessage = "Failed to send console command: \(error.localizedDescription)"
+            errorMessage = Self.failureText(
+                String(localized: "Could not send the console command."),
+                detail: RemoteHostingErrorText.describe(error)
+            )
         }
     }
 
@@ -111,7 +117,10 @@ extension ExarotonServerModel {
         do {
             try websocket?.send(message: ExarotonMessage(stream: stream, type: StreamType.stop, data: nil))
         } catch {
-            errorMessage = "Failed to stop stream: \(error.localizedDescription)"
+            errorMessage = Self.failureText(
+                String(localized: "Could not stop the server stream."),
+                detail: RemoteHostingErrorText.describe(error)
+            )
         }
     }
 }
