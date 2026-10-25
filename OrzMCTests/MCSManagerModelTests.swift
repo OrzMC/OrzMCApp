@@ -15,10 +15,11 @@ private actor FakePanelAPI: MCSManagerPanelAPI {
     init(
         daemons: [MCSManagerDaemon] = [],
         page: MCSManagerInstancePage = .init(instances: [], maxPage: nil),
-        permission: Int = MCSManagerRole.admin,
-        userInstances: [MCSManagerInstance] = []
+        permission: Int? = MCSManagerRole.admin,
+        userInstances: [MCSManagerInstance] = [],
+        daemonsFailure: Error? = nil
     ) {
-        daemonsResult = .success(daemons)
+        daemonsResult = daemonsFailure.map { .failure($0) } ?? .success(daemons)
         pageResult = .success(page)
         userResult = .success(MCSManagerCurrentUser(permission: permission, instances: userInstances))
     }
@@ -251,6 +252,22 @@ final class MCSManagerModelTests: XCTestCase {
         XCTAssertEqual(model.instances.map(\.instanceUUID), ["i1"])
         let calls = await api.calls
         XCTAssertEqual(calls, ["currentUser:advanced=true", "daemons", "instances:d1:1"])
+    }
+
+    /// 面板没返回 `permission`（老版本）时：先试管理员端点；若被 403 就回退到"自己的实例"，
+    /// 而不是把一个会让用户误解的 403 直接抛出来。
+    func testUnknownPermissionFallsBackToOwnInstancesOnForbidden() async {
+        let api = FakePanelAPI(
+            permission: nil,
+            userInstances: [instance("i1", daemon: "d1", nickname: "我的服")],
+            daemonsFailure: MCSManagerModelError.unauthorized(panelMessage: "密钥不正确")
+        )
+        let model = makeModel(api: api)
+
+        await model.reload()
+
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(model.instances.map(\.instanceUUID), ["i1"])
     }
 
     /// 普通用户一条实例都没有：这是正常结果（不是错误，也不该去试管理员端点）。

@@ -26,7 +26,7 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         let output = try await client.getCurrentUser(query: .init(advanced: advancedInstances))
         let user = try Self.currentUser(from: output)
         return MCSManagerCurrentUser(
-            permission: user.permission ?? 0,
+            permission: user.permission,
             instances: (user.instances ?? []).compactMap { Self.instance(from: $0) }
         )
     }
