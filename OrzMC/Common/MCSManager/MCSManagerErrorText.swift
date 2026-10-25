@@ -16,9 +16,17 @@ enum MCSManagerErrorText {
     static func describe(_ error: Error) -> String? {
         if let modelError = error as? MCSManagerModelError {
             switch modelError {
-            case .unauthorized:
+            case .unauthorized(let panelMessage):
+                // 面板自己会说「密钥不正确」/「API Key功能已关闭」/「权限不足」——
+                // 直接转述，比我们统一猜一句准得多。
+                if let panelMessage {
+                    return String(localized: "The panel rejected this API key: \(panelMessage)")
+                }
                 return unauthorizedText
-            case .server(let status):
+            case .server(let status, let panelMessage):
+                if let panelMessage {
+                    return String(localized: "The panel returned an error (HTTP \(status)): \(panelMessage)")
+                }
                 return serverText(status)
             }
         }

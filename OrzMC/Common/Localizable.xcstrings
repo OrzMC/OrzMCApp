@@ -4571,12 +4571,32 @@
         }
       }
     },
+    "The panel rejected this API key: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板拒绝了这个 API Key：%@"
+          }
+        }
+      }
+    },
     "The panel returned an error (HTTP %lld). Try again later.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "面板返回了错误（HTTP %lld），请稍后重试。"
+          }
+        }
+      }
+    },
+    "The panel returned an error (HTTP %lld): %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板返回了错误（HTTP %lld）：%@"
           }
         }
       }
