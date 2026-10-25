@@ -203,7 +203,26 @@ run_export() {
     ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} \
     2>&1 | tail -20
   IPA_PATH="$(find "$EXPORT_DIR" -maxdepth 1 -name '*.ipa' | head -1)"
-  [[ -n "$IPA_PATH" ]] || fail "导出失败：$EXPORT_DIR 里没有 .ipa"
+  if [[ -z "$IPA_PATH" ]]; then
+    cat >&2 <<'MSG'
+✗ 导出失败（没有 .ipa）。
+
+如果是 `app-store-connect` / `release-testing`，且日志里有
+`Cloud signing permission error` / `No signing certificate "iOS Distribution" found`
+/ `No profiles for 'com.joker.OrzMC.iOS' were found`：
+
+  分发签名（Apple Distribution + App Store 描述文件）是另一套权限，App Store Connect API key
+  的角色不够时云签名**建不了**分发证书/描述文件。三条出路：
+    1) 本机导出（推荐，今天就能用）：在 Terminal.app 里跑
+         ./scripts/release-ios.sh --export app-store-connect --upload
+       本机钥匙串里已有 `Apple Distribution` 证书，用自动签名即可；
+    2) 把 App Store Connect API key 的角色提到 Admin，云签名才能自动建证书；
+    3) 在 CI 里塞分发证书 + 描述文件（manual signing，脚本目前只支持 automatic）。
+
+`--export debugging`（开发签名）在 CI 里是**验证过可用**的，见 docs/ios-release.md。
+MSG
+    fail "导出失败：$EXPORT_DIR 里没有 .ipa"
+  fi
   echo "ipa：$IPA_PATH"
 }
 

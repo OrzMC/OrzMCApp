@@ -79,6 +79,38 @@ gh workflow run release-ios.yml --ref main \
 CI 里不导入任何 iOS 证书，全靠上面三个 API key 走云签名；Xcode 固定 **26.3**（与 macOS 发版一致）。
 产物：`ios-release-artifacts`（ipa + ExportOptions.plist）。
 
+## CI 现状（2026-10-25 实测）
+
+| 组合 | 结果 | 说明 |
+|---|---|---|
+| `export=debugging, upload=false` | ✅ **可用** | 云签名拿到 `Apple Development: Created via API` + Team 描述文件，导出真 ipa |
+| `export=app-store-connect, upload=false` | ❌ 被权限挡住 | `Cloud signing permission error` / `No signing certificate "iOS Distribution" found` / `No profiles for 'com.joker.OrzMC.iOS' were found` |
+
+已验证的 CI 产物（`release-ios.yml` #40163544468 的 `ios-release-artifacts`）：
+
+```
+OrzMC_0.1.4_56_20261025_045514_debugging/OrzMC.ipa
+  CFBundleIdentifier = com.joker.OrzMC.iOS
+  CFBundleShortVersionString/CFBundleVersion = 0.1.4 / 56
+  签名 = Apple Development: Created via API (9X6A7DZKZF)
+  描述文件有效期 = 2027-10-25
+  包内 AppIcon60x60@2x.png / AppIcon76x76@2x~ipad.png + CFBundleIcons 齐全
+```
+
+**分发（TestFlight）为什么不行**：App Store Connect API key 云签名建不了 **Apple Distribution**
+证书与 App Store 描述文件 —— 这是密钥角色（权限）问题，不是脚本问题。三条出路（按推荐顺序）：
+
+1. **本机导出 + 上传**（今天就能用）：维护者 Mac 的钥匙串里已经有
+   `Apple Distribution: Zhizhou Wang (2N62934Y28)`，在 Terminal.app 里跑
+   `./scripts/release-ios.sh --export app-store-connect --upload`。
+2. **把 API key 的角色提到 Admin**（App Store Connect → 用户与访问 → 集成），云签名才能自动建证书。
+3. **在 CI 里塞分发证书 + 描述文件**（manual signing）：需要在 workflow 里额外导入
+   `.p12` 与 `.mobileprovision` 并把 ExportOptions 改成 `signingStyle=manual` + `provisioningProfiles`；
+   脚本目前只实现了 automatic，要用这条路得先补这个能力。
+
+> 换句话说：**归档/导出/装真机今天就能用**（本机全通、CI 的开发签名也通）；
+> **CI 直传 TestFlight** 还差权限或证书，按上面三条任选其一。
+
 ## 真机装开发签名包
 
 ```bash

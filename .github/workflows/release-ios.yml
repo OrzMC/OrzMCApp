@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       export:
-        description: "导出方式"
+        description: "导出方式（app-store-connect 需要分发签名权限，见 docs/ios-release.md）"
         required: true
-        default: app-store-connect
+        default: debugging
         type: choice
         options:
           - app-store-connect
