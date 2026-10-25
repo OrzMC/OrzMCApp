@@ -58,6 +58,24 @@ struct MCSManagerPanel: Identifiable, Equatable, Codable, Sendable {
     }
 }
 
+/// 面板列表 + API Key 的**存取接口**（真实实现走 UserDefaults + Keychain；单测用内存实现）。
+protocol MCSManagerCredentialStore: AnyObject, Sendable {
+    func panels() -> [MCSManagerPanel]
+    func savePanels(_ panels: [MCSManagerPanel])
+    func apiKey(for id: UUID) -> String?
+    func saveAPIKey(_ apiKey: String, for id: UUID)
+    func removeAPIKey(for id: UUID)
+}
+
+/// 默认实现：面板配置进 `UserDefaults`，API Key 进 `Keychain`。
+final class KeychainCredentialStore: MCSManagerCredentialStore {
+    func panels() -> [MCSManagerPanel] { MCSManagerCredentials.panels() }
+    func savePanels(_ panels: [MCSManagerPanel]) { MCSManagerCredentials.save(panels) }
+    func apiKey(for id: UUID) -> String? { MCSManagerCredentials.apiKey(for: id) }
+    func saveAPIKey(_ apiKey: String, for id: UUID) { MCSManagerCredentials.saveAPIKey(apiKey, for: id) }
+    func removeAPIKey(for id: UUID) { MCSManagerCredentials.removeAPIKey(for: id) }
+}
+
 /// 面板列表 + API Key 的存储。
 ///
 /// - 面板本身（显示名 / 地址）不是秘密 → `UserDefaults`；

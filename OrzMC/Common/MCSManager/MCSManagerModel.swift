@@ -189,12 +189,55 @@ final class MCSManagerModel {
             }
             hasLoaded = true
             publishStatuses()
+            #if DEBUG
+            writeDiagnose(error: nil)
+            #endif
         } catch is CancellationError {
             // 取消（换面板 / 视图消失）不算错误。
         } catch {
             errorMessage = MCSManagerErrorText.describe(error)
+            #if DEBUG
+            writeDiagnose(error: errorMessage)
+            #endif
         }
     }
+
+    #if DEBUG
+    /// **仅 DEBUG** 的验收钩子：`ORZMC_DEMO_MCSM_DIAGNOSE=1` 时把本次刷新的结果写到
+    /// `Caches/orzmc-mcsm-<面板 id>.json`。
+    ///
+    /// 为什么需要它：真机/桌面上"有没有实例"只能靠截图看，而截图会受前台应用、滚动位置影响
+    /// （iPhone SE 上 MCSM 分组在折叠线下）。有这个文件就能直接核对：
+    /// 角色、实例数、每台实例的归一化状态、失败原因。
+    func writeDiagnose(error: String?) {
+        guard ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_DIAGNOSE"] == "1" else { return }
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return
+        }
+        let snapshot: [String: Any] = [
+            "at": ISO8601DateFormatter().string(from: Date()),
+            "panel": panel?.label ?? "-",
+            "url": panel?.url.absoluteString ?? "-",
+            "hasLoaded": hasLoaded,
+            "error": error ?? NSNull(),
+            "instances": instances.map { instance in
+                [
+                    "id": instance.id,
+                    "nickname": instance.nickname,
+                    "state": instance.status.remoteState.rawValue,
+                    "rawStatus": instance.status.rawValue,
+                    "address": instance.address ?? NSNull(),
+                ] as [String: Any]
+            },
+        ]
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: snapshot,
+            options: [.prettyPrinted, .sortedKeys]
+        ) else { return }
+        let name = "orzmc-mcsm-\(panel?.id.uuidString ?? "nopanel").json"
+        try? data.write(to: directory.appendingPathComponent(name))
+    }
+    #endif
 
     /// 按**账号权限**选入口：
     ///
