@@ -43,3 +43,22 @@ extension RemoteServerState {
         }
     }
 }
+
+extension RemoteServerAction {
+
+    var localizedTitle: String {
+        switch self {
+        case .start: return String(localized: "Start")
+        case .stop: return String(localized: "Stop")
+        case .restart: return String(localized: "Restart")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .start: return "play.fill"
+        case .stop: return "stop.fill"
+        case .restart: return "arrow.clockwise"
+        }
+    }
+}

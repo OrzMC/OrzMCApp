@@ -13,6 +13,8 @@
 
 import Foundation
 
+import OrzMCRemoteHosting
+
 /// 面板上的一个节点（Daemon）。
 struct MCSManagerDaemon: Equatable, Sendable {
     let uuid: String
@@ -48,4 +50,17 @@ protocol MCSManagerPanelAPI: Sendable {
     func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser
     func daemons() async throws -> [MCSManagerDaemon]
     func instances(daemonID: String, page: Int, pageSize: Int) async throws -> MCSManagerInstancePage
+
+    // MARK: - 动作 + 控制台（P2-7 第 5 步）
+
+    /// 生命周期动作。面板中间件先校验"这台实例是不是你的"（`daemonID` + `instanceUUID` 缺一不可），
+    /// 所以普通用户的 key 也能用，不需要管理员。
+    func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws
+
+    /// 往控制台发一条命令（`/` 开头是 MC 命令，不带 `/` 是控制台命令）。
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws
+
+    /// 控制台的**日志尾部**（面板返回纯文本，可能从半行开始）。
+    /// - Parameter tailSize: 只取末尾多少字节（`nil` = 面板默认，可能很大）。
+    func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String
 }

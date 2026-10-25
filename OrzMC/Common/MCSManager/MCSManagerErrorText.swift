@@ -45,6 +45,21 @@ enum MCSManagerErrorText {
         }
     }
 
+    /// **动作 / 命令**失败的一句话。
+    ///
+    /// 与列表的区别：动作端点的 403 一般不是"key 有问题"，而是面板中间件说的
+    /// 「参数不正确或非法访问实例」（不是你的实例）或节点侧的「节点未连接」。
+    /// 这时把面板原话**原样**给用户，别套上"API Key 被拒绝"的框架（会指向错误的排查方向）。
+    static func describeAction(_ error: Error) -> String? {
+        if let modelError = error as? MCSManagerModelError {
+            switch modelError {
+            case .unauthorized(let panelMessage), .server(_, let panelMessage):
+                if let panelMessage { return panelMessage }
+            }
+        }
+        return describe(error)
+    }
+
     private static var unauthorizedText: String {
         String(
             localized: "The panel rejected this API key. Check that the key is valid and that API Key access is enabled in the panel settings."

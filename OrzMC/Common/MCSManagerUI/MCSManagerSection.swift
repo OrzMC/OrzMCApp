@@ -18,6 +18,8 @@ struct MCSManagerSection: View {
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
     @State private var editorMode: MCSManagerPanelEditor.Mode?
+    /// 正在看控制台的实例（连带它的面板模型）。
+    @State private var consoleTarget: MCSManagerConsoleTarget?
 
     private var instanceCount: Int {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
@@ -71,6 +73,14 @@ struct MCSManagerSection: View {
             #if os(iOS)
             .presentationDetents([.large])
             #endif
+        }
+        .sheet(item: $consoleTarget) { target in
+            MCSManagerConsoleSheet(instance: target.instance, model: target.model)
+                .presentationDragIndicator(.visible)
+                .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
+                #if os(iOS)
+                .presentationDetents([.large])
+                #endif
         }
         .task {
             if mcsm.panels.isEmpty { return }
@@ -160,7 +170,7 @@ struct MCSManagerSection: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(instances) { instance in
-                    row(instance)
+                    row(instance, model: model)
                 }
             }
         }
@@ -169,30 +179,89 @@ struct MCSManagerSection: View {
         .orzMCPanel()
     }
 
-    private func row(_ instance: MCSManagerInstance) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(instance.nickname)
-                    .font(.callout)
-                if let address = instance.address {
-                    Text(address)
-                        .font(.caption.monospaced())
+    private func row(_ instance: MCSManagerInstance, model: MCSManagerModel?) -> some View {
+        let state = model?.state(of: instance) ?? instance.status.remoteState
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(instance.nickname)
+                        .font(.callout)
+                    if let address = instance.address {
+                        Text(address)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 8)
+                if let players = instance.players,
+                   let current = players.current, let max = players.max,
+                   state == .online {
+                    Text("\(current)/\(max)")
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
+                OrzMCStatusBadge(
+                    verbatim: state.localizedTitle,
+                    style: state.statusStyle
+                )
+                if model?.isBusy(instance) == true {
+                    ProgressView().controlSize(.mini)
+                }
+                if let model {
+                    actionsMenu(instance, model: model, state: state)
+                }
             }
-            Spacer(minLength: 8)
-            if let players = instance.players,
-               let current = players.current, let max = players.max,
-               instance.status == .running {
-                Text("\(current)/\(max)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            OrzMCStatusBadge(
-                verbatim: instance.status.remoteState.localizedTitle,
-                style: instance.status.remoteState.statusStyle
-            )
 
+            if let error = model?.actionErrors[instance.id] {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
+
+    /// 实例动作 + 控制台。动作按状态可用性置灰（过渡态一律不允许），
+    /// 与 exaroton 走同一套判据（`RemoteServerListPolicy.canPerform`）。
+    private func actionsMenu(
+        _ instance: MCSManagerInstance,
+        model: MCSManagerModel,
+        state: RemoteServerState
+    ) -> some View {
+        Menu {
+            ForEach([RemoteServerAction.start, .stop, .restart], id: \.self) { action in
+                Button {
+                    Task { await model.perform(action, on: instance) }
+                } label: {
+                    Label(action.localizedTitle, systemImage: action.systemImage)
+                }
+                .disabled(!model.canPerform(action, on: instance))
+            }
+            Divider()
+            Button {
+                consoleTarget = MCSManagerConsoleTarget(instance: instance, model: model)
+            } label: {
+                Label(String(localized: "Console"), systemImage: "terminal")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .accessibilityIdentifier("mcsm.instanceMenu")
+        .accessibilityLabel(String(localized: "Server actions"))
+    }
+}
+
+/// 控制台 sheet 的目标（实例 + 它所属面板的模型）。
+///
+/// `Identifiable` 要用实例 id：同一台实例打开两次是同一个目标，换实例才是新目标
+/// （否则 sheet 会拿旧实例的状态去渲染）。
+struct MCSManagerConsoleTarget: Identifiable {
+    let instance: MCSManagerInstance
+    let model: MCSManagerModel
+
+    var id: String { instance.id }
 }

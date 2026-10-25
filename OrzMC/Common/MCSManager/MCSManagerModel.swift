@@ -111,6 +111,22 @@ final class MCSManagerModel {
     var isLoading = false
     private(set) var hasLoaded = false
 
+    // MARK: - 动作快照（P2-7 第 5 步）
+
+    /// 实例级在途互斥（与 exaroton 同一个实现 `RemoteActionGate`）：同一实例同时只允许一个动作，
+    /// 占用在**首次 await 之前**完成 —— 网络慢时连点两下也只有一个请求发出去。
+    var gate = RemoteActionGate()
+
+    /// 动作提交后、面板确认前的**过渡态**（键是 `instance.id`）。
+    /// 不这样做的话，点完「启动」界面要等下一次轮询（最长 10 秒）才有反馈，用户会连点。
+    private(set) var pendingStates: [String: RemoteServerState] = [:]
+
+    /// 动作/命令失败时给用户看的一句话（键是 `instance.id`）。下次成功或刷新时清掉。
+    private(set) var actionErrors: [String: String] = [:]
+
+    /// 正在发送控制台命令的实例。
+    private(set) var pendingCommands: Set<String> = []
+
     /// 状态中心（一个面板一份）。键是 `RemoteInstanceID(.mcsmanager, "daemon/uuid")`。
     @ObservationIgnored
     let statusCenter = RemoteStatusCenter()
@@ -194,6 +210,9 @@ final class MCSManagerModel {
                 $0.nickname.localizedCaseInsensitiveCompare($1.nickname) == .orderedAscending
             }
             hasLoaded = true
+            // 刷新拿到的是面板真实状态 → 过渡态与旧错误都该退场。
+            pendingStates.removeAll()
+            actionErrors.removeAll()
             publishStatuses()
             #if DEBUG
             writeDiagnose(error: nil)
@@ -354,6 +373,83 @@ final class MCSManagerModel {
         backgroundRefreshTask = nil
     }
 
+    // MARK: - 动作 + 控制台（P2-7 第 5 步）
+
+    func instance(withID id: String) -> MCSManagerInstance? {
+        instances.first { $0.id == id }
+    }
+
+    /// 界面/动作判断用的状态：过渡态优先（动作已提交、面板还没确认）。
+    func state(of instance: MCSManagerInstance) -> RemoteServerState {
+        pendingStates[instance.id] ?? instance.status.remoteState
+    }
+
+    /// 该动作现在能不能点（过渡态一律不允许 —— 面板那边会直接报错）。
+    func canPerform(_ action: RemoteServerAction, on instance: MCSManagerInstance) -> Bool {
+        guard !gate.isBusy(serverID: instance.id) else { return false }
+        return RemoteServerListPolicy().canPerform(action, on: state(of: instance))
+    }
+
+    func isBusy(_ instance: MCSManagerInstance) -> Bool {
+        gate.isBusy(serverID: instance.id) || pendingCommands.contains(instance.id)
+    }
+
+    /// 执行一个生命周期动作：占用互斥 → 乐观过渡态 → 发请求 → 立刻刷新拿真实状态。
+    ///
+    /// 失败不假装成功：过渡态撤回、错误写进 `actionErrors[id]`（界面在实例行下面显示）。
+    func perform(_ action: RemoteServerAction, on instance: MCSManagerInstance) async {
+        guard canPerform(action, on: instance), let api = api() else { return }
+        guard gate.beginAction(serverID: instance.id) else { return }
+
+        pendingStates[instance.id] = action.pendingState
+        actionErrors[instance.id] = nil
+        defer { gate.endAction(serverID: instance.id) }
+
+        do {
+            try await api.perform(action, daemonID: instance.daemonID, instanceUUID: instance.instanceUUID)
+            // 面板立即返回（真正起来还要几秒）→ 马上问一次状态，过渡态由下一次轮询收尾。
+            await reload()
+        } catch {
+            pendingStates[instance.id] = nil
+            actionErrors[instance.id] = MCSManagerErrorText.describeAction(error)
+        }
+    }
+
+    /// 发送一条控制台命令。返回是否发出去了（界面据此决定要不要清空输入框）。
+    @discardableResult
+    func sendCommand(_ command: String, to instance: MCSManagerInstance) async -> Bool {
+        let text = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let api = api() else { return false }
+        // 命令不占用生命周期互斥（可以连着发），但同一实例同时只发一条，避免点出两条一样的。
+        guard pendingCommands.insert(instance.id).inserted else { return false }
+        defer { pendingCommands.remove(instance.id) }
+
+        do {
+            try await api.sendCommand(text, daemonID: instance.daemonID, instanceUUID: instance.instanceUUID)
+            actionErrors[instance.id] = nil
+            return true
+        } catch {
+            actionErrors[instance.id] = MCSManagerErrorText.describeAction(error)
+            return false
+        }
+    }
+
+    /// 控制台日志（尾部）。失败抛给调用方，由控制台面板显示。
+    func outputLog(for instance: MCSManagerInstance, tailSize: Int = 64 * 1024) async throws -> String {
+        guard let api = api() else { throw MCSManagerModelError.unauthorized(panelMessage: nil) }
+        return try await api.outputLog(
+            daemonID: instance.daemonID,
+            instanceUUID: instance.instanceUUID,
+            tailSize: tailSize
+        )
+    }
+
+    /// 按当前面板凭据造一个客户端；没有凭据就返回 nil（界面不该在无凭据时发请求）。
+    private func api() -> (any MCSManagerPanelAPI)? {
+        guard let panel, let apiKey = apiKeyProvider(panel.id), !apiKey.isEmpty else { return nil }
+        return makeAPI(panel.url, apiKey)
+    }
+
     // MARK: - 供应商抽象层
 
     func instanceID(_ id: String) -> RemoteInstanceID {
@@ -373,15 +469,14 @@ final class MCSManagerModel {
         }
     }
 
-    /// 挂到供应商抽象层上的适配器。动作（start/stop/restart）属于 P2-7 第 5 步，
-    /// 现在只提供**只读**能力：执行动作明确报"不支持"，而不是假装成功。
+    /// 挂到供应商抽象层上的适配器（列实例 + 动作）。
     var hostingProvider: any RemoteHostingProvider {
         MCSManagerHostingProvider(model: self)
     }
 
 }
 
-/// `MCSManagerModel` 的供应商适配器（只读）。
+/// `MCSManagerModel` 的供应商适配器（第 5 步起支持动作）。
 @MainActor
 struct MCSManagerHostingProvider: RemoteHostingProvider {
 
@@ -393,11 +488,20 @@ struct MCSManagerHostingProvider: RemoteHostingProvider {
         model.instanceSummaries()
     }
 
-    /// 动作是 P2-7 第 5 步的内容：现在明确报"不支持"，不假装成功。
+    /// 动作走 `MCSManagerModel`（同一个互斥 + 过渡态 + 错误面），抽象层只是转发。
     func perform(_ action: RemoteServerAction, on instance: RemoteInstanceID) async throws {
         guard instance.provider == kind else {
             throw RemoteHostingError.wrongProvider(expected: kind, actual: instance.provider)
         }
-        throw RemoteHostingError.actionNotSupported(action)
+        guard let target = model.instance(withID: instance.rawValue) else {
+            throw RemoteHostingError.actionFailed(action)
+        }
+        guard model.canPerform(action, on: target) else {
+            throw RemoteHostingError.actionNotSupported(action)
+        }
+        await model.perform(action, on: target)
+        if let message = model.actionErrors[target.id] {
+            throw RemoteHostingError.actionFailed(action, message: message)
+        }
     }
 }

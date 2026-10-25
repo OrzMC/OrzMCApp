@@ -901,6 +901,16 @@
         }
       }
     },
+    "Console command…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制台命令…"
+          }
+        }
+      }
+    },
     "Console needs a live connection to the server.": {
       "localizations": {
         "zh-Hans": {
@@ -2297,6 +2307,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "还没有任何实例"
+          }
+        }
+      }
+    },
+    "No output yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有输出"
           }
         }
       }
@@ -3857,6 +3877,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "服务器设置"
+          }
+        }
+      }
+    },
+    "Server actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器操作"
           }
         }
       }

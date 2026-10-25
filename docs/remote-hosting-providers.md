@@ -151,6 +151,19 @@ RemoteHostingGrouping.groups(from: instances)
   identifier（实测把状态徽章的 identifier 冲掉，UI 测试查不到）。容器只放一个最外层的
   `.accessibilityElement(children: .contain)` + identifier，内部靠 label 断言。
 
+## 动作与控制台（第 5 步）
+
+| 项 | 口径 |
+|---|---|
+| 端点 | `GET /api/protected_instance/{open,stop,restart}`、`GET /api/protected_instance/command?…&command=`、`GET /api/protected_instance/outputlog`（**纯文本**尾部） |
+| 权限 | 中间件先校验"这台实例是不是你的"（`daemonId` + `uuid` 缺一个就 403），**再**看权限等级 → 普通用户的 key 完全够用，不需要管理员 |
+| 互斥 | 复用 `RemoteActionGate`：**同一实例同一时刻只允许一个动作**，占用发生在首次 `await` 之前（网络慢时连点也只发一个请求）；命令不占用动作互斥，但同一实例同时只发一条 |
+| 过渡态 | 提交后立刻把该实例显示成 `starting / stopping / restarting`（`RemoteServerAction.pendingState`），面板确认前用户能看到反馈；失败则撤回，并把**面板原话**写到实例行下面 |
+| 可用性 | 过渡态（含 `busy`/未知）一律不允许动作 —— 与 exaroton 同一套判据（`RemoteServerListPolicy.canPerform`） |
+| 错误文案 | 动作失败用 `MCSManagerErrorText.describeAction`：**原样转述面板原话**（「参数不正确或非法访问实例」「节点未连接」）。不能套"API Key 被拒绝"的框架 —— 那是列表接口的 403 语义，动作 403 指向排查方向会错 |
+| 控制台 | 轮询 `outputlog`（3 秒，用户正盯着看），渲染走**同一套** `ConsoleTextParser` + `ConsoleLineText`（按 Unicode 标量、`\r` 覆盖不丢行）；命令输入框只在 `online` 时可用，发送失败会把内容还回输入框 |
+| 认证细节 | 命令走**查询参数**（面板 `validator` 就这么写的），编码交给生成的客户端（`/say hi & bye` 往返一致） |
+
 ## MCSManager 接入要点（第 3–4 步实测/查证）
 
 | 项 | 事实 |
@@ -174,7 +187,7 @@ RemoteHostingGrouping.groups(from: instances)
 | 3 | `swift/lib/MCSManagerAPI`（新仓库 `OrzMC/MCSManagerAPI`）：节点列表 + 实例列表 + 实例详情 | ✅ 2026-10-25 |
 | 4a | app 侧 MCSM **数据层**：`MCSManagerPanel`（地址规范化）+ Keychain 凭据 + `MCSManagerModel`（列实例 / 轮询状态 / 挂 `RemoteHostingProvider`） | ✅ 2026-10-25 |
 | 4b | app 侧 MCSM **界面**：远程托管页按供应商分组（exaroton 一组 + MCSManager 一组）、面板配置（URL + apikey）入口、实例卡片 + 状态徽章 | ✅ 2026-10-25 |
-| 5 | 动作 / 命令（MCSM 的 start/stop/restart + 控制台） | 待做（多面板增删界面已在 4b 做了） |
+| 5 | 动作 / 命令（MCSM 的 start/stop/restart + 控制台） | ✅ 2026-10-26 |
 
 验收口径（维护者）：新增一个 MCSM 面板（URL + apikey）后，在同一个「远程托管」页里能看到实例并
 实时看到状态变化；切换/删除账号不影响其他账号的轮询。

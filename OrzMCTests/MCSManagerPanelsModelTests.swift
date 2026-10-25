@@ -212,3 +212,12 @@ private final class KeyRecorder: @unchecked Sendable {
     func record(_ key: String) { lock.withLock { storage.append(key) } }
     var keys: [String] { lock.withLock { storage } }
 }
+
+
+// MARK: - 动作/控制台的默认实现（本文件不测动作，给协议补足最小实现）
+
+extension AuthOnlyPanelAPI {
+    func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {}
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {}
+    func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String { "" }
+}
