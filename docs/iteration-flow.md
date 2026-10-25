@@ -274,12 +274,17 @@ xcrun xcresulttool export attachments --path /tmp/rb.xcresult --output-path /tmp
 - 模拟器首次跑 UI 测试若不预装 App，Xcode 会报
   `bundle identifier for OrzMC couldn't be read` —— 脚本已用 `simctl install` 规避。
 
-## 4.2 真机安装 debug 包（iPhone）
+## 4.2 真机安装开发签名包（iPhone）
 
 ```bash
-./scripts/dev/install-ios-device.sh              # 自动挑已连接的真机，装完并启动
+./scripts/dev/install-ios-device.sh              # Debug 构建，自动挑已连接的真机，装完并启动
+./scripts/dev/install-ios-device.sh --release    # Release 配置（验证发布行为）
+./scripts/dev/install-ios-device.sh --ipa dist/ios/OrzMC_0.1.4_56_*_debugging/OrzMC.ipa
 ./scripts/dev/install-ios-device.sh --device iPhoneSE3
 ```
+
+iOS 归档 / TestFlight / 云签名见 [`docs/ios-release.md`](ios-release.md)（`scripts/release-ios.sh`
+与 `Release iOS` workflow）。
 
 - **必须在有图形会话的 Terminal.app 里跑**：`codesign` 要访问登录钥匙串里的私钥，
   锁着的钥匙串会报 `errSecInternalComponent`（ssh / agent 会话就是这种情况）。

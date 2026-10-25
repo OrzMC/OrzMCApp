@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# 把 **debug 包**装到真机 iPhone 上（开发签名，非 TestFlight/App Store）。
+# 把 **开发签名的包**装到真机 iPhone 上（非 TestFlight / App Store）。
+#
+# 三种来源：
+#   1) 默认：用 Debug 配置现场构建（最快，迭代用）；
+#   2) `--release`：用 Release 配置现场构建（想验证"发布配置下的真实表现"时用）；
+#   3) `--app <OrzMC.app>` / `--ipa <OrzMC.ipa>`：装**已经构建/导出好的**包，不再构建
+#      （例如 `scripts/release-ios.sh` 归档导出的 ipa）。
 #
 # ⚠️ 必须在**有图形会话的终端**里跑（Terminal.app / iTerm），不要通过 ssh / agent 会话跑：
 #    codesign 需要访问登录钥匙串里的私钥，锁着的钥匙串会报 `errSecInternalComponent`。
 #    如果钥匙串是锁的：`security unlock-keychain ~/Library/Keychains/login.keychain-db`
 #
 # 用法：
-#   ./scripts/dev/install-ios-device.sh                 # 自动找第一台物理设备，装完并启动
-#   ./scripts/dev/install-ios-device.sh --device iPhoneSE3
-#   ./scripts/dev/install-ios-device.sh --no-launch     # 只安装
+#   ./scripts/dev/install-ios-device.sh                    # Debug 构建 + 安装 + 启动
+#   ./scripts/dev/install-ios-device.sh --release          # Release 构建 + 安装 + 启动
+#   ./scripts/dev/install-ios-device.sh --ipa dist/ios/x.ipa
+#   ./scripts/dev/install-ios-device.sh --app path/to/OrzMC.app --no-launch
+#   ./scripts/dev/install-ios-device.sh --device <UDID>    # 指定设备（默认自动找第一台真机）
 #
 # 首次在设备上装开发包时，还要在 iPhone 上「设置 → 通用 → VPN与设备管理」信任你的开发者证书。
 set -euo pipefail
@@ -19,16 +27,26 @@ cd "$ROOT"
 TEAM_ID="${TEAM_ID:-2N62934Y28}"
 DEVICE=""
 LAUNCH=1
-DERIVED_DATA="${DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-device}"
+CONFIGURATION="Debug"
+APP_SOURCE=""
+TMP_DIR=""
+
+cleanup() { [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]] && rm -rf "$TMP_DIR"; }
+trap cleanup EXIT
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="${2:?}"; shift 2 ;;
     --no-launch) LAUNCH=0; shift ;;
-    -h|--help) sed -n '2,18p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --release) CONFIGURATION="Release"; shift ;;
+    --app) APP_SOURCE="${2:?}"; shift 2 ;;
+    --ipa) APP_SOURCE="${2:?}"; shift 2 ;;
+    -h|--help) sed -n '2,30p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 2 ;;
   esac
 done
+
+DERIVED_DATA="${DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-device}"
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
@@ -68,24 +86,45 @@ fi
 echo "设备: $DEVICE"
 echo "团队: $TEAM_ID"
 
-step "构建（Debug，开发签名）"
-xcodebuild build \
-  -project OrzMC.xcodeproj \
-  -scheme OrzMC \
-  -configuration Debug \
-  -destination "platform=iOS,id=$DEVICE" \
-  -derivedDataPath "$DERIVED_DATA" \
-  -allowProvisioningUpdates \
-  -onlyUsePackageVersionsFromResolvedFile \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  DEVELOPMENT_TEAM="$TEAM_ID" \
-  CODE_SIGN_STYLE=Automatic \
-  2>&1 | tail -25
+if [[ -n "$APP_SOURCE" ]]; then
+  # 装现成的包：`.ipa` 先解到临时目录，`.app` 直接用。
+  step "使用现成产物"
+  [[ -e "$APP_SOURCE" ]] || { echo "✗ 找不到 $APP_SOURCE" >&2; exit 1; }
+  case "$APP_SOURCE" in
+    *.ipa)
+      TMP_DIR="$(mktemp -d)"
+      ditto -x -k "$APP_SOURCE" "$TMP_DIR"
+      APP_PATH="$(find "$TMP_DIR/Payload" -maxdepth 1 -name '*.app' | head -1)"
+      ;;
+    *.app)
+      APP_PATH="$APP_SOURCE"
+      ;;
+    *)
+      echo "✗ 只认 .app 或 .ipa：$APP_SOURCE" >&2
+      exit 1
+      ;;
+  esac
+  [[ -n "${APP_PATH:-}" && -d "$APP_PATH" ]] || { echo "✗ 解不出 .app：$APP_SOURCE" >&2; exit 1; }
+else
+  step "构建（${CONFIGURATION}，开发签名）"
+  xcodebuild build \
+    -project OrzMC.xcodeproj \
+    -scheme OrzMC \
+    -configuration "$CONFIGURATION" \
+    -destination "platform=iOS,id=$DEVICE" \
+    -derivedDataPath "$DERIVED_DATA" \
+    -allowProvisioningUpdates \
+    -onlyUsePackageVersionsFromResolvedFile \
+    -skipPackageUpdates \
+    -skipPackagePluginValidation \
+    -skipMacroValidation \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
+    CODE_SIGN_STYLE=Automatic \
+    2>&1 | tail -25
 
-APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphoneos/OrzMC.app"
-[[ -d "$APP_PATH" ]] || { echo "✗ 没找到构建产物: $APP_PATH" >&2; exit 1; }
+  APP_PATH="$DERIVED_DATA/Build/Products/${CONFIGURATION}-iphoneos/OrzMC.app"
+  [[ -d "$APP_PATH" ]] || { echo "✗ 没找到构建产物: $APP_PATH" >&2; exit 1; }
+fi
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
 echo "产物: $APP_PATH"
 echo "Bundle ID: $BUNDLE_ID"
@@ -106,4 +145,4 @@ if [[ "$LAUNCH" == "1" ]]; then
   xcrun devicectl device process launch --device "$DEVICE" "$BUNDLE_ID" 2>&1 | tail -3 || true
 fi
 
-printf '\n\033[32m完成\033[0m（debug 包已装到 %s）\n' "$DEVICE"
+printf '\n\033[32m完成\033[0m（%s 包已装到 %s）\n' "$CONFIGURATION" "$DEVICE"
