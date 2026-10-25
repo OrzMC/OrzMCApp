@@ -117,6 +117,40 @@ final class ConsoleTextTests: XCTestCase {
         XCTAssertEqual(ConsoleTextParser.lines(in: "a\r\nb\n"), ["a", "b"])
     }
 
+    /// **回归**：行尾只有一个 `\r` 时**不能**把整行丢掉。
+    ///
+    /// 真实事故（0.1.4，iOS 真机）：exaroton 的 console 流每行都以 `\r` 结尾，
+    /// 旧实现把"最后一个 `\r` 之后"当正文 → 空 → 整行被丢弃 → 控制台一直显示占位。
+    func testTrailingCarriageReturnKeepsTheLine() {
+        XCTAssertEqual(
+            ConsoleTextParser.lines(in: "[20:11:02] [Server thread/INFO]: Done\r"),
+            ["[20:11:02] [Server thread/INFO]: Done"]
+        )
+        XCTAssertEqual(
+            ConsoleTextParser.parse("[20:11:02] [Server thread/INFO]: Done\r").map(\.text),
+            ["[20:11:02] [Server thread/INFO]: Done"]
+        )
+        XCTAssertEqual(
+            ConsoleTextParser.parse("\u{1B}[32mDone\u{1B}[0m\r"),
+            [ConsoleTextSegment(text: "Done", color: .green)]
+        )
+    }
+
+    func testTrailingCarriageReturnAfterProgressKeepsLastState() {
+        XCTAssertEqual(ConsoleTextParser.lines(in: "10%\r50%\r100%\r"), ["100%"])
+    }
+
+    func testCRLFKeepsColoredLine() {
+        // 行尾 `\r` 只影响行覆盖，不改变分段（颜色段照旧）。
+        XCTAssertEqual(
+            ConsoleTextParser.parse("\u{1B}[33mWARN\u{1B}[0m: lag\r"),
+            [
+                ConsoleTextSegment(text: "WARN", color: .yellow),
+                ConsoleTextSegment(text: ": lag"),
+            ]
+        )
+    }
+
     func testMultiLineChunkSplitsAndKeepsLastWithoutTrailingNewline() {
         XCTAssertEqual(ConsoleTextParser.lines(in: "a\nb\nc"), ["a", "b", "c"])
         XCTAssertEqual(ConsoleTextParser.lines(in: "a\n\nb\n"), ["a", "", "b"])

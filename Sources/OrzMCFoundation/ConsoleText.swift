@@ -48,9 +48,19 @@ public enum ConsoleTextParser {
     /// 解析**单行**文本（不处理 `\n`；`\r` 取最后一次覆盖后的内容）。
     public static func parse(_ line: String) -> [ConsoleTextSegment] {
         var scalars = Array(line.unicodeScalars)
-        if let lastCarriageReturn = scalars.lastIndex(of: "\r") {
-            scalars = Array(scalars[scalars.index(after: lastCarriageReturn)...])
-            if scalars.first == "\n" { scalars.removeFirst() }
+        if scalars.contains("\r") {
+            // `\r` = 行内覆盖：取**最后一个非空分段**。
+            // 不能简单取"最后一个 `\r` 之后"：日志行常以 `\r\n` / 单独 `\r` 结尾，
+            // 那样会把整行丢光（真实事故：exaroton 控制台每行都带 `\r`，界面一直空着）。
+            var parts: [[UnicodeScalar]] = [[]]
+            for scalar in scalars {
+                if scalar == "\r" {
+                    parts.append([])
+                } else {
+                    parts[parts.count - 1].append(scalar)
+                }
+            }
+            scalars = parts.last(where: { !$0.isEmpty }) ?? []
         }
         guard !scalars.isEmpty else { return [] }
 
@@ -137,23 +147,33 @@ public enum ConsoleTextParser {
         let scalars = chunk.unicodeScalars
         var result: [String] = []
         var current = String.UnicodeScalarView()
+        /// 同一逻辑行里、最后一个 `\r` 之前的内容（后面没有新内容时才用它）。
+        var lastOverwritten = ""
         var index = scalars.startIndex
+        /// 落定这一行：有 `\r` 之后的新内容就用新的，否则回退到覆盖前的内容。
+        func flushLine() -> String {
+            defer { lastOverwritten = "" }
+            return current.isEmpty ? lastOverwritten : String(current)
+        }
         while index < scalars.endIndex {
             let scalar = scalars[index]
             if scalar == "\r" {
                 let next = scalars.index(after: index)
                 if next < scalars.endIndex, scalars[next] == "\n" {
-                    result.append(String(current))       // `\r\n` = 一个换行
+                    result.append(flushLine())           // `\r\n` = 一个换行
                     index = scalars.index(after: next)
                 } else {
-                    // 单独 `\r` = 行内覆盖：前半行作废，后面才是这一行的最新状态。
+                    // 单独 `\r` = 行内覆盖：记下前半行作为"候选"，后面还有内容就顶掉它。
+                    // 注意不能直接丢弃：日志行常以单独 `\r` 结尾（exaroton 就是），
+                    // 一丢整行就没了（真实事故：控制台一直显示占位）。
+                    lastOverwritten = String(current)
                     index = next
                 }
                 current = String.UnicodeScalarView()
                 continue
             }
             if scalar == "\n" {
-                result.append(String(current))
+                result.append(flushLine())
                 current = String.UnicodeScalarView()
                 index = scalars.index(after: index)
                 continue
@@ -161,7 +181,9 @@ public enum ConsoleTextParser {
             current.append(scalar)
             index = scalars.index(after: index)
         }
-        if !current.isEmpty { result.append(String(current)) }
+        if !current.isEmpty || !lastOverwritten.isEmpty {
+            result.append(flushLine())
+        }
         return result
     }
 

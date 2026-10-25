@@ -46,6 +46,18 @@ final class RemoteConsoleBufferTests: XCTestCase {
         XCTAssertEqual(buffer.lines[1].segments.first?.color, .yellow)
     }
 
+    /// **回归**：一条消息以 `\r` 结尾时必须照常显示（exaroton 的 console 流就是这样）。
+    func testLinesEndingWithCarriageReturnAreNotDropped() {
+        var buffer = RemoteConsoleBuffer()
+        buffer.append("[20:11:02] [Server thread/INFO]: Done (9.874s)!\r")
+        buffer.append("\u{1B}[32m[20:11:07] [Server thread/INFO]\u{1B}[0m: Joined\r")
+        XCTAssertEqual(buffer.lines.map(\.text), [
+            "[20:11:02] [Server thread/INFO]: Done (9.874s)!",
+            "[20:11:07] [Server thread/INFO]: Joined",
+        ])
+        XCTAssertEqual(buffer.lines[1].segments.first?.color, .green)
+    }
+
     func testCarriageReturnOverwriteCollapsesProgress() {
         var buffer = RemoteConsoleBuffer()
         buffer.append("10%\r50%\r100%\n")
