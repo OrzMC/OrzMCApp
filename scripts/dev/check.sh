@@ -35,9 +35,21 @@ XCODEBUILD_FLAGS=(
 )
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
+
+# 磁盘预检：Xcode 构建在磁盘 <2 GB 时会以 "No space left on device" 中断（实测踩过，
+# 表现为 Build failed 却没有任何编译错误，浪费一整个构建周期）。
+check_disk() {
+  local avail_gb
+  avail_gb="$(df -g "$HOME" | awk 'NR==2 {print $4}')"
+  if [[ -n "$avail_gb" && "$avail_gb" -lt 5 ]]; then
+    printf '\033[33m⚠ 可用磁盘只剩 %s GB，构建可能在半途因空间不足失败。\033[0m\n' "$avail_gb" >&2
+    printf '  清理：scripts/dev/reclaim-space.sh（或删掉不用的 DerivedData）\n' >&2
+  fi
+}
 ok()   { printf '\033[32m✓ %s\033[0m\n' "$1"; }
 
 static_checks() {
+  check_disk
   step "静态检查"
   ./scripts/check-platform-split.sh
   python3 scripts/dev/check-pbxproj.py
