@@ -18,7 +18,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 TEAM_ID="${TEAM_ID:-2N62934Y28}"
-DERIVED_DATA="${DERIVED_DATA_SIGNED:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-signed}"
+# DerivedData 收敛（2026-10-26 成本复盘 O1）：**与 `check.sh` 的 macOS 目录共用一套**。
+# 以前签名构建单独用 `OrzMC-signed`，于是同一份代码在两个目录里各编一遍依赖（每轮多 4–6 分钟、
+# 多占用约 1.5 GB）。签名与否只是 build setting，共用目录没有副作用（产物会被重新签名）。
+# 需要隔离时用 `DERIVED_DATA_SIGNED=…` 覆盖。
+DERIVED_DATA="${DERIVED_DATA_SIGNED:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-local}"
 
 if ! security show-keychain-info "$HOME/Library/Keychains/login.keychain-db" >/dev/null 2>&1; then
   echo "✗ 登录钥匙串不可用（请在 Terminal.app 里运行，或先 security unlock-keychain）" >&2

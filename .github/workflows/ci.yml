@@ -119,6 +119,12 @@ jobs:
             xcode-${{ matrix.cache_key }}-
 
       - name: Resolve package dependencies
+        # **PR 用锁定依赖，main 用 HEAD 解析**（2026-10-26 成本复盘 O2）：
+        # 以前每个 PR 都删 `Package.resolved` 强制解析到分支最新 → `OrzMCKit` 及其传递依赖
+        # 常常重编，缓存命中也没用（build 稳定 6.8 min）。
+        # 现在：PR 走锁文件（可缓存、可复现），main 仍做 HEAD 解析来尽早发现依赖漂移；
+        # 发版流水线也走锁文件（见 release-app.yml），保证发出去的是测过的那套版本。
+        if: github.event_name != 'pull_request'
         # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
         # 坑：共享仓库缓存（org.swift.swiftpm/repositories）里的**分支 ref** 可能落后于上游，
         # 删除 Package.resolved 也没用——解析会用缓存里的旧 main。先显式刷新分支依赖
