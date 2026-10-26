@@ -72,18 +72,29 @@ iOS 27.0.1 真机上 `OrzMCUITests-Runner` 起不来（详见 §5），只能退
 | **CI `intel` job 只在需要时跑** | 打 `intel` label 才在 PR 上跑；main / 发版前照常。省 runner 分钟（wall-clock 由 `build` 决定，本来并行） |
 | **`release-app.yml` 加 `dry_run` 输入** | R6：`gh workflow run release-app.yml -f dry_run=true` → 完整签名/公证/打包/断言，**不发 Release、不提交 appcast** |
 
+**第二轮（O1/O2/O6，2026-10-26 晚）**
+
+| 措施 | 实测效果 |
+|---|---|
+| **O1 收敛 DerivedData**：`run-macos-signed.sh` 改用 `OrzMC-local`、`install-ios-device.sh` 改用 `OrzMC-local-ios`（都与 `check.sh` 共用） | 先签名构建再 `check.sh` → **49.9 s**（此前 2–4 min）；目录 **8 个/6.8 GB → 2 个/4.2 GB**；签名与真机安装均照常 |
+| **O2 CI：PR 用锁定依赖**（`Resolve package dependencies` 只在非 PR 跑） | PR 上 `build (macOS)` **6.8 min → 3.4 min**；`build (iOS)` 6.8 → 5.7 min；main 仍做 HEAD 解析（`build` 4 min，`intel` 5.2 min） |
+| **O6 `scripts/dev/reclaim-space.sh`**（新，默认 dry-run） | 本轮清掉 6 个残留目录，回收约 2.5 GB（此前撞过一次 `No space left` 报废整次签名构建） |
+
+**累计效果**：一次功能迭代的等待时间从 **40–60 min** 降到约 **25–35 min**（本地 -10 min、PR CI -3.4 min、
+再加上不再重复踩"缓存缺 tag / 磁盘满"）。
+
 ---
 
-## 4. 待做（按性价比排序，建议下一轮做 1–3 个）
+## 4. 待做（按性价比排序）
 
 | # | 措施 | 省什么 | 成本 | 风险 |
 |---|---|---|---|---|
-| O1 | **收敛 DerivedData**：macOS / iOS / 签名三套合成两套（`OrzMC-local` 复用给签名构建；iOS 一套含模拟器+真机） | 每轮少 2–3 次全量编译（约 -10 min/功能） | 半天 | 中（要改 `run-macos-signed.sh` / `install-ios-device.sh` 的默认 `-derivedDataPath`） |
-| O2 | **CI：PR 用锁定依赖，只有 main / 每晚跑 HEAD 解析** | `build` 从 6.8 → 4–5 min | 2h | 低（依赖漂移发现得晚一天） |
+| ~~O1~~ | ~~收敛 DerivedData~~ **✅ 已完成**（签名→`OrzMC-local`、真机→`OrzMC-local-ios`） | 实测 `check.sh` 49.9 s（原 2–4 min） | — | — |
+| ~~O2~~ | ~~PR 用锁定依赖~~ **✅ 已完成** | 实测 PR `build` 6.8 → **3.4 min** | — | — |
 | O3 | **`run-ios-ui-tests.sh --detach`**：内部用 `osascript` 起 Terminal 并等待，输出回传 + 保留完整日志 | R4 每轮 -1~2 min，且失败可诊断 | 1h | 低 |
 | O4 | **发版一键脚本** `scripts/dev/release.sh`：校验版本号递增 → 检查 release-notes 存在 → `--full` + `--ui` → 触发 `dry_run` → 断言产物 → bump 父仓库 | 发版从 30 min 手忙 → 15 min | 2h | 低 |
 | O5 | **`check.sh --changed`**：按 `git diff --name-only` 只跑受影响的部分（纯文档/纯本地化改动不再跑完整档） | 小改动每次 -2~3 min | 半天 | 中（漏跑风险，需白名单） |
-| O6 | DerivedData 定期清理脚本 `reclaim-space.sh`（保最新 1 套，删 7 天未改的 `OrzMC-*`） | 磁盘不再撞墙 | 30 min | 低 |
+| ~~O6~~ | ~~清理脚本~~ **✅ 已完成**（`scripts/dev/reclaim-space.sh`，默认 dry-run） | 本轮回收 2.5 GB | — | — |
 
 **不建议做的**：把 `build` 的 macOS/iOS 两格合并（会串行，反而更慢）；为了快而跳过 `OrzMCUITests`（历史上正是它抓到过腐烂的测试 target）。
 
