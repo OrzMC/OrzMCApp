@@ -103,5 +103,24 @@ iOS 27.0.1 真机上 `OrzMCUITests-Runner` 起不来（详见 §5），只能退
 | 已试 | 重装 runner / App、彻底 `uninstall`、`devicectl device process launch`（能起）→ 都不解决 |
 | 下一步 | ① **重启设备**（本轮已执行，等设备解锁后复测，见下）② 若仍失败 → 设备 iOS **27.0.1** 比本机 Xcode **27.0.0** 新，升级 Xcode 到 27.0.1+ 再试 |
 
-**状态（2026-10-26 21:5x）**：已 `devicectl device reboot`；重启后设备处于 `unavailable`（iOS 重启后
-需要**在机器上解锁一次**以恢复信任），等解锁后复测。
+**结论（2026-10-26 22:1x，重启设备后复测）**：重启 + 解锁后**同样失败**（同样是 19 秒后 DTX 被拒），
+因此排除"设备端状态坏"，定为 **Xcode / iOS 版本不匹配**：
+
+| 项 | 版本 |
+|---|---|
+| 本机 Xcode | **27.0 (27A266a)**，iOS SDK **27.0** |
+| 目标设备 | iPhoneSE3，iOS **27.0.1**（24A446） |
+
+设备 OS 比 Xcode 自带的 iOS SDK 新 → 设备侧 `testmanagerd` 拒绝宿主的 DTX 通道请求。
+**修法：升 Xcode 到 27.0.1+**（或把设备降到 27.0）。在此之前，真机 UI 用 `--simulator` 代替。
+
+**已加预检（防止再白等 6 分钟）**：`run-ios-ui-tests.sh --device` 现在会先比
+「设备 iOS 版本」与「Xcode 的 `-sdk iphoneos` 版本」，不兼容时 **3 秒内**直接报：
+
+```
+✗ 设备 iOS 27.0.1 比本机 Xcode 的 iOS SDK 27.0 新
+  这种组合下真机 XCUITest 会在 DTX 握手处被设备拒绝（runner exit 74），不是工程问题。
+  修法：把 Xcode 升到与设备同版本或更新…
+```
+
+（不装 Xcode 也能验：`--simulator` 跑同一套 8 个用例。）

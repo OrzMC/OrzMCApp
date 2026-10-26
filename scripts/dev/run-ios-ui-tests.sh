@@ -87,8 +87,38 @@ for port in "$SLP_PORT" "$RCON_PORT"; do
   nc -z 127.0.0.1 "$port" 2>/dev/null || { echo "✗ 端口 ${port} 没起来" >&2; exit 1; }
 done
 
+# 真机预检：**设备 iOS 比 Xcode 的 SDK 新**时，XCUITest 会在 DTX 握手处失败
+# （`Connection peer refused channel request for "dtxproxy:…"` → runner `exit 74`），
+# 而且是"构建 5 分钟后才失败"，非常难判断。这里 2 秒内说清楚并劝退。
+# 实测：Xcode 27.0.0（iOS SDK 27.0）+ 设备 iOS 27.0.1 → 必失败（2026-10-26）。
+preflight_device() {
+  local udid="$1" dev_os sdk_ver
+  dev_os="$(xcrun devicectl device info details --device "$udid" --json-output - 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"]["deviceProperties"]["osVersionNumber"])' 2>/dev/null || true)"
+  sdk_ver="$(xcodebuild -showsdks 2>/dev/null | sed -n 's/.*-sdk iphoneos\([0-9.]*\).*/\1/p' | head -1)"
+  [[ -n "$dev_os" && -n "$sdk_ver" ]] || return 0
+  # 逐段比较：设备版本 > SDK 版本 → 不兼容（只比 major/minor，patch 差异常可容忍，但也提示）
+  local newer
+  newer="$(python3 - "$dev_os" "$sdk_ver" <<'PY2'
+import sys
+def parts(v): return [int(x) for x in v.split(".") if x.isdigit()]
+d, s = parts(sys.argv[1]), parts(sys.argv[2])
+print("yes" if d > s else "no")
+PY2
+)"
+  if [[ "$newer" == "yes" ]]; then
+    printf '\n\033[31m✗ 设备 iOS %s 比本机 Xcode 的 iOS SDK %s 新\033[0m\n' "$dev_os" "$sdk_ver" >&2
+    printf '  这种组合下真机 XCUITest 会在 DTX 握手处被设备拒绝（runner exit 74），不是工程问题。\n' >&2
+    printf '  修法：把 Xcode 升到与设备同版本或更新（本机 %s），或用 --simulator 跑同一套用例。\n' \
+      "$(xcodebuild -version 2>/dev/null | head -1)" >&2
+    printf '  参考：docs/iteration-cost-2026-10-26.md §5\n' >&2
+    exit 2
+  fi
+}
+
 if [[ -n "$DEVICE" ]]; then
   DESTINATION="platform=iOS,id=$DEVICE"
+  preflight_device "$DEVICE"
   step "目标：真机 ${DEVICE}（需要开发签名与已解锁的钥匙串）"
 else
   UDID="$(xcrun simctl list devices available | grep -F "$SIM_NAME (" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')"
