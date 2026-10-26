@@ -14,6 +14,7 @@
 
 import Foundation
 
+import OrzMCFoundation
 import OrzMCRemoteHosting
 
 /// 面板给的实例状态码（`InstanceDetail.status`）。
@@ -229,6 +230,31 @@ final class MCSManagerModel {
     }
 
     #if DEBUG
+    /// 动作/控制台链路的无界面自检：对每台**在线**实例发一条命令，再取控制台尾部。
+    ///
+    /// 只读命令才安全（`/list`、`/tps`）；结果写进 `debugTrace` 与诊断文件的 `probe` 字段。
+    func probeCommands(_ command: String) async {
+        for instance in instances where state(of: instance) == .online {
+            let sent = await sendCommand(command, to: instance)
+            let sendError = actionErrors[instance.id].map { "（\($0)）" } ?? ""
+            // 面板对连续请求有节流（`speedLimit`），逐个来并留点间隔。
+            try? await Task.sleep(for: .seconds(1))
+
+            var log: String
+            do {
+                let text = try await outputLog(for: instance, tailSize: 4096)
+                // 日志一般以换行结尾 → 直接 `.last` 会拿到空串。
+                let lastLine = ConsoleTextParser.lines(in: text).last { line in
+                    !line.trimmingCharacters(in: .whitespaces).isEmpty
+                }
+                log = "bytes=\(text.utf8.count), last=\(lastLine.map { String($0.prefix(100)) } ?? "(空)")"
+            } catch {
+                log = "outputlog 失败：\(MCSManagerErrorText.describe(error) ?? "-") ｜ \(String(describing: error).prefix(200))"
+            }
+            debugTrace.append("probe[\(instance.id)] \(command) → sent=\(sent)\(sendError), \(log)")
+        }
+    }
+
     /// **仅 DEBUG** 的验收钩子：`ORZMC_DEMO_MCSM_DIAGNOSE=1` 时把本次刷新的结果写到
     /// `Caches/orzmc-mcsm-<面板 id>.json`。
     ///

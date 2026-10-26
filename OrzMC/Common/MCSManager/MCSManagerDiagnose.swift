@@ -20,6 +20,13 @@ enum MCSManagerDiagnose {
 
     static let environmentKey = "ORZMC_DEMO_MCSM_DIAGNOSE"
 
+    /// 可选：`ORZMC_DEMO_MCSM_ACTION_PROBE="/list"` —— 对每台**在线**实例发这条命令，
+    /// 并把控制台尾部写进诊断文件。
+    ///
+    /// 只用来验收"动作 + 控制台"链路（`sendCommand` → 面板 → `outputlog`）。
+    /// **务必用只读命令**（`/list`、`/tps`），别用会改服务器状态的（`stop`、`/kick`）。
+    static let actionProbeKey = "ORZMC_DEMO_MCSM_ACTION_PROBE"
+
     static var isRequested: Bool {
         ProcessInfo.processInfo.environment[environmentKey] == "1"
     }
@@ -35,8 +42,12 @@ enum MCSManagerDiagnose {
             writeSummary(error: "no MCSManager panel configured")
         } else {
             await model.reloadAll()
+            let probe = ProcessInfo.processInfo.environment[actionProbeKey]
             for panel in model.panels {
                 guard let panelModel = model.model(for: panel.id) else { continue }
+                if let probe, !probe.isEmpty {
+                    await panelModel.probeCommands(probe)
+                }
                 // 成功时 reload 里已经写过；这里补写一次带上最终的错误文案。
                 panelModel.writeDiagnose(error: panelModel.errorMessage)
             }
