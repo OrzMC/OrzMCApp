@@ -8,6 +8,7 @@
 #   ./scripts/dev/run-ios-ui-tests.sh                     # 默认 iPhone SE3 尺寸模拟器
 #   ./scripts/dev/run-ios-ui-tests.sh --device <UDID>      # 指定真机（需在 Terminal.app 里跑，开发签名）
 #   ./scripts/dev/run-ios-ui-tests.sh --simulator "iPhone 17 Pro"
+#   ./scripts/dev/run-ios-ui-tests.sh --device <UDID> --detach   # 自动进 Terminal 跑并等结果
 #
 # 测试用到的 DEBUG 钩子（发布构建里不存在）：ORZMC_DEMO_SEED_PROFILE / ORZMC_DEMO_RCON_PASSWORD /
 # ORZMC_DEMO_TAB / ORZMC_DEMO_FAKE_SERVER（见 OrzMCUITests/RemotePanelsUITests.swift）。
@@ -28,14 +29,60 @@ cleanup() {
 }
 trap cleanup EXIT
 
+DETACH=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="${2:?}"; shift 2 ;;
     --simulator) SIM_NAME="${2:?}"; shift 2 ;;
-    -h|--help) sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --detach) DETACH=1; shift ;;
+    -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 2 ;;
   esac
 done
+
+# ── O3：`--detach` 把自己丢进 Terminal.app 跑，并在这里等结果 ──────────────
+# 为什么必须 Terminal：真机构建/安装要访问钥匙串私钥，SSH/CI 那种非交互会话会报
+# `errSecInternalComponent`。以前只能人肉 `open -a Terminal` + 轮询日志（每轮多 1–2 分钟，
+# 且失败时看不到关键行）。现在一条命令拿到退出码 + 末尾日志。
+if [[ "$DETACH" -eq 1 && "${UI_TESTS_IN_TERMINAL:-0}" != "1" ]]; then
+  stamp="$(date +%s)"
+  detach_log="${TMPDIR:-/tmp}/orzmc-ui-tests-$stamp.log"
+  runner="${TMPDIR:-/tmp}/orzmc-ui-tests-$stamp.command"
+  args=""
+  for a in "$@"; do args+=" $(printf '%q' "$a")"; done
+  self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+  cat > "$runner" <<EOF2
+#!/bin/bash
+cd "$(pwd)" || exit 1
+UI_TESTS_IN_TERMINAL=1 "$self"$args >"$detach_log" 2>&1
+echo "__UI_TESTS_EXIT__=\$?" >>"$detach_log"
+EOF2
+  chmod +x "$runner"
+  echo "▶ 在 Terminal.app 里执行（日志：${detach_log}）"
+  open -a Terminal "$runner"
+  printf '  等待结果'
+  for _ in $(seq 1 900); do
+    grep -q "__UI_TESTS_EXIT__=" "$detach_log" 2>/dev/null && break
+    printf '.'; sleep 2
+  done
+  printf '\n'
+  if ! grep -q "__UI_TESTS_EXIT__=" "$detach_log" 2>/dev/null; then
+    echo "✗ 等待超时（15 分钟）；日志：$detach_log" >&2
+    tail -20 "$detach_log" 2>/dev/null >&2
+    exit 124
+  fi
+  code="$(sed -n 's/^__UI_TESTS_EXIT__=//p' "$detach_log" | tail -1)"
+  echo
+  echo "── 末尾日志 ──"
+  grep -aE "Test Case|Test Suite|\*\* TEST|error:|refused channel|automation mode|✗|✓" "$detach_log" 2>/dev/null | tail -25
+  echo "──"
+  if [[ "$code" == "0" ]]; then
+    echo "✓ UI 测试通过（耗时见上）"
+  else
+    echo "✗ 退出码 ${code}（完整日志：${detach_log}）"
+  fi
+  exit "${code:-1}"
+fi
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
@@ -87,10 +134,17 @@ for port in "$SLP_PORT" "$RCON_PORT"; do
   nc -z 127.0.0.1 "$port" 2>/dev/null || { echo "✗ 端口 ${port} 没起来" >&2; exit 1; }
 done
 
-# 真机预检：**设备 iOS 比 Xcode 的 SDK 新**时，XCUITest 会在 DTX 握手处失败
-# （`Connection peer refused channel request for "dtxproxy:…"` → runner `exit 74`），
-# 而且是"构建 5 分钟后才失败"，非常难判断。这里 2 秒内说清楚并劝退。
-# 实测：Xcode 27.0.0（iOS SDK 27.0）+ 设备 iOS 27.0.1 → 必失败（2026-10-26）。
+# 真机预检（**只警告，不阻断**）：
+#
+# 2026-10-26 的实测结论 —— 真机 XCUITest 失败的两个真因都不是版本：
+#   ① **设备没插数据线**（只在 Wi-Fi 上）：runner 起来 19 秒后
+#      `Connection peer refused channel request for "dtxproxy:…"` → `exit 74`；
+#      插上**数据线**（`Transport Type: wired`）后这个错误消失；
+#   ② 插线后暴露出真正的门槛：`Timed out while enabling automation mode`
+#      —— 设备上需要允许"自动化模式"（设置 → 开发者 → 启用 UI 自动化 / 或首次弹出的授权提示）。
+#
+# 所以这里只做**信息性提醒**（设备版本比 Xcode SDK 新时提一句），绝不 exit —— 早期版本我误判为
+# "版本不匹配必失败"，会挡住本来能跑的机器。
 preflight_device() {
   local udid="$1" dev_os sdk_ver
   dev_os="$(xcrun devicectl device info details --device "$udid" --json-output - 2>/dev/null \
@@ -107,12 +161,18 @@ print("yes" if d > s else "no")
 PY2
 )"
   if [[ "$newer" == "yes" ]]; then
-    printf '\n\033[31m✗ 设备 iOS %s 比本机 Xcode 的 iOS SDK %s 新\033[0m\n' "$dev_os" "$sdk_ver" >&2
-    printf '  这种组合下真机 XCUITest 会在 DTX 握手处被设备拒绝（runner exit 74），不是工程问题。\n' >&2
-    printf '  修法：把 Xcode 升到与设备同版本或更新（本机 %s），或用 --simulator 跑同一套用例。\n' \
-      "$(xcodebuild -version 2>/dev/null | head -1)" >&2
-    printf '  参考：docs/iteration-cost-2026-10-26.md §5\n' >&2
-    exit 2
+    printf '\n\033[33m⚠ 设备 iOS %s 比本机 Xcode 的 iOS SDK %s 新\033[0m\n' "$dev_os" "$sdk_ver" >&2
+    printf '  通常仍能跑，但真机 UI 测试失败时这会是第一个要排除的项（升级 Xcode 或用 --simulator）。\n' >&2
+  fi
+
+  # 运输方式：Wi-Fi 上跑真机 UI 测试会出现 `Connection peer refused channel request …` / runner exit 74，
+  # 插数据线（wired）就好 —— 这是本项目实测踩过一整晚的坑（2026-10-26）。
+  local transport
+  transport="$(xcrun devicectl device info details --device "$udid" 2>/dev/null \
+    | sed -n 's/.*Transport Type: *//p' | head -1)"
+  if [[ -n "$transport" && "$transport" != "wired" ]]; then
+    printf '\n\033[33m⚠ 设备当前连接方式：%s（不是数据线）\033[0m\n' "$transport" >&2
+    printf '  真机 XCUITest 在 Wi-Fi 连接下会以 `DTX 握手被拒 / runner exit 74` 失败；请插数据线重试。\n' >&2
   fi
 }
 
@@ -123,7 +183,7 @@ if [[ -n "$DEVICE" ]]; then
 else
   UDID="$(xcrun simctl list devices available | grep -F "$SIM_NAME (" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')"
   if [[ -z "$UDID" ]]; then
-    echo "✗ 找不到模拟器「$SIM_NAME」，可先创建：xcrun simctl create \"$SIM_NAME\" \\" >&2
+    echo "✗ 找不到模拟器「${SIM_NAME}」，可先创建：xcrun simctl create \"$SIM_NAME\" \\" >&2
     echo "    com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation com.apple.CoreSimulator.SimRuntime.iOS-26-4" >&2
     exit 1
   fi

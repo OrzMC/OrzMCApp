@@ -11,6 +11,7 @@
 #   scripts/dev/check.sh --build    # 只构建 macOS（不跑测试）
 #   scripts/dev/check.sh --ios      # 只构建 iOS
 #   scripts/dev/check.sh --ui       # iOS UI 自动化验收（XCUITest，需本机起假服务端，约 1~2 分钟）
+#   scripts/dev/check.sh --changed  # 按改动范围自动选档（纯文档/纯测试不再跑完整档）
 #
 # 相当于 CI 的哪些 job：
 #   split → 静态检查（平台分层 / pbxproj 登记 / 本地化）
@@ -33,6 +34,34 @@ XCODEBUILD_FLAGS=(
   -skipMacroValidation
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=''
 )
+
+# ── O5：`--changed` 按改动范围选档 ───────────────────────────────────────────
+# 纯文档/纯本地化改动占了不少提交，却要跑完整档（2–4 分钟）。这里按 `git diff` 判断：
+#   docs-only    → 只跑静态检查（含本地化一致性）
+#   tests-only   → 包单测 + 应用测试（不构建 App 之外的东西）
+#   其它（保守） → 默认档
+changed_mode() {
+  local base="${CHANGED_BASE:-origin/main}"
+  if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+    echo "default"; return
+  fi
+  local files
+  files="$(git diff --name-only "$base"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null; git diff --cached --name-only 2>/dev/null)"
+  files="$(printf '%s\n' "$files" | sort -u | sed '/^$/d')"
+  [[ -z "$files" ]] && { echo "default"; return; }
+  local docs_only=1 tests_only=1 f
+  while IFS= read -r f; do
+    case "$f" in
+      docs/*|*.md|README*|CHANGELOG*) ;;                      # 文档
+      *.xcstrings) ;;                                          # 本地化资源
+      OrzMCTests/*|OrzMCUITests/*|Tests/*) tests_only=0 ;;      # 测试也算"非文档"
+      *) docs_only=0 && tests_only=0 ;;                        # 其它：保守走默认档
+    esac
+  done <<< "$files"
+  if [[ "$docs_only" -eq 1 ]]; then echo "docs"
+  elif [[ "$tests_only" -eq 1 ]]; then echo "tests"
+  else echo "default"; fi
+}
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
@@ -98,15 +127,25 @@ live_protocol() {
 }
 
 MODE="${1:-default}"
+if [[ "$MODE" == "--changed" ]]; then
+  KIND="$(changed_mode)"
+  case "$KIND" in
+    docs)    step "改动只有文档/本地化 → 只跑静态检查"; MODE="--fast" ;;
+    tests)   step "改动只有测试 → 包单测 + 应用测试"; MODE="tests" ;;
+    *)       step "改动了源码/工程/脚本 → 默认档"; MODE="default" ;;
+  esac
+fi
+
 case "$MODE" in
   --fast)  static_checks ;;
   --build) build_macos ;;
   --ios)   build_ios ;;
   --ui)    step "iOS UI 自动化验收"; ./scripts/dev/run-ios-ui-tests.sh; ok "UI 验收通过" ;;
   --full)  static_checks; swift_tests; app_tests; build_macos; build_ios; live_protocol ;;
+  tests)   static_checks; swift_tests; app_tests ;;
   default) static_checks; swift_tests; app_tests; build_macos ;;
   *)
-    echo "unknown mode: ${MODE}（--fast / --build / --ios / --full 或留空）" >&2
+    echo "unknown mode: ${MODE}（--fast / --build / --ios / --ui / --full / --changed 或留空）" >&2
     exit 2
     ;;
 esac

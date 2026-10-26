@@ -91,47 +91,38 @@ iOS 27.0.1 真机上 `OrzMCUITests-Runner` 起不来（详见 §5），只能退
 |---|---|---|---|---|
 | ~~O1~~ | ~~收敛 DerivedData~~ **✅ 已完成**（签名→`OrzMC-local`、真机→`OrzMC-local-ios`） | 实测 `check.sh` 49.9 s（原 2–4 min） | — | — |
 | ~~O2~~ | ~~PR 用锁定依赖~~ **✅ 已完成** | 实测 PR `build` 6.8 → **3.4 min** | — | — |
-| O3 | **`run-ios-ui-tests.sh --detach`**：内部用 `osascript` 起 Terminal 并等待，输出回传 + 保留完整日志 | R4 每轮 -1~2 min，且失败可诊断 | 1h | 低 |
-| O4 | **发版一键脚本** `scripts/dev/release.sh`：校验版本号递增 → 检查 release-notes 存在 → `--full` + `--ui` → 触发 `dry_run` → 断言产物 → bump 父仓库 | 发版从 30 min 手忙 → 15 min | 2h | 低 |
-| O5 | **`check.sh --changed`**：按 `git diff --name-only` 只跑受影响的部分（纯文档/纯本地化改动不再跑完整档） | 小改动每次 -2~3 min | 半天 | 中（漏跑风险，需白名单） |
+| ~~O3~~ | ~~UI 测试 `--detach`~~ **✅ 已完成**：一条命令自动进 Terminal 跑、等结果、回传末尾日志 | 实测真机全量套件一条命令跑通 | — | — |
+| ~~O4~~ | ~~发版一键脚本~~ **✅ 已完成**（`scripts/dev/release.sh --version X.Y.Z [--plan]`）：版本递增/notes/工作区检查 → 升版本 → `--fast`+`--full`+`--ui`+真机 UI → 建 PR → 打印后续三步 | 发版前半段全自动 | — | — |
+| ~~O5~~ | ~~`check.sh --changed`~~ **✅ 已完成**：纯文档/本地化→只跑静态；纯测试→包单测+应用测试；其它→默认档 | 小改动 -2~3 min | — | 低（保守：识别不出就回默认档） |
 | ~~O6~~ | ~~清理脚本~~ **✅ 已完成**（`scripts/dev/reclaim-space.sh`，默认 dry-run） | 本轮回收 2.5 GB | — | — |
 
 **不建议做的**：把 `build` 的 macOS/iOS 两格合并（会串行，反而更慢）；为了快而跳过 `OrzMCUITests`（历史上正是它抓到过腐烂的测试 target）。
 
 ---
 
-## 5. 真机 XCUITest 故障（R3 的具体进展）
+## 5. 真机 XCUITest 故障（R3）—— **已解决：是没插数据线**
 
-| 步骤 | 结果 |
-|---|---|
-| 复现 | `run-ios-ui-tests.sh --device …` → `OrzMCUITests-Runner … exited with code 74 before establishing connection` |
-| 排除 1：设备锁 | `devicectl device info lockState` → `passcodeRequired: false`、`unlockedSinceBoot: true`（且截图确认屏幕亮着、已解锁） |
-| 排除 2：签名 | runner 用 `Apple Development: zhizhou wang (X3C2MG74H2)` 签名，`embedded.mobileprovision` 有效期到 2027-10-18 |
-| 排除 3：设备信任/开发者模式 | `Developer Mode: Enabled`、`Pairing State: paired`、destination 被认作合法（`-showdestinations` 无 Ineligible） |
-| 排除 4：工程/脚本（我们的 `patch-xctestrun.py`） | 用**干净的 `xcodebuild test`**（全新 DerivedData、不经过打补丁的 xctestrun）同样失败 |
-| **抓到真因** | runner 起来后 19 秒：`Connection peer refused channel request for "dtxproxy:XCTestDriverInterface:XCTestManager_IDEInterface"` → `Exiting due to IDE disconnection` |
-| 含义 | 宿主机（testmanagerd 客户端）↔ 设备 `testmanagerd` 的 **DTX 握手被设备拒绝**，与我们的代码/签名/xctestrun 无关 |
-| 已试 | 重装 runner / App、彻底 `uninstall`、`devicectl device process launch`（能起）→ 都不解决 |
-| 下一步 | ① **重启设备**（本轮已执行，等设备解锁后复测，见下）② 若仍失败 → 设备 iOS **27.0.1** 比本机 Xcode **27.0.0** 新，升级 Xcode 到 27.0.1+ 再试 |
+> ⚠️ 本节早期版本把原因误判为「Xcode 27.0 < 设备 iOS 27.0.1 的版本不匹配」并加了硬阻断预检。
+> 2026-10-26 23:3x 维护者插上**数据线**后复测：**直接通过**。误判已纠正，预检已降级为提醒。
 
-**结论（2026-10-26 22:1x，重启设备后复测）**：重启 + 解锁后**同样失败**（同样是 19 秒后 DTX 被拒），
-因此排除"设备端状态坏"，定为 **Xcode / iOS 版本不匹配**：
+**真正的两个门槛**
 
-| 项 | 版本 |
-|---|---|
-| 本机 Xcode | **27.0 (27A266a)**，iOS SDK **27.0** |
-| 目标设备 | iPhoneSE3，iOS **27.0.1**（24A446） |
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| runner 起来 19 秒后 `Connection peer refused channel request for "dtxproxy:XCTestDriverInterface:XCTestManager_IDEInterface"` → `exit 74` | 设备只在 **Wi-Fi** 上连接（`Transport Type: localNetwork`） | **插数据线**（`Transport Type: wired`）→ 错误消失 |
+| 插线后 `Timed out while enabling automation mode`（首次） | 设备需要允许"自动化模式"（授权/首次提示） | 保持设备**解锁亮屏**，重跑一次即通过 |
 
-设备 OS 比 Xcode 自带的 iOS SDK 新 → 设备侧 `testmanagerd` 拒绝宿主的 DTX 通道请求。
-**修法：升 Xcode 到 27.0.1+**（或把设备降到 27.0）。在此之前，真机 UI 用 `--simulator` 代替。
-
-**已加预检（防止再白等 6 分钟）**：`run-ios-ui-tests.sh --device` 现在会先比
-「设备 iOS 版本」与「Xcode 的 `-sdk iphoneos` 版本」，不兼容时 **3 秒内**直接报：
+**实测结果（iPhoneSE3 / iOS 27.0.1 / Xcode 27.0.0）**
 
 ```
-✗ 设备 iOS 27.0.1 比本机 Xcode 的 iOS SDK 27.0 新
-  这种组合下真机 XCUITest 会在 DTX 握手处被设备拒绝（runner exit 74），不是工程问题。
-  修法：把 Xcode 升到与设备同版本或更新…
+Test Case '…testMCSManagerSectionShowsInstancesAndStatus' passed (20.162 seconds)
+Test Suite 'RemotePanelsUITests' passed …  ** TEST EXECUTE SUCCEEDED **
 ```
 
-（不装 Xcode 也能验：`--simulator` 跑同一套 8 个用例。）
+全套 8 个用例（4 个按设计 skip）在真机上全绿。
+
+**脚本侧的改进（避免下次再误判）**
+- `run-ios-ui-tests.sh --device` 的预检 **只警告不阻断**：
+  设备版本比 Xcode SDK 新时提一句；**连接方式不是 `wired` 时明确提示"真机 XCUITest 在 Wi-Fi 下会 exit 74，请插数据线"**；
+- `--detach`（O3）：自动进 Terminal.app 跑并等结果，一条命令拿到退出码 + 末尾日志。
+
