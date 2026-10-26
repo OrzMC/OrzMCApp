@@ -96,9 +96,22 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         case .ok(let ok):
             let body = try ok.body.plainText
             // 面板返回日志尾部，可能比我们需要的多（`size` 是面板侧的截断，不一定生效）。
-            let limit = tailSize ?? 256 * 1024
-            let data = try await Data(collecting: body, upTo: limit)
-            return String(decoding: data, as: UTF8.self)
+            // 读取上限**不能**等于"想要的字节数"：`Data(collecting:upTo:)` 超过上限会抛
+            // 「contains more than the maximum allowed」（真机踩过，日志比 2KB 就挂）。
+            // 面板的 `size` 参数只是它那边的截断，不保证生效 → 这里给足余量。
+            let data = try await Data(collecting: body, upTo: Self.outputLogReadCap)
+            var raw = String(decoding: data, as: UTF8.self)
+            // 面板把**所有**响应都包了一层 `{status, data, time}`（连纯文本接口也一样），
+            // 所以这里要 unwrap；外壳里 status 非 2xx 时抛错（面板会写「节点未连接」之类）。
+            let text: String
+            do {
+                text = try MCSMResponseEnvelope.checkedText(raw)
+            } catch let error as MCSMResponseError {
+                throw MCSManagerModelError.server(error.status, panelMessage: error.message)
+            }
+            // 面板忽略 `size` 时本地再截一次尾部（控制台只需要最近的一段）。
+            guard let limit = tailSize, text.utf8.count > limit else { return text }
+            return String(text.suffix(limit))
         case .forbidden(let response):
             throw MCSManagerModelError.unauthorized(panelMessage: await Self.panelMessage(from: response.body))
         case .internalServerError(let response):
@@ -107,6 +120,9 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
             throw MCSManagerModelError.server(statusCode, panelMessage: await Self.panelMessage(from: payload.body))
         }
     }
+
+    /// 控制台读取上限（4 MB）：够覆盖任何合理的日志尾部，又不会因为"比 size 大"而报错。
+    static let outputLogReadCap = 4 * 1024 * 1024
 
     // MARK: - 响应解包（HTTP 状态码 → 面板级错误，尽量带上面板自己的文案）
 
