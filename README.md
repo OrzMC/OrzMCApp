@@ -4,6 +4,15 @@
 
 OrzMC 是用于 macOS/iOS 的 Minecraft Java Edition 启动器与辅助应用。项目文档请查看：[项目文档](https://orzmc.github.io/OrzMCApp/)
 
+## 平台支持
+
+| 产物 | 最低系统 | 架构 |
+|:--|:--|:--|
+| `OrzMC.app`（macOS GUI） | **macOS 14.0** | Universal（Intel `x86_64` + Apple Silicon `arm64`） |
+| `orzmc` CLI（`swift/lib/OrzMCKit`，非对外分发） | **macOS 13.0** | `arm64` / `x86_64` |
+
+GUI 卡在 14 是因为 `@Observable`（Observation 宏本身要求 macOS 14）；逻辑层/CLI 有意钉在 13，让卡在 Ventura 的 Intel Mac 仍能用 CLI。规则、证据与复跑命令见父仓库 [`docs/platform-support.md`](https://github.com/OrzMC/OrzMC/blob/main/docs/platform-support.md)。
+
 ## 开发
 
 ```bash
