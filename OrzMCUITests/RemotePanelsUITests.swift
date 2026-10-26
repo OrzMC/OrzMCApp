@@ -839,9 +839,14 @@ extension RemotePanelsUITests {
         let section = app.otherElements["mcsm.section"]
         XCTAssertTrue(section.waitForExistence(timeout: 20), "MCSManager 分组应显示在远程托管页")
 
-        // 两台演示实例（名称来自假面板）
-        XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["演示创造服"].exists)
+        // 两台演示实例（名称来自假面板）。
+        // 名称现在在**实例行按钮**里（点行进控制台）→ 查按钮 label 而不是 staticTexts。
+        let rows = app.buttons.matching(identifier: "mcsm.instanceRow")
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
+        // `label` 是 MainActor 隔离的，不能直接写 key path。
+        let labels = rows.allElementsBoundByIndex.map { $0.label }
+        XCTAssertTrue(labels.contains { $0.contains("演示生存服") }, "实际：\(labels)")
+        XCTAssertTrue(labels.contains { $0.contains("演示创造服") }, "实际：\(labels)")
 
         // 状态徽章文案（`RemoteServerState.localizedTitle`，中文环境）。
         // ⚠️ 不要在容器（面板卡/行）上设 `accessibilityIdentifier`：SwiftUI 会把它**下发给
@@ -853,5 +858,69 @@ extension RemotePanelsUITests {
         XCTAssertTrue(app.staticTexts["离线"].exists, "停止的实例应显示「离线」")
         // 玩家数（在线实例才有）
         XCTAssertTrue(app.staticTexts["3/20"].exists)
+    }
+
+    /// 实例行的 `⋯` 菜单要有动作（启动 / 停止 / 重启）与控制台入口。
+    ///
+    /// 只验证"能打开、项都在"，不点动作 —— 动作会改实例状态，UI 用例不该有副作用。
+    func testMCSManagerInstanceMenuListsActionsAndConsole() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let section = app.otherElements["mcsm.section"]
+        XCTAssertTrue(section.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
+
+        let menu = app.buttons.matching(identifier: "mcsm.instanceMenu").firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 10), "实例行应有 ⋯ 菜单")
+        menu.tap()
+
+        // 在线实例：「停止」「重启」可用；「启动」对在线实例是灰的。
+        XCTAssertTrue(app.buttons["停止"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["重启"].exists)
+        XCTAssertTrue(app.buttons["启动"].exists)
+        XCTAssertTrue(app.buttons["控制台"].exists)
+    }
+
+    /// P2-7 第 5 步：控制台面板能打开、能显示输出、能发命令（演示面板是空实现）。
+    func testMCSManagerConsoleSheetShowsOutput() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.otherElements["mcsm.section"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
+
+        // 点实例行 = 打开控制台（菜单项在 UI 自动化里点不动 → 行点击是主路径，已写进设计口径）。
+        // 要挑**在线**那台：离线实例的控制台不能发命令（输入框 disabled）。
+        let row = app.buttons
+            .matching(identifier: "mcsm.instanceRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "演示生存服"))
+            .firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        // 控制台容器 + 演示日志（假面板返回两行中文）
+        // 容器在无障碍树里不一定是 `otherElements`（ScrollView 可能是 `scrollViews`）→ 按 id 全树找。
+        let console = app.descendants(matching: .any).matching(identifier: "mcsm.console").firstMatch
+        XCTAssertTrue(console.waitForExistence(timeout: 15), "控制台面板应出现")
+        XCTAssertTrue(
+            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出"))
+                .firstMatch.waitForExistence(timeout: 15),
+            "应显示假面板返回的日志行"
+        )
+
+        // 在线实例可以发命令：输入后「发送」可用，点完输入框清空。
+        let field = app.textFields["mcsm.commandField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.tap()
+        field.typeText("/list")
+        let send = app.buttons["mcsm.sendCommand"]
+        XCTAssertTrue(send.isEnabled, "在线实例应允许发命令")
+        send.tap()
+        // 空输入框在 XCUITest 里的 `value` 是**占位符文本**（不是空串），所以断言"命令已经不在里面"。
+        let value = field.value as? String ?? ""
+        XCTAssertFalse(value.contains("/list"), "发送成功后输入框应清空，实际：\(value)")
     }
 }

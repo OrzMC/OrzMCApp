@@ -17,9 +17,24 @@ struct MCSManagerSection: View {
 
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
-    @State private var editorMode: MCSManagerPanelEditor.Mode?
-    /// 正在看控制台的实例（连带它的面板模型）。
-    @State private var consoleTarget: MCSManagerConsoleTarget?
+    /// 当前要显示的弹窗。
+    ///
+    /// ⚠️ **同一条视图链上只能挂一个 `.sheet`**：原来"编辑面板"和"控制台"各挂一个，
+    /// 结果控制台那个永远不弹（真机/模拟器实测，UI 用例点「控制台」后界面毫无变化）。
+    /// 合并成一个枚举就没这个问题。
+    @State private var sheet: Sheet?
+
+    enum Sheet: Identifiable {
+        case editor(MCSManagerPanelEditor.Mode)
+        case console(MCSManagerConsoleTarget)
+
+        var id: String {
+            switch self {
+            case .editor(let mode): return "editor-\(mode.id)"
+            case .console(let target): return "console-\(target.id)"
+            }
+        }
+    }
 
     private var instanceCount: Int {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
@@ -38,7 +53,7 @@ struct MCSManagerSection: View {
             }
 
             Button {
-                editorMode = .add
+                sheet = .editor(.add)
             } label: {
                 Label(String(localized: "Add Panel"), systemImage: "plus.circle")
                     .font(.callout)
@@ -49,38 +64,40 @@ struct MCSManagerSection: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("mcsm.section")
-        .sheet(item: $editorMode) { mode in
-            MCSManagerPanelEditor(
-                mode: mode,
-                onSave: { label, url, key in
-                    switch mode {
-                    case .add:
-                        guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
-                    case .edit(let panel):
-                        guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
-                            return false
+        .sheet(item: $sheet) { current in
+            switch current {
+            case .editor(let mode):
+                MCSManagerPanelEditor(
+                    mode: mode,
+                    onSave: { label, url, key in
+                        switch mode {
+                        case .add:
+                            guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
+                        case .edit(let panel):
+                            guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
+                                return false
+                            }
                         }
-                    }
-                    editorMode = nil
-                    Task { await mcsm.reloadAll(); mcsm.start() }
-                    return true
-                },
-                onCancel: { editorMode = nil }
-            )
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(OrzMCTheme.Radius.lg)
-            .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
-            #if os(iOS)
-            .presentationDetents([.large])
-            #endif
-        }
-        .sheet(item: $consoleTarget) { target in
-            MCSManagerConsoleSheet(instance: target.instance, model: target.model)
+                        sheet = nil
+                        Task { await mcsm.reloadAll(); mcsm.start() }
+                        return true
+                    },
+                    onCancel: { sheet = nil }
+                )
                 .presentationDragIndicator(.visible)
+                .presentationCornerRadius(OrzMCTheme.Radius.lg)
                 .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
                 #if os(iOS)
                 .presentationDetents([.large])
                 #endif
+            case .console(let target):
+                MCSManagerConsoleSheet(instance: target.instance, model: target.model)
+                    .presentationDragIndicator(.visible)
+                    .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
+                    #if os(iOS)
+                    .presentationDetents([.large])
+                    #endif
+            }
         }
         .task {
             if mcsm.panels.isEmpty { return }
@@ -138,7 +155,7 @@ struct MCSManagerSection: View {
                 }
                 Menu {
                     Button {
-                        editorMode = .edit(panel)
+                        sheet = .editor(.edit(panel))
                     } label: {
                         Label(String(localized: "Edit Panel"), systemImage: "slider.horizontal.3")
                     }
@@ -184,15 +201,25 @@ struct MCSManagerSection: View {
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(instance.nickname)
-                        .font(.callout)
-                    if let address = instance.address {
-                        Text(address)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
+                // 点实例名 = 打开控制台（最常用的动作给最直接的手势）。
+                // 生命周期动作留在 `⋯` 菜单里 —— 那是"有副作用"的操作，要多一步确认。
+                Button {
+                    guard let model else { return }
+                    sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(instance.nickname)
+                            .font(.callout)
+                        if let address = instance.address {
+                            Text(address)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
+                .disabled(model == nil)
+                .accessibilityIdentifier("mcsm.instanceRow")
                 Spacer(minLength: 8)
                 if let players = instance.players,
                    let current = players.current, let max = players.max,
@@ -240,7 +267,7 @@ struct MCSManagerSection: View {
             }
             Divider()
             Button {
-                consoleTarget = MCSManagerConsoleTarget(instance: instance, model: model)
+                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
             } label: {
                 Label(String(localized: "Console"), systemImage: "terminal")
             }
