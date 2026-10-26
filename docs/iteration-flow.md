@@ -329,3 +329,5 @@ spctl -a -vv --type execute OrzMC.app           # 期望 accepted / Notarized De
 | `Int` 插值进本地化字符串 | 端口显示成 `25,565`（千位分隔） | 先拼成字符串再插值 |
 | 提交信息写在 `-m "..."` 里 | 反引号被 shell 当命令替换，消息变空 | 写文件 + `git commit -F` |
 | `github.com:443` 偶发被阻断 | `git push` 超时，但 `api.github.com` 正常 | 直接等网络恢复，别改 git 配置 |
+| 升了 `Package.resolved` 里的版本 | `Couldn't check out revision '<sha>'`（缓存里的 bare repo 没有新 tag） | `scripts/dev/refresh-package.sh <包名>`（秒级：fetch tags + 删 checkout，不重新克隆）；仍失败再 `--purge` |
+| 磁盘 < 5 GB | 构建半途 `No space left on device`，看不到任何编译错误 | `check.sh` 已加磁盘预检并提示清理；耗时与优化见 [`iteration-cost-2026-10-26.md`](iteration-cost-2026-10-26.md) |

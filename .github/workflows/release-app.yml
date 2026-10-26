@@ -2,6 +2,11 @@ name: Release App
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "演练：完整走签名/公证/打包/断言，但不发 GitHub Release、不提交 appcast"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -90,12 +95,14 @@ jobs:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DERIVED_DATA_PATH: DerivedData
           RESIGN_EXPORTED_APP: "1"
-          PUBLISH_GITHUB: "1"
+          # 演练模式：仍然签名/公证/打包/断言，但不发布（脚本里 PUBLISH_GITHUB=1 才发 Release/写 appcast）。
+          PUBLISH_GITHUB: ${{ inputs.dry_run && '0' || '1' }}
         run: |
           export DEVELOPER_ID_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
           ./scripts/release-macos.sh
 
       - name: Commit appcast.xml
+        if: ${{ !inputs.dry_run }}
         run: |
           git add products/appcast.xml
           git commit -m "Update appcast.xml for macOS release" || echo "No appcast changes"
