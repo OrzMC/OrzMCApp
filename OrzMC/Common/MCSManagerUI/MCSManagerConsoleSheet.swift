@@ -53,7 +53,14 @@ struct MCSManagerConsoleSheet: View {
             commandBar
         }
         .padding(OrzMCTheme.Spacing.md)
+        // ⚠️ 最小尺寸只给 **macOS**（桌面上 sheet 太窄看不出日志）；
+        // iPhone SE 只有 375pt 宽，硬写 `minWidth: 420` 会把标题、日志、发送按钮都挤出屏幕
+        // （真机/模拟器实测：内容被裁掉左右两边，UI 用例也因此查不到控制台容器）。
+        #if os(macOS)
         .frame(minWidth: 420, minHeight: 360)
+        #else
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
         .task { await refreshLoop() }
     }
 
@@ -111,6 +118,9 @@ struct MCSManagerConsoleSheet: View {
         .consoleSurface()
         .defaultScrollAnchor(.bottom)
         .textSelection(.enabled)
+        // `children: .contain`：容器上的 identifier 会**下发给子元素**并覆盖子元素自己的 id，
+        // 不加这个，UI 用例就查不到 `mcsm.console` 本身（踩过：MCSManager 分组同理）。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("mcsm.console")
     }
 
