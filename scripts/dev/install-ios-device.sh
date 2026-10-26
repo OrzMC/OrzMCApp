@@ -51,7 +51,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-DERIVED_DATA="${DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-device}"
+# DerivedData 收敛（2026-10-26 成本复盘 O1）：**与 `check.sh --ios` / `--ui` 共用一套 iOS 目录**。
+# 模拟器产物（`Debug-iphonesimulator`）和真机产物（`Debug-iphoneos`）本来就在不同子目录里共存，
+# 拆两个 DerivedData 只会让 SwiftPM 依赖编两遍。需要隔离时用 `DERIVED_DATA=…` 覆盖。
+DERIVED_DATA="${DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/OrzMC-local-ios}"
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
