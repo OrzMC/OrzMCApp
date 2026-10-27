@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import MCSMAPI
 import OrzMCRemoteHosting
 
 @MainActor
@@ -290,6 +291,11 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
         [12:00:00] [Server thread/INFO]: 演示面板的控制台输出
         [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
         """
+    }
+
+    /// 演示面板**不给**实时流通道（`nil`）→ 界面自动走轮询，正好把回退路径也验收掉。
+    func streamChannel(daemonID: String, instanceUUID: String) async throws -> MCSMStreamChannel? {
+        nil
     }
 
     private func instances(flipped: Bool) -> [MCSManagerInstance] {

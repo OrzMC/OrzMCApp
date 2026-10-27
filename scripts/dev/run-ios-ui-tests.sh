@@ -29,6 +29,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# `--detach` 要把**原始参数**原样传给 Terminal 里的自己，所以在解析前先存一份。
+ORIGINAL_ARGS=("$@")
+
 DETACH=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -49,7 +52,7 @@ if [[ "$DETACH" -eq 1 && "${UI_TESTS_IN_TERMINAL:-0}" != "1" ]]; then
   detach_log="${TMPDIR:-/tmp}/orzmc-ui-tests-$stamp.log"
   runner="${TMPDIR:-/tmp}/orzmc-ui-tests-$stamp.command"
   args=""
-  for a in "$@"; do args+=" $(printf '%q' "$a")"; done
+  for a in "${ORIGINAL_ARGS[@]}"; do args+=" $(printf '%q' "$a")"; done
   self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
   cat > "$runner" <<EOF2
 #!/bin/bash
@@ -206,6 +209,11 @@ COMMON=(
   -skipMacroValidation
 )
 [[ -n "$DEVICE" ]] || COMMON+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='')
+# 可选：`UI_ONLY_TESTING=OrzMCUITests/RemotePanelsUITests/testFoo` 只跑一个用例
+# （排查抖动/复跑单个用例时，省掉整套 6 分钟）。
+if [[ -n "${UI_ONLY_TESTING:-}" ]]; then
+  COMMON+=(-only-testing:"$UI_ONLY_TESTING")
+fi
 
 # 先单独构建 App：Xcode 在 "Products 里没有 OrzMC.app" 时会报
 # `bundle identifier for OrzMC couldn't be read`（路径少了 .app），这一步保证产物一定在。
@@ -241,8 +249,12 @@ if [[ -n "$DEVICE" ]]; then
   LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
   step "执行 UI 测试（真机）"
   echo "  假服务端地址：${LAN_IP:-未取到}（真机通过局域网访问 Mac；默认测试用应用内假数据）"
+  # `-only-testing` 在 `test-without-building` 上也生效；用 ${arr[@]+…} 展开成"零个参数"，
+  # 否则空数组会变成一个空字符串参数（踩过：`Unknown build action ''`）。
+  ONLY_ARGS=()
+  [[ -n "${UI_ONLY_TESTING:-}" ]] && ONLY_ARGS+=(-only-testing:"$UI_ONLY_TESTING")
   TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
-    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" 2>&1 \
+    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" ${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"} 2>&1 \
     | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
   exit ${PIPESTATUS[0]}
 fi

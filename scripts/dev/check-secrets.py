@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import hashlib
 import os
 import subprocess
@@ -133,7 +134,11 @@ def main() -> int:
             if path in EXEMPT:
                 continue
             for key, value in secrets.items():
-                if value in text:
+                # 用**词边界**匹配：短口令（如 `jokerhub`）常常是域名/主机名的一部分
+                # （`mcs.jokerhub.cn`），按子串匹配会一直误报，误报多了这个检查就没人看了。
+                # 真正的口令是独立 token，加了边界照样能抓。
+                pattern = r"(?<![A-Za-z0-9_.-])" + re.escape(value) + r"(?![A-Za-z0-9_.-])"
+                if re.search(pattern, text):
                     hits.append(f"{path}:{line_number} 命中 {key}（{hint(value)}）")
         if hits:
             print("✗ 检测到本地测试凭据出现在**本次新增**的内容里：", file=sys.stderr)

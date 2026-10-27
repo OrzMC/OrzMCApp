@@ -13,6 +13,7 @@
 
 import Foundation
 
+import MCSMAPI
 import OrzMCRemoteHosting
 
 /// 面板上的一个节点（Daemon）。
@@ -63,4 +64,10 @@ protocol MCSManagerPanelAPI: Sendable {
     /// 控制台的**日志尾部**（面板返回纯文本，可能从半行开始）。
     /// - Parameter tailSize: 只取末尾多少字节（`nil` = 面板默认，可能很大）。
     func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String
+
+    /// 控制台**实时流**通道（`POST /api/protected_instance/stream_channel`）。
+    ///
+    /// 返回 `nil` 表示面板给不出通道信息（版本太老 / 字段缺失）——调用方回退轮询。
+    /// 拿到之后还要去连 `addr` 上的 socket.io；连不上（节点在 NAT 后面）同样回退轮询。
+    func streamChannel(daemonID: String, instanceUUID: String) async throws -> MCSMStreamChannel?
 }

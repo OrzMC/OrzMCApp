@@ -1,4 +1,5 @@
 import XCTest
+import MCSMAPI
 import OrzMCRemoteHosting
 
 @testable import OrzMC
@@ -66,6 +67,16 @@ private actor FakePanelAPI: MCSManagerPanelAPI {
         calls.append("outputlog:\(daemonID)/\(instanceUUID):\(tailSize ?? -1)")
         if let actionFailure { throw actionFailure }
         return "[12:00:00] [Server thread/INFO]: Done"
+    }
+
+    /// 实时流通道：默认给 `nil`（= 面板不支持 → 调用方回退轮询），可按需给一条假通道。
+    var streamChannelResult: MCSMStreamChannel?
+    func setStreamChannel(_ channel: MCSMStreamChannel?) { streamChannelResult = channel }
+
+    func streamChannel(daemonID: String, instanceUUID: String) async throws -> MCSMStreamChannel? {
+        calls.append("channel:\(daemonID)/\(instanceUUID)")
+        if let actionFailure { throw actionFailure }
+        return streamChannelResult
     }
 }
 

@@ -14,6 +14,8 @@
 
 import Foundation
 
+import MCSMAPI
+import MCSMStream
 import OrzMCFoundation
 import OrzMCRemoteHosting
 
@@ -149,6 +151,10 @@ final class MCSManagerModel {
     /// 诊断轨迹（仅 DEBUG）：记录每次刷新走了哪条分支、拿到了什么，供 `ORZMC_DEMO_MCSM_DIAGNOSE` 导出。
     @ObservationIgnored
     var debugTrace: [String] = []
+
+    /// 实时流自检结果（仅 DEBUG，见 `probeStream()`）。
+    @ObservationIgnored
+    var streamProbeResults: [[String: Any]] = []
     #endif
 
     /// App 是否在前台（由场景驱动）。后台时不轮询。
@@ -255,6 +261,58 @@ final class MCSManagerModel {
         }
     }
 
+    /// **仅 DEBUG**：实时流自检（`ORZMC_DEMO_MCSM_STREAM_PROBE=1`）。
+    ///
+    /// 对每台在线实例：申请通道 → 连 socket.io → 等 `stream/auth` → 发一条 `/list` → 等输出。
+    /// 结果进 `streamProbeResults`，由 `writeDiagnose` 落到诊断文件。
+    func probeStream() async {
+        let online = instances.filter { state(of: $0) == .online }
+        debugTrace.append("stream-probe: 共 \(instances.count) 台，在线 \(online.count) 台")
+        guard let panelURL else {
+            streamProbeResults.append(["error": "面板地址为空"])
+            return
+        }
+        for instance in online {
+            debugTrace.append("stream-probe: 开始 \(instance.id)")
+            var record: [String: Any] = [
+                "instance": instance.id,
+                "nickname": instance.nickname,
+            ]
+            do {
+                let client = MCSMStreamClient(configuration: .init(handshakeTimeout: .seconds(20), maxAttempts: 1)) {
+                    guard let channel = try await self.streamChannel(for: instance) else {
+                        throw MCSMStreamEndpoint.Error.invalidAddress("面板没有返回通道（老版本？）")
+                    }
+                    return try MCSMStreamEndpoint(channel: channel, panelURL: panelURL)
+                }
+                var ready = false
+                var output = ""
+                let deadline = ContinuousClock.now + .seconds(30)
+                for await event in await client.events() {
+                    switch event {
+                    case .ready:
+                        ready = true
+                        try? await client.sendCommand("/list")
+                    case let .output(text):
+                        output += text
+                    case let .fallback(reason):
+                        record["fallback"] = reason
+                    case .connecting, .lifecycle:
+                        break
+                    }
+                    if ready && output.utf8.count > 16 { break }
+                    if ContinuousClock.now > deadline { break }
+                }
+                await client.close()
+                record["ready"] = ready
+                record["output"] = String(output.suffix(400))
+            } catch {
+                record["error"] = MCSManagerErrorText.describe(error) ?? "\(error)"
+            }
+            streamProbeResults.append(record)
+        }
+    }
+
     /// **仅 DEBUG** 的验收钩子：`ORZMC_DEMO_MCSM_DIAGNOSE=1` 时把本次刷新的结果写到
     /// `Caches/orzmc-mcsm-<面板 id>.json`。
     ///
@@ -273,6 +331,7 @@ final class MCSManagerModel {
             "hasLoaded": hasLoaded,
             "error": error ?? NSNull(),
             "trace": debugTrace,
+            "stream": streamProbeResults,
             "instances": instances.map { instance in
                 [
                     "id": instance.id,
@@ -469,6 +528,22 @@ final class MCSManagerModel {
             tailSize: tailSize
         )
     }
+
+    // MARK: - 控制台实时流（B1）
+
+    /// 申请一条控制台实时流通道。
+    ///
+    /// 返回 `nil` = 面板给不出通道信息（老版本）→ 调用方按"没有实时流"处理（轮询）。
+    func streamChannel(for instance: MCSManagerInstance) async throws -> MCSMStreamChannel? {
+        guard let api = api() else { throw MCSManagerModelError.unauthorized(panelMessage: nil) }
+        return try await api.streamChannel(
+            daemonID: instance.daemonID,
+            instanceUUID: instance.instanceUUID
+        )
+    }
+
+    /// 面板地址（实时流要拿它把 `127.0.0.1` 换回真实主机、决定 `ws`/`wss`）。
+    var panelURL: URL? { panel?.url }
 
     /// 按当前面板凭据造一个客户端；没有凭据就返回 nil（界面不该在无凭据时发请求）。
     private func api() -> (any MCSManagerPanelAPI)? {
