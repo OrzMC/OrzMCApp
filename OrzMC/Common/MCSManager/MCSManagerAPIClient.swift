@@ -56,6 +56,67 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         )
     }
 
+    // MARK: - 控制台实时流（B1）
+
+    func streamChannel(daemonID: String, instanceUUID: String) async throws -> MCSMStreamChannel? {
+        let output = try await client.getStreamChannel(
+            query: .init(daemonId: daemonID, uuid: instanceUUID)
+        )
+        switch output {
+        case .ok(let ok):
+            switch ok.body {
+            case .json(let response):
+                return MCSMStreamChannel(response)
+            case .plainText(let body):
+                // 面板有时把同一份 JSON 用 `text/plain` 送出来（协议中间件的老毛病）。
+                let data = try await Data(collecting: body, upTo: 64 * 1024)
+                return MCSMStreamChannel(text: String(decoding: data, as: UTF8.self))
+            @unknown default:
+                // 未文档化的响应（面板加了新的 content type）：当成服务端错误，别静默成功。
+                throw MCSManagerModelError.server(0, panelMessage: nil)
+            }
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await Self.channelErrorMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await Self.channelErrorMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await Self.panelMessage(from: payload.body))
+        }
+    }
+
+    /// `stream_channel` 的错误体：既可能是 `ErrorResponse`，也可能是 `text/plain` 的 JSON 文本。
+    /// 403 与 500 的 `Body` 是**两个不同的生成类型**，所以这里两个重载。
+    static func channelErrorMessage(from body: Operations.getStreamChannel.Output.Forbidden.Body) async -> String? {
+        switch body {
+        case .json(let response):
+            return panelMessage(from: response)
+        case .plainText(let textBody):
+            return await plainTextMessage(from: textBody)
+        @unknown default:
+            return nil
+        }
+    }
+
+    static func channelErrorMessage(from body: Operations.getStreamChannel.Output.InternalServerError.Body) async -> String? {
+        switch body {
+        case .json(let response):
+            return panelMessage(from: response)
+        case .plainText(let textBody):
+            return await plainTextMessage(from: textBody)
+        @unknown default:
+            return nil
+        }
+    }
+
+    static func plainTextMessage(from body: HTTPBody) async -> String? {
+        let data = (try? await Data(collecting: body, upTo: 64 * 1024)) ?? Data()
+        if let response = try? JSONDecoder().decode(Components.Schemas.ErrorResponse.self, from: data) {
+            return panelMessage(from: response)
+        }
+        let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
+    }
+
     // MARK: - 动作 + 控制台（P2-7 第 5 步）
 
     func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {

@@ -871,6 +871,16 @@
         }
       }
     },
+    "Connecting…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接中…"
+          }
+        }
+      }
+    },
     "Console": {
       "localizations": {
         "zh-Hans": {
@@ -2051,6 +2061,16 @@
         }
       }
     },
+    "Live": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时"
+          }
+        }
+      }
+    },
     "Loading remote servers…": {
       "localizations": {
         "zh-Hans": {
@@ -2701,6 +2721,16 @@
         }
       }
     },
+    "Panel not configured": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板未配置"
+          }
+        }
+      }
+    },
     "Path": {
       "localizations": {
         "zh-Hans": {
@@ -2827,6 +2857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "插件 — %@"
+          }
+        }
+      }
+    },
+    "Polling": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轮询"
           }
         }
       }

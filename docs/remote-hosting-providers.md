@@ -93,14 +93,48 @@ center.shouldRefresh(hasCredentials: true, isAppActive: true, isLoading: false)
 - 键是 `RemoteInstanceID`（供应商 + 原始 ID），不是裸字符串；
 - `RemoteInstanceStatus` 同时保留 `state`（归一化）与 `rawStatus`（供应商状态码），
   细节（LOADING / PREPARING）不丢；
-- MCSM 没有 WS：从不记 activity，`shouldRefresh` 自然退化成"按最小间隔轮询"，
-  **不需要给 MCSM 另写一套节律**；
+- MCSM 的**状态**仍然没有 WS：从不记 activity，`shouldRefresh` 自然退化成"按最小间隔轮询"，
+  **不需要给 MCSM 另写一套节律**（控制台的实时流只喂日志，不改状态来源，见下节）；
 - 换账号 `reset()` / 实例消失 `forget()`；订阅者保留，界面不用重订阅。
 
 ⚠️ 三条红线（P2-7 全程有效）：
 1. **不要**改"WebSocket 是否安静 30 秒"这个轮询判据；
 2. 状态徽章只有 `OrzMCStatusBadge` 一个实现；
 3. 控制台解析按 Unicode 标量遍历，行尾 `\r` 不能丢整行（[`console-rendering.md`](console-rendering.md)）。
+
+## 控制台实时流（B1，2026-10-27）
+
+MCSM 控制台原来只能 3 秒轮询 `outputlog`；现在优先走**面板的实时流**，失败才回退轮询。
+两条路共用 `ConsoleTextParser` + `ConsoleLineText` 渲染，用户看不出区别（只有顶部一格小字 Live/Polling）。
+
+```
+POST /api/protected_instance/stream_channel   → {addr, password, prefix}   （一次性口令）
+        ↓
+wss://<addr><prefix>/socket.io/?EIO=4&transport=websocket      （Engine.IO v4 / Socket.IO v5）
+   emit stream/auth {data:{password:…}}  →  收 {data:true}
+   emit stream/detail {}
+   收 instance/stdout {data:{text:…}}   ← 节点的原始终端输出
+```
+
+分层：
+
+| 层 | 文件 | 职责 |
+|---|---|---|
+| 协议 | `swift/lib/MCSManagerAPI`（product `MCSMStream`） | 地址解析、帧编解码、连接/心跳/重连、鉴权 |
+| 接入 | `OrzMC/Common/MCSManager/MCSManagerPanelAPI.swift` + `MCSManagerAPIClient` | 申请通道（把生成类型抹平成 `MCSMStreamChannel`） |
+| 界面 | `MCSManagerConsoleSheet` | 实时流优先；`.fallback` → 轮询；文本进 `ConsoleTextBuffer`（超长按行裁剪） |
+
+必须知道的四件事：
+
+1. **口令一次性**：每次重连都要重新申请通道 → `MCSMStreamClient` 收的是 `makeEndpoint` 闭包；
+2. **`addr` 可能是节点视角**（`127.0.0.1:24444`）：回环地址换成本面板主机名，连不上就回退轮询
+   （`dataPlane=direct` + 节点在 NAT 后面时这是**正常**路径，不是错误）；
+3. **`/socket.io/` 尾部斜杠不能少**（少了 404 / `-1011` 握手失败），**必须回 pong**（否则 20~25 秒被踢）；
+4. **状态不走这条流**：`RemoteStatusCenter` 仍是唯一状态来源（红线 1）。
+   实时流只往控制台灌日志，`instance/stopped` 之类事件只用来更新时间戳，不改徽章。
+
+自检（不需要看界面）：`ORZMC_DEMO_MCSM_DIAGNOSE=1 ORZMC_DEMO_MCSM_STREAM_PROBE=1`
+→ 诊断文件里的 `stream` 字段会写明每台实例 `ready` / 输出片段 / 回退原因。
 
 ## 分组（`RemoteHostingGrouping`）
 

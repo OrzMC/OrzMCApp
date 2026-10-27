@@ -27,6 +27,15 @@ enum MCSManagerDiagnose {
     /// **务必用只读命令**（`/list`、`/tps`），别用会改服务器状态的（`stop`、`/kick`）。
     static let actionProbeKey = "ORZMC_DEMO_MCSM_ACTION_PROBE"
 
+    /// 可选：`ORZMC_DEMO_MCSM_STREAM_PROBE=1` —— 对每台**在线**实例跑一次实时流
+    /// （申请通道 → 连 socket.io → 等 `stream/auth` → 发一条 `/list` → 等输出），
+    /// 结果写进诊断文件的 `stream` 字段。
+    ///
+    /// 为什么需要它：实时流"能不能连上"取决于面板 `dataPlane` 与节点是否可达，
+    /// 只有真面板能回答；而界面上它失败时会**静默回退轮询**（这是设计），
+    /// 所以必须有一条不依赖截图的自检。
+    static let streamProbeKey = "ORZMC_DEMO_MCSM_STREAM_PROBE"
+
     static var isRequested: Bool {
         ProcessInfo.processInfo.environment[environmentKey] == "1"
     }
@@ -47,6 +56,9 @@ enum MCSManagerDiagnose {
                 guard let panelModel = model.model(for: panel.id) else { continue }
                 if let probe, !probe.isEmpty {
                     await panelModel.probeCommands(probe)
+                }
+                if ProcessInfo.processInfo.environment[streamProbeKey] == "1" {
+                    await panelModel.probeStream()
                 }
                 // 成功时 reload 里已经写过；这里补写一次带上最终的错误文案。
                 panelModel.writeDiagnose(error: panelModel.errorMessage)

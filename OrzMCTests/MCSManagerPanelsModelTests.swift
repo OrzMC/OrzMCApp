@@ -1,3 +1,4 @@
+import MCSMAPI
 import XCTest
 import OrzMCRemoteHosting
 
@@ -220,4 +221,6 @@ extension AuthOnlyPanelAPI {
     func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {}
     func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {}
     func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String { "" }
+
+    func streamChannel(daemonID: String, instanceUUID: String) async throws -> MCSMStreamChannel? { nil }
 }
