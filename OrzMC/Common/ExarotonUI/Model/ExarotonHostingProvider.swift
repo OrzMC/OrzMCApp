@@ -30,6 +30,12 @@ struct ExarotonHostingProvider: RemoteHostingProvider {
             throw RemoteHostingError.wrongProvider(expected: kind, actual: instance.provider)
         }
 
+        // exaroton 没有"强杀"这个操作（它只有 start/stop/restart，服务器由平台托管）——
+        // 明确拒绝，别静默退化成 stop（那会让界面以为强杀成功了）。
+        guard action != .kill else {
+            throw RemoteHostingError.actionNotSupported(action)
+        }
+
         let accepted: Bool
         switch action {
         case .start:
@@ -38,6 +44,8 @@ struct ExarotonHostingProvider: RemoteHostingProvider {
             accepted = await model.stopServer(serverId: instance.rawValue)
         case .restart:
             accepted = await model.restartServer(serverId: instance.rawValue)
+        case .kill:
+            throw RemoteHostingError.actionNotSupported(action)
         }
 
         // 失败原因模型已经写进 `actionErrors`（界面在动作旁展示、可重试）。

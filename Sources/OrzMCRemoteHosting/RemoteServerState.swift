@@ -23,6 +23,13 @@ public enum RemoteServerAction: Equatable, Sendable, CaseIterable {
     case start
     case stop
     case restart
+    /// **强制终止**（面板叫 kill / 强制停止）：直接杀进程，不给服务器存档/退出的机会。
+    ///
+    /// 它存在的唯一理由是「优雅停止卡住了」—— 停止是异步的，服务器读档/卡死时会长时间停在
+    /// `stopping`，这时只有强杀。因此它是唯一一个**允许在自己的过渡态里执行**的动作（见
+    /// `RemoteServerListPolicy.canPerform`）。不是所有供应商都支持（exaroton 没有 → 抛
+    /// `actionNotSupported`）。
+    case kill
 
     /// 动作**提交后、面板确认前**应显示的过渡态。
     ///
@@ -33,6 +40,8 @@ public enum RemoteServerAction: Equatable, Sendable, CaseIterable {
         case .start: return .starting
         case .stop: return .stopping
         case .restart: return .restarting
+        // 强杀之后也是"停止中→离线"（进程被干掉，面板下一次轮询才会报 stopped）。
+        case .kill: return .stopping
         }
     }
 }
@@ -58,6 +67,13 @@ public struct RemoteServerListPolicy: Sendable {
 
     /// 该状态下是否允许执行该动作。
     public func canPerform(_ action: RemoteServerAction, on state: RemoteServerState) -> Bool {
+        // 强杀是"救命按钮"：只要不是已经停了就给 —— 面板前端的条件也是 `!isStopped`
+        // （源码 `frontend/src/widgets/instance/Terminal.vue`：`condition: () => !isStopped.value`）。
+        // 尤其是 `.stopping`：那正是它要解决的场景（优雅停止卡住）。
+        if action == .kill {
+            return state != .offline
+        }
+
         switch (action, state) {
         // **过渡态（starting / stopping / restarting / loading…）一律不允许动作**：
         // exaroton 会直接拒绝，用户看到的就是"点了报错"（真机实测：启动中/停止中/重启中都会报）。

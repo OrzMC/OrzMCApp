@@ -24,6 +24,10 @@ struct MCSManagerSection: View {
     /// 合并成一个枚举就没这个问题。
     @State private var sheet: Sheet?
 
+    /// 等待确认的「强制终止」目标（强杀会丢未保存进度，必须二次确认）。
+    /// 用 `MCSManagerConsoleTarget` 只是为了顺手带上"它属于哪个面板的模型"。
+    @State private var confirmingKill: MCSManagerConsoleTarget?
+
     enum Sheet: Identifiable {
         case editor(MCSManagerPanelEditor.Mode)
         case console(MCSManagerConsoleTarget)
@@ -98,6 +102,28 @@ struct MCSManagerSection: View {
                     .presentationDetents([.large])
                     #endif
             }
+        }
+        .confirmationDialog(
+            String(localized: "Force stop this server?"),
+            isPresented: Binding(
+                get: { confirmingKill != nil },
+                set: { if !$0 { confirmingKill = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: confirmingKill
+        ) { target in
+            Button(String(localized: "Force Stop"), role: .destructive) {
+                Task { await target.model.perform(.kill, on: target.instance) }
+                confirmingKill = nil
+            }
+            Button(String(localized: "Cancel"), role: .cancel) { confirmingKill = nil }
+        } message: { target in
+            Text(
+                String(
+                    localized: "“\(target.instance.nickname)” will be terminated immediately. Unsaved world data and player progress may be lost.",
+                    comment: "强杀确认：说明会丢未保存数据"
+                )
+            )
         }
         .task {
             if mcsm.panels.isEmpty { return }
@@ -240,12 +266,55 @@ struct MCSManagerSection: View {
                 }
             }
 
+            if let model, state == .stopping, let progress = model.stopProgress(for: instance) {
+                stopHint(instance, model: model, progress: progress)
+            }
+
             if let error = model?.actionErrors[instance.id] {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(OrzMCTheme.Palette.danger)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    /// 「正在停止…（12 秒）」——停止是异步的，用户需要知道它不是没反应；
+    /// 等太久（`RemoteStopProgress.suggestsForceStop`）就顺手给出强杀入口。
+    ///
+    /// 每秒刷新一次是**必须**的（否则秒数不动，看着像卡死）：用 `TimelineView` 只重绘这一行的小字，
+    /// 不去驱动整个列表。
+    private func stopHint(
+        _ instance: MCSManagerInstance,
+        model: MCSManagerModel,
+        progress: RemoteStopProgress
+    ) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let live = model.stopProgress(for: instance, now: context.date) ?? progress
+            HStack(spacing: 6) {
+                if live.suggestsForceStop {
+                    Text(
+                        String(
+                            localized: "Still stopping after \(live.seconds)s — it may be stuck.",
+                            comment: "停止进度：久等提示，秒数为占位"
+                        )
+                    )
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                } else {
+                    Text(String(localized: "Stopping… \(live.seconds)s", comment: "停止进度秒数"))
+                        .foregroundStyle(.secondary)
+                }
+                if live.suggestsForceStop {
+                    Button(String(localized: "Force Stop")) {
+                        confirmingKill = MCSManagerConsoleTarget(instance: instance, model: model)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .accessibilityIdentifier("mcsm.forceStopInline")
+                }
+            }
+            .font(.caption.monospacedDigit())
+            .accessibilityIdentifier("mcsm.stopProgress")
         }
     }
 
@@ -265,6 +334,14 @@ struct MCSManagerSection: View {
                 }
                 .disabled(!model.canPerform(action, on: instance))
             }
+            Divider()
+            Button(role: .destructive) {
+                confirmingKill = MCSManagerConsoleTarget(instance: instance, model: model)
+            } label: {
+                Label(RemoteServerAction.kill.localizedTitle, systemImage: RemoteServerAction.kill.systemImage)
+            }
+            .disabled(!model.canPerform(.kill, on: instance))
+            .accessibilityIdentifier("mcsm.forceStop")
             Divider()
             Button {
                 sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
