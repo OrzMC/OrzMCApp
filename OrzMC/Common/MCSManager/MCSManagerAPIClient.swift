@@ -134,6 +134,10 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
             try await Self.unwrap(
                 client.restartInstance(query: .init(daemonId: daemonID, uuid: instanceUUID))
             )
+        case .kill:
+            try await Self.unwrap(
+                client.killInstance(query: .init(daemonId: daemonID, uuid: instanceUUID))
+            )
         }
     }
 
@@ -273,6 +277,19 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
         }
     }
 
+    static func unwrap(_ output: Operations.killInstance.Output) async throws {
+        switch output {
+        case .ok:
+            return
+        case .forbidden(let response):
+            throw MCSManagerModelError.unauthorized(panelMessage: await panelMessage(from: response.body))
+        case .internalServerError(let response):
+            throw MCSManagerModelError.server(500, panelMessage: await panelMessage(from: response.body))
+        case .undocumented(statusCode: let statusCode, let payload):
+            throw MCSManagerModelError.server(statusCode, panelMessage: await panelMessage(from: payload.body))
+        }
+    }
+
     static func unwrap(_ output: Operations.sendCommand.Output) async throws {
         switch output {
         case .ok:
@@ -342,6 +359,14 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
     }
 
     static func panelMessage(from body: Operations.restartInstance.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.killInstance.Output.Forbidden.Body) async -> String? {
+        await panelMessage(fromErrorBody: body)
+    }
+
+    static func panelMessage(from body: Operations.killInstance.Output.InternalServerError.Body) async -> String? {
         await panelMessage(fromErrorBody: body)
     }
 

@@ -1591,6 +1591,28 @@
         }
       }
     },
+    "Force Stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "强制停止"
+          }
+        }
+      }
+    },
+    "Force stop this server?": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "强制停止这台服务器？"
+          }
+        }
+      }
+    },
     "Game": {
       "localizations": {
         "zh-Hans": {
@@ -4291,6 +4313,17 @@
         }
       }
     },
+    "Still stopping after %llds — it may be stuck.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已经 %lld 秒还没停下来，可能卡住了。"
+          }
+        }
+      }
+    },
     "Stop": {
       "localizations": {
         "zh-Hans": {
@@ -4437,6 +4470,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "停止中…"
+          }
+        }
+      }
+    },
+    "Stopping… %llds": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在停止…%lld 秒"
           }
         }
       }
@@ -5557,6 +5601,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "普通用户"
+          }
+        }
+      }
+    },
+    "“%@” will be terminated immediately. Unsaved world data and player progress may be lost.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”会被立即终止，未保存的世界数据和玩家进度可能丢失。"
           }
         }
       }

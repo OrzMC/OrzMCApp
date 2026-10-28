@@ -44,6 +44,15 @@ final class RemoteServerListPolicyTests: XCTestCase {
         XCTAssertTrue(policy.canPerform(.restart, on: .online))
         XCTAssertFalse(policy.canPerform(.start, on: .starting))
         XCTAssertFalse(policy.canPerform(.stop, on: .offline))
+        // 强杀：只要没停就能点（面板前端 `condition: () => !isStopped`）——
+        // 启动中/停止中/重启中/未知都给，正是为了打破"卡在停止中"。
+        XCTAssertTrue(policy.canPerform(.kill, on: .online))
+        XCTAssertTrue(policy.canPerform(.kill, on: .starting))
+        XCTAssertTrue(policy.canPerform(.kill, on: .stopping))
+        XCTAssertTrue(policy.canPerform(.kill, on: .restarting))
+        XCTAssertTrue(policy.canPerform(.kill, on: .unknown))
+        XCTAssertFalse(policy.canPerform(.kill, on: .offline))
+
         // 过渡态一律不允许：exaroton 会拒绝（真机实测启动中/停止中/重启中点了都报错）
         XCTAssertFalse(policy.canPerform(.stop, on: .starting))
         XCTAssertFalse(policy.canPerform(.restart, on: .starting))

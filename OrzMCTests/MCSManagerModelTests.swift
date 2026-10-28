@@ -459,6 +459,49 @@ final class MCSManagerModelTests: XCTestCase {
         XCTAssertNil(model.actionErrors[target.id])
     }
 
+    /// 强杀：端点走 `/kill`，并且在**停止中**也允许点（那正是它要解决的场景）。
+    func testKillIsAllowedWhileStoppingAndCallsKillEndpoint() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 1)], maxPage: 1)  // 1 = stopping
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+
+        XCTAssertEqual(model.state(of: target), .stopping)
+        XCTAssertFalse(model.canPerform(.stop, on: target), "优雅停止已经卡住了，不该再点")
+        XCTAssertTrue(model.canPerform(.kill, on: target), "强杀正是为这时准备的")
+
+        await model.perform(.kill, on: target)
+
+        let calls = await api.calls
+        XCTAssertTrue(calls.contains("perform:kill:d1/i1"), "实际调用：\(calls)")
+        XCTAssertNil(model.actionErrors[target.id])
+
+        // 强杀也开始计时：实例仍报 stopping → 进度保留，界面能显示「已经等了 N 秒」。
+        let progress = model.stopProgress(for: model.instances[0])
+        XCTAssertNotNil(progress, "强杀后实例还没真停，应继续显示进度")
+        XCTAssertEqual(progress?.level, .normal)
+    }
+
+    /// 停止进度：提交后开始计时，实例真的离开 stopping 就收掉。
+    func testStopProgressStartsOnStopAndClearsWhenStopped() async {
+        let api = FakePanelAPI(
+            daemons: [.init(uuid: "d1", available: true)],
+            page: .init(instances: [instance("i1", status: 3)], maxPage: 1)  // 3 = online
+        )
+        let model = makeModel(api: api)
+        await model.reload()
+        let target = model.instances[0]
+        XCTAssertNil(model.stopProgress(for: target), "没提交过停止就没有进度")
+
+        await model.perform(.stop, on: target)
+
+        // 假面板停止后仍报 online → 刷新时进度被收掉（不能一直显示"正在停止"）。
+        XCTAssertNil(model.stopProgress(for: target), "实例没在 stopping，进度应清掉")
+    }
+
     /// 过渡态（启动中 / 停止中）不允许再点：`canPerform` 对过渡态一律 false。
     func testTransitionalStateBlocksActions() async {
         let api = FakePanelAPI(

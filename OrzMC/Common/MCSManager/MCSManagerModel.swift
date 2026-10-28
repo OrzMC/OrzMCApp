@@ -130,6 +130,14 @@ final class MCSManagerModel {
     /// 正在发送控制台命令的实例。
     private(set) var pendingCommands: Set<String> = []
 
+    /// 「停止」请求的提交时刻（键是 `instance.id`）。
+    ///
+    /// 为什么需要它：面板的停止是**异步**的 —— 立即返回 200，实例随后进 `STOPPING`，服务器读完档
+    /// 才退出。卡住时用户只能干等，所以界面要显示"等了多久"并在久等后建议强杀
+    /// （`RemoteStopProgress` 负责判定，模型只记时间）。
+    /// 只在实例**真的离开 `stopping`** 时清掉，`reload()` 成功不清（否则进度刚显示就没了）。
+    private(set) var stopRequestedAt: [String: Date] = [:]
+
     /// 状态中心（一个面板一份）。键是 `RemoteInstanceID(.mcsmanager, "daemon/uuid")`。
     @ObservationIgnored
     let statusCenter = RemoteStatusCenter()
@@ -220,6 +228,11 @@ final class MCSManagerModel {
             // 刷新拿到的是面板真实状态 → 过渡态与旧错误都该退场。
             pendingStates.removeAll()
             actionErrors.removeAll()
+            // 停止进度只在"还在停"时有意义；真停了/没停成（回到 online）就收掉。
+            stopRequestedAt = stopRequestedAt.filter { id, _ in
+                guard let instance = instance(withID: id) else { return false }
+                return instance.status.remoteState == .stopping
+            }
             publishStatuses()
             #if DEBUG
             writeDiagnose(error: nil)
@@ -484,12 +497,24 @@ final class MCSManagerModel {
     /// 执行一个生命周期动作：占用互斥 → 乐观过渡态 → 发请求 → 立刻刷新拿真实状态。
     ///
     /// 失败不假装成功：过渡态撤回、错误写进 `actionErrors[id]`（界面在实例行下面显示）。
+    /// 这台实例已经"在停"多久了（nil = 没有在途的停止请求）。
+    ///
+    /// 界面用它显示「正在停止…（12 秒）」并在 `suggestsForceStop` 时提示强杀。
+    func stopProgress(for instance: MCSManagerInstance, now: Date = Date()) -> RemoteStopProgress? {
+        guard let startedAt = stopRequestedAt[instance.id] else { return nil }
+        return RemoteStopProgress(since: startedAt, now: now)
+    }
+
     func perform(_ action: RemoteServerAction, on instance: MCSManagerInstance) async {
         guard canPerform(action, on: instance), let api = api() else { return }
         guard gate.beginAction(serverID: instance.id) else { return }
 
         pendingStates[instance.id] = action.pendingState
         actionErrors[instance.id] = nil
+        // 停止/强杀都要开始计时（强杀之后同样要等进程真的没了）。
+        if action == .stop || action == .kill {
+            stopRequestedAt[instance.id] = Date()
+        }
         defer { gate.endAction(serverID: instance.id) }
 
         do {

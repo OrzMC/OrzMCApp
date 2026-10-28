@@ -51,6 +51,7 @@ extension RemoteServerAction {
         case .start: return String(localized: "Start")
         case .stop: return String(localized: "Stop")
         case .restart: return String(localized: "Restart")
+        case .kill: return String(localized: "Force Stop")
         }
     }
 
@@ -59,6 +60,7 @@ extension RemoteServerAction {
         case .start: return "play.fill"
         case .stop: return "stop.fill"
         case .restart: return "arrow.clockwise"
+        case .kill: return "bolt.slash"
         }
     }
 }

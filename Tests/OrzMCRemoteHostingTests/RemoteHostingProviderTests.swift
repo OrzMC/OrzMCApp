@@ -153,11 +153,14 @@ private actor ActionRecorder {
         XCTAssertEqual(RemoteServerAction.start.pendingState, .starting)
         XCTAssertEqual(RemoteServerAction.stop.pendingState, .stopping)
         XCTAssertEqual(RemoteServerAction.restart.pendingState, .restarting)
+        XCTAssertEqual(RemoteServerAction.kill.pendingState, .stopping)
 
         // 过渡态本身必须挡住同一个动作（否则界面还能再点一次）。
+        // **例外**：`kill` 是救命按钮，它的过渡态就是 `stopping` —— 那时正是它要解决的场景。
         let policy = RemoteServerListPolicy()
-        for action in RemoteServerAction.allCases {
+        for action in RemoteServerAction.allCases where action != .kill {
             XCTAssertFalse(policy.canPerform(action, on: action.pendingState))
         }
+        XCTAssertTrue(policy.canPerform(.kill, on: .stopping))
     }
 }

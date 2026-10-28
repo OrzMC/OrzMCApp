@@ -102,6 +102,39 @@ center.shouldRefresh(hasCredentials: true, isAppActive: true, isLoading: false)
 2. 状态徽章只有 `OrzMCStatusBadge` 一个实现；
 3. 控制台解析按 Unicode 标量遍历，行尾 `\r` 不能丢整行（[`console-rendering.md`](console-rendering.md)）。
 
+## 动作：强杀 + 停止进度（B2，2026-10-28）
+
+**为什么需要强杀**：MCSM 的 `/stop` 是**异步**的 —— 面板立即返回 200，实例进 `STOPPING`，
+服务器自己读档、保存、退出。存档很大 / 插件死锁 / JVM 假死时会一直停在 `STOPPING`，
+这时唯一出路是 `kill`（守护进程直接杀进程，**不给保存机会**）。
+
+```
+GET /api/protected_instance/kill?daemonId=…&uuid=…
+   → 面板 router.all（前端用 GET）→ 守护进程 instance/kill → execPreset("kill")
+   → 面板侧超时 30 秒（INSTANCE_KILL_TIMEOUT，其它动作短得多）
+```
+
+规则（`RemoteServerListPolicy.canPerform`）：
+
+| 动作 | 可用条件 | 备注 |
+|---|---|---|
+| `start` | `offline` | |
+| `stop` / `restart` | `online` | 过渡态一律不给（exaroton 会直接拒绝） |
+| `kill` | **只要不是 `offline`**（含 `stopping` / `starting` / `restarting` / `unknown`） | 救命按钮，唯一允许在自己过渡态里执行的动作；面板前端条件也是 `!isStopped` |
+
+供应商差异：**exaroton 没有强杀**（平台托管），`ExarotonHostingProvider.perform(.kill)` 抛
+`actionNotSupported`，界面也不给它按钮 —— 不要静默退化成 `stop`。
+
+**停止进度**（`RemoteStopProgress`，纯逻辑可单测）：
+
+- 提交 `stop` / `kill` 时记 `stopRequestedAt[id]`；刷新时如果实例已不在 `stopping` 就清掉；
+- `< 30 s`：`normal` → 界面显示「正在停止…（12 秒）」；
+- `30–60 s`：`slow` → 提示可以强杀（存档大/低 TPS 时正常）；
+- `≥ 60 s`：`stalled` → 提示可能卡住，并把「强制停止」放在行内（不必翻菜单）；
+- 秒数用 `TimelineView(.periodic(by: 1))` 只重绘那一行小字，不驱动整个列表。
+
+阈值是**行为约定**，改它等于改用户看到提示的时机 → 要连 `RemoteStopProgressTests` 一起改。
+
 ## 控制台实时流（B1，2026-10-27）
 
 MCSM 控制台原来只能 3 秒轮询 `outputlog`；现在优先走**面板的实时流**，失败才回退轮询。

@@ -171,6 +171,9 @@ struct ExarotonServerActionSection: View {
                 _ = await model.stopServer(serverId: serverID)
             case .restart:
                 _ = await model.restartServer(serverId: serverID)
+            case .kill:
+                // exaroton 没有强杀（平台托管），界面也不给这个按钮；这里只是让 switch 穷尽。
+                break
             }
         }
     }
