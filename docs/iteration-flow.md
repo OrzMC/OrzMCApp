@@ -1,6 +1,6 @@
 # OrzMCApp 迭代流程（标准化）
 
-> 状态：生效中（2026-10-23）｜最后更新：2026-10-23
+> 状态：生效中（2026-10-23）｜最后更新：2026-10-27（新增 §4.0.1 开发包安装验收）
 > 面向：人 + AI agent。目标只有一个——**改动到合入之间的反馈环尽量短、失败尽量早暴露**。
 
 ## 1. 一条命令的本地门禁
@@ -120,6 +120,36 @@ xcrun simctl io booted screenshot /tmp/ios.png
 
 要在 **Terminal.app** 里跑（ssh/agent 会话拿不到 GUI 钥匙串，会报 `errSecInternalComponent`）。
 iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
+
+## 4.0.1 安装验收：直接装**开发包**（不要为验收去打正式包）
+
+> 2026-10-27 起。以前验收走"打正式包"那条路（Release → 签名 → notarize → dmg → 装 dmg → 断言），
+> 一轮 10~15 分钟，其中约 9 分钟在等 Apple 公证。**验收要验的是"装好之后能不能用"**，
+> 跟有没有公证无关 —— 公证是发版门禁，不是功能验收。
+
+```bash
+./scripts/dev/install-dev-app.sh              # Debug 构建（复用共享 DerivedData）+ 覆盖安装 /Applications + 启动
+./scripts/dev/install-dev-app.sh --release    # 想更接近发布包：用 Release 配置的**开发签名**构建
+./scripts/dev/install-dev-app.sh --no-build   # 产物已经在，秒装
+./scripts/dev/install-dev-app.sh --accept     # 装完跑无界面自检（MCSM 面板列表 + 控制台实时流）
+./scripts/dev/install-dev-app.sh --restore    # 拿回装之前的正式版（备份在 ~/Library/Caches/orzmc-app-backup）
+```
+
+它做的事：构建（开发签名）→ 打印版本/架构/minos/签名主体 → 备份现有安装 → `ditto` 覆盖
+→ `codesign --verify --deep --strict` → `open -a` 启动并确认进程在。
+
+为什么值得这么干：
+
+- **验的是真实安装位置**（`/Applications`）：LaunchServices、资源、权限提示、钥匙串 ACL、
+  Sparkle 更新器行为都走真路径；在 DerivedData 里直接跑二进制验不到这些；
+- **一次 10~20 秒**（产物已有时），而正式包那条路 10 分钟起步；
+- 开发签名的钥匙串 ACL 稳定（同一开发证书），不会出现"列表空着"的假失败。
+
+边界（别拿它当发版）：
+
+- `spctl` 一定报 `rejected`（未公证），**这不是失败**；发版门禁仍是 `scripts/dev/release.sh` 的
+  `dry_run` + 产物断言（`lipo -archs` / `minos` / `spctl Notarized`）；
+- Release 开发构建 ≠ 发布包（少了公证/打包步骤），发版前的 dry-run 不能省。
 
 ## 4.1 真机验收（真实 Minecraft 服务端）
 

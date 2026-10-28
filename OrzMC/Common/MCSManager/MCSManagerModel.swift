@@ -263,8 +263,11 @@ final class MCSManagerModel {
 
     /// **仅 DEBUG**：实时流自检（`ORZMC_DEMO_MCSM_STREAM_PROBE=1`）。
     ///
-    /// 对每台在线实例：申请通道 → 连 socket.io → 等 `stream/auth` → 发一条 `/list` → 等输出。
-    /// 结果进 `streamProbeResults`，由 `writeDiagnose` 落到诊断文件。
+    /// 对每台在线实例：申请通道 → 连 socket.io → 等鉴权通过 → 发一条 `/list` → 等输出。
+    /// 结果进 `streamProbeResults`，由 `writeDiagnose` 落到诊断文件（**不需要看界面**）。
+    ///
+    /// 申请通道失败不会抛到这里：`MCSMStreamClient` 把它变成 `.fallback(reason:)` 事件，
+    /// 所以"面板太老没这个接口"和"连不上节点"在诊断里长得一样清楚。
     func probeStream() async {
         let online = instances.filter { state(of: $0) == .online }
         debugTrace.append("stream-probe: 共 \(instances.count) 台，在线 \(online.count) 台")
@@ -278,37 +281,36 @@ final class MCSManagerModel {
                 "instance": instance.id,
                 "nickname": instance.nickname,
             ]
-            do {
-                let client = MCSMStreamClient(configuration: .init(handshakeTimeout: .seconds(20), maxAttempts: 1)) {
-                    guard let channel = try await self.streamChannel(for: instance) else {
-                        throw MCSMStreamEndpoint.Error.invalidAddress("面板没有返回通道（老版本？）")
-                    }
-                    return try MCSMStreamEndpoint(channel: channel, panelURL: panelURL)
+            let client = MCSMStreamClient(
+                configuration: .init(handshakeTimeout: .seconds(20), maxAttempts: 1)
+            ) {
+                guard let channel = try await self.streamChannel(for: instance) else {
+                    throw MCSMStreamEndpoint.Error.invalidAddress("面板没有返回通道（老版本？）")
                 }
-                var ready = false
-                var output = ""
-                let deadline = ContinuousClock.now + .seconds(30)
-                for await event in await client.events() {
-                    switch event {
-                    case .ready:
-                        ready = true
-                        try? await client.sendCommand("/list")
-                    case let .output(text):
-                        output += text
-                    case let .fallback(reason):
-                        record["fallback"] = reason
-                    case .connecting, .lifecycle:
-                        break
-                    }
-                    if ready && output.utf8.count > 16 { break }
-                    if ContinuousClock.now > deadline { break }
-                }
-                await client.close()
-                record["ready"] = ready
-                record["output"] = String(output.suffix(400))
-            } catch {
-                record["error"] = MCSManagerErrorText.describe(error) ?? "\(error)"
+                return try MCSMStreamEndpoint(channel: channel, panelURL: panelURL)
             }
+            var ready = false
+            var output = ""
+            let deadline = ContinuousClock.now + .seconds(30)
+            for await event in await client.events() {
+                switch event {
+                case .ready:
+                    ready = true
+                    try? await client.sendCommand("/list")
+                case let .output(text):
+                    output += text
+                case let .fallback(reason):
+                    record["fallback"] = reason
+                case .connecting, .lifecycle:
+                    break
+                }
+                if ready, output.utf8.count > 16 { break }
+                if ContinuousClock.now > deadline { break }
+            }
+            await client.close()
+            record["ready"] = ready
+            record["output"] = String(output.suffix(400))
+            debugTrace.append("stream-probe: \(instance.nickname) ready=\(ready) bytes=\(output.utf8.count)")
             streamProbeResults.append(record)
         }
     }
