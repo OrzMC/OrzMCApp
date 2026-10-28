@@ -161,7 +161,7 @@ struct MCSManagerAPIClient: MCSManagerPanelAPI {
             // 「contains more than the maximum allowed」（真机踩过，日志比 2KB 就挂）。
             // 面板的 `size` 参数只是它那边的截断，不保证生效 → 这里给足余量。
             let data = try await Data(collecting: body, upTo: Self.outputLogReadCap)
-            var raw = String(decoding: data, as: UTF8.self)
+            let raw = String(decoding: data, as: UTF8.self)
             // 面板把**所有**响应都包了一层 `{status, data, time}`（连纯文本接口也一样），
             // 所以这里要 unwrap；外壳里 status 非 2xx 时抛错（面板会写「节点未连接」之类）。
             let text: String
