@@ -1,6 +1,6 @@
 # macOS 启动器：UI 信息架构、设计系统与改进路线
 
-> **状态**：生效中｜**最后更新**：2026-10-22
+> **状态**：生效中｜**最后更新**：2026-10-30
 > **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/ExarotonUI/**` + `Sources/OrzMCDesignSystem/**`
 > **交接**：[`ui-handoff.md`](ui-handoff.md)（给下一个 agent 的状态/待办/提示词）。
 > **关联**：[`app-launcher-architecture.md`](app-launcher-architecture.md)（模型职责）、
@@ -11,6 +11,13 @@
 > 设计令牌与状态组件的实现见 `Sources/OrzMCDesignSystem/`。
 
 ---
+
+## 远程托管账号层级（2026-10-30）
+
+按供应商分组，固定 exaroton → MCSManager；每组允许多个账号，每个账号下完整展示实例。
+账号标题、编辑表单框架及实例名称/状态布局使用 `RemoteAccountHeader`、`RemoteAccountEditor`、
+`RemoteInstanceHeading`。凭据类型、连接校验、额度池、内存与强杀等供应商能力由各自界面特化。
+账号名称只作为显示信息；模型和 Keychain 凭据以稳定账号 UUID 隔离。同一个实例可出现在不同账号组中。
 
 ## 字段与行布局约定（2026-10-22 视觉复审后固化）
 

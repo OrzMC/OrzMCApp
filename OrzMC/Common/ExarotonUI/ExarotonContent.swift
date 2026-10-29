@@ -5,10 +5,11 @@
 //  Created by joker on 2024/5/22.
 //
 
+import OrzMCDesignSystem
 import SwiftUI
 
 struct ExarotonContent: View {
-    @State private var model = ExarotonServerModel()
+    @State private var accounts = ExarotonAccountsModel()
     /// MCSManager 面板（P2-7 第 4 步）：与 exaroton **同一页按供应商分组**。
     @State private var mcsm = MCSManagerPanelsModel()
     @Environment(\.scenePhase) private var scenePhase
@@ -19,6 +20,7 @@ struct ExarotonContent: View {
     /// 真机不能点屏幕，但可以用 `devicectl device copy` 把这个文件取回来。
     private func runDiagnosticsIfRequested() async {
         guard let mode = ProcessInfo.processInfo.environment["ORZMC_DEMO_DIAGNOSE"], mode != "0" else { return }
+        guard let model = accounts.accounts.first.flatMap({ accounts.models[$0.id] }) else { return }
         await model.reloadList()
         guard let server = model.servers.first, let id = server.id else { return }
         // `ORZMC_DEMO_DIAGNOSE=start`：顺便把这台服务器启动起来，用来验证"在线 → 有流 → 控制台有日志"。
@@ -61,29 +63,22 @@ struct ExarotonContent: View {
     }
     #endif
     var body: some View {
-        NavigationStack(path: $model.path) {
-            ExarotonServerList()
-                .environment(model)
-                .environment(mcsm)
-        }
-        .alert("Remote Server Error", isPresented: Binding(
-            get: { model.errorMessage != nil },
-            set: { if !$0 { model.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) { model.errorMessage = nil }
-        } message: {
-            Text(verbatim: model.errorMessage ?? "")
-        }
-        // 后台状态轮询由**模型**持有（不是视图）：切到别的页签、进出详情都不会中断，
-        // 否则服务器自动关机后界面会一直停在「在线」（真机反馈）。
-        .task { model.startBackgroundRefresh() }
-        .onChange(of: scenePhase) { _, phase in
-            model.isSceneActive = phase == .active
-            mcsm.isSceneActive = phase == .active
-            // 回到前台立刻拉一次：后台期间状态可能已经变了。
-            if phase == .active, !model.token.isEmpty {
-                Task { await model.reloadList() }
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
+                    ExarotonAccountsSection().environment(accounts)
+                    MCSManagerSection().environment(mcsm)
+                }
+                .padding(OrzMCTheme.Spacing.lg)
+                .frame(maxWidth: 780)
+                .frame(maxWidth: .infinity)
             }
+            .navigationTitle(String(localized: "Remote Servers"))
+        }
+        .task { accounts.setActive(scenePhase == .active) }
+        .onChange(of: scenePhase) { _, phase in
+            accounts.setActive(phase == .active)
+            mcsm.isSceneActive = phase == .active
         }
         #if DEBUG
         .task { await runDiagnosticsIfRequested() }

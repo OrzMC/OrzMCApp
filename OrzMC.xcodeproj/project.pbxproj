@@ -154,6 +154,9 @@
 		C0D200010000000000000003 /* GameCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000003 /* GameCatalogService.swift */; platformFilters = (macos, ); };
 		C0D200010000000000000005 /* ServerProcessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000005 /* ServerProcessService.swift */; platformFilters = (macos, ); };
 		C0D200010000000000000006 /* GameLaunchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D200020000000000000006 /* GameLaunchService.swift */; platformFilters = (macos, ); };
+		CD20261030B0000000000000 /* ExarotonAccountsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261030A0000000000000; };
+		CD20261030B0000000000001 /* ExarotonAccountsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261030A0000000000001; };
+		CD20261030B0000000000002 /* RemoteAccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20261030A0000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -290,6 +293,9 @@
 		F3FE52102BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerStatus+Presentation.swift"; sourceTree = "<group>"; };
 		F3FE52122BF7B4FC006E79AA /* ExarotonServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerView.swift; sourceTree = "<group>"; };
 		F3FFCD152C45856100414587 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		CD20261030A0000000000000 /* ExarotonAccountsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrzMC/Common/ExarotonUI/Model/ExarotonAccountsModel.swift"; sourceTree = SOURCE_ROOT; };
+		CD20261030A0000000000001 /* ExarotonAccountsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrzMC/Common/ExarotonUI/List/ExarotonAccountsSection.swift"; sourceTree = SOURCE_ROOT; };
+		CD20261030A0000000000002 /* RemoteAccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrzMC/Common/ExarotonUI/List/Components/RemoteAccountViews.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -401,6 +407,9 @@
 			children = (
 				CD2026102200000000000001 /* ExarotonSocketDelegate.swift */,
 				2B62C9912BF76C6600387498 /* ExarotonServerModel.swift */,
+				CD20261030A0000000000002 /* RemoteAccountViews.swift */,
+				CD20261030A0000000000001 /* ExarotonAccountsSection.swift */,
+				CD20261030A0000000000000 /* ExarotonAccountsModel.swift */,
 				2B5ACA5E2BFB2A1200397BFC /* ExarotonServerModel+HTTP.swift */,
 				2B5ACA602BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift */,
 				CD20261025A0000000000002 /* RemoteHostingErrorText.swift */,
@@ -997,6 +1006,9 @@
 				2B8AB1CE2DA0CDF700DA6605 /* LinkMenu.swift in Sources */,
 				2B5ACA632BFB2A8300397BFC /* Config.swift in Sources */,
 				2B62C9922BF76C6600387498 /* ExarotonServerModel.swift in Sources */,
+				CD20261030B0000000000002 /* RemoteAccountViews.swift in Sources */,
+				CD20261030B0000000000001 /* ExarotonAccountsSection.swift in Sources */,
+				CD20261030B0000000000000 /* ExarotonAccountsModel.swift in Sources */,
 				2BD301EF29000B2C00993823 /* LauncherUI.swift in Sources */,
 				2BA7F9942CA5848200ED2684 /* SettingsView.swift in Sources */,
 				CE2026102200000000000020 /* AppearanceSync.swift in Sources */,

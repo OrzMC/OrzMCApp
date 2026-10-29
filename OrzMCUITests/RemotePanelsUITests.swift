@@ -45,7 +45,7 @@ final class RemotePanelsUITests: XCTestCase {
         for (key, value) in environment { app.launchEnvironment[key] = value }
         // 测试进程拿到的凭据（runner 用 TEST_RUNNER_ 前缀传进来的）要显式转给 **App 进程** ——
         // 两个进程环境互不相通，不转发的话 App 里没有 Token / RCON 密码，真实用例会直接失败。
-        for key in ["ORZMC_DEMO_TOKEN", "ORZMC_DEMO_RCON_PASSWORD"] {
+        for key in ["ORZMC_DEMO_TOKEN", "ORZMC_DEMO_RCON_PASSWORD", "ORZMC_DEMO_MCSM_PANELS", "ORZMC_DEMO_MCSM_KEYS"] {
             if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
                 app.launchEnvironment[key] = value
             }
@@ -653,6 +653,35 @@ final class RemotePanelsUITests: XCTestCase {
     }
 
     /// 远程托管（假服务器）：列表 + 详情各区块。
+    func testSnapshotConfiguredRemoteAccounts() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.buttons["remote.serverCard"].firstMatch.waitForExistence(timeout: 40))
+        snap(app, "configured-exaroton-accounts")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["mcsm.instanceRow"].firstMatch.waitForExistence(timeout: 40))
+        snap(app, "configured-mcsm-accounts")
+    }
+
+    func testMultipleRemoteAccountsShowInstances() throws {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MULTI_ACCOUNT": "1",
+                           "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.staticTexts["exaroton 1"].waitForExistence(timeout: 20))
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["exaroton 2"].waitForExistence(timeout: 10))
+        snap(app, "accounts-exaroton-multiple")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["mcsm.instanceRow"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons.matching(identifier: "mcsm.instanceRow").count, 2)
+        snap(app, "accounts-mcsm-instances")
+    }
+
     func testSnapshotTourRemote() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
@@ -836,7 +865,7 @@ extension RemotePanelsUITests {
         app.launch()
         allowSystemPrompts()
 
-        let section = app.otherElements["mcsm.section"]
+        let section = app.staticTexts["mcsm.section"]
         XCTAssertTrue(section.waitForExistence(timeout: 20), "MCSManager 分组应显示在远程托管页")
 
         // 两台演示实例（名称来自假面板）。
@@ -868,7 +897,7 @@ extension RemotePanelsUITests {
         app.launch()
         allowSystemPrompts()
 
-        let section = app.otherElements["mcsm.section"]
+        let section = app.staticTexts["mcsm.section"]
         XCTAssertTrue(section.waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
 
@@ -889,7 +918,7 @@ extension RemotePanelsUITests {
         app.launch()
         allowSystemPrompts()
 
-        XCTAssertTrue(app.otherElements["mcsm.section"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
 
         // 点实例行 = 打开控制台（菜单项在 UI 自动化里点不动 → 行点击是主路径，已写进设计口径）。

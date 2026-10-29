@@ -88,6 +88,11 @@ enum MCSManagerCredentials {
     // MARK: - 面板列表
 
     static func panels(defaults: UserDefaults = .standard) -> [MCSManagerPanel] {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_PANELS"],
+           let data = raw.data(using: .utf8),
+           let panels = try? JSONDecoder().decode([MCSManagerPanel].self, from: data) { return panels }
+        #endif
         guard let data = defaults.data(forKey: panelsKey),
               let panels = try? JSONDecoder().decode([MCSManagerPanel].self, from: data)
         else { return [] }
@@ -103,6 +108,11 @@ enum MCSManagerCredentials {
 
     static func apiKey(for id: UUID) -> String? {
         #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_KEYS"],
+           let data = raw.data(using: .utf8),
+           let keys = try? JSONDecoder().decode([String: String].self, from: data) {
+            return keys[id.uuidString]
+        }
         // 与 exaroton 的 `ORZMC_DEMO_TOKEN` 同理：模拟器/无 GUI 会话里 Keychain 不可写，
         // 界面验收用环境变量直接注入。发布构建里没有这条路径。
         if let demo = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_APIKEY"], !demo.isEmpty {

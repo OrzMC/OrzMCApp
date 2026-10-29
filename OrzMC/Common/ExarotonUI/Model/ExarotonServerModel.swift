@@ -23,6 +23,12 @@ enum ExarotonClientError: Error {
 @Observable
 final class ExarotonServerModel {
 
+    @ObservationIgnored private let accountToken: String?
+
+    init(accountToken: String? = nil) {
+        self.accountToken = accountToken
+    }
+
     var path = NavigationPath()
 
     static let accountTokenPersistentKey = "EXAROTON_TOKEN"
@@ -30,6 +36,7 @@ final class ExarotonServerModel {
     @ObservationIgnored
     var token: String {
         get {
+            if let accountToken { return accountToken }
             #if DEBUG
             // UI 测试 / 截图验收：`ORZMC_DEMO_TOKEN` 直接注入账号 Token，不写 Keychain。
             // 真机与模拟器都能用；模拟器上没法手动登录，这是跑"真实账号"用例的唯一路径。
@@ -49,6 +56,7 @@ final class ExarotonServerModel {
             return legacyToken
         }
         set {
+            guard accountToken == nil else { return }
             let trimmedToken = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if trimmedToken.isEmpty {
                 try? KeychainTokenStore.delete(key: Self.accountTokenPersistentKey)
@@ -169,7 +177,7 @@ final class ExarotonServerModel {
     var heapChanged: ExarotonWebSocket.Heap?
 }
 
-private enum KeychainTokenStore {
+enum KeychainTokenStore {
     enum KeychainError: Error {
         case unhandledStatus(OSStatus)
     }

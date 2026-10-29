@@ -93,8 +93,9 @@ final class MCSManagerPanelsModelTests: XCTestCase {
     func testAddPanelRejectsDuplicate() {
         let model = makeModel(store: InMemoryCredentialStore())
         XCTAssertTrue(model.addPanel(label: "A", rawURL: "https://panel.example.com", apiKey: "k1"))
-        XCTAssertFalse(model.addPanel(label: "A", rawURL: "https://panel.example.com/", apiKey: "k2"))
-        XCTAssertEqual(model.panels.count, 1)
+        XCTAssertFalse(model.addPanel(label: "B", rawURL: "https://panel.example.com/", apiKey: "k1"))
+        XCTAssertTrue(model.addPanel(label: "A", rawURL: "https://panel.example.com/", apiKey: "k2"))
+        XCTAssertEqual(model.panels.count, 2)
     }
 
     // MARK: - 编辑（原来只能删了重加）
