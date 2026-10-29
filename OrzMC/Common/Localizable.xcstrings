@@ -5625,6 +5625,116 @@
           }
         }
       }
+    },
+    "Add Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加账号"
+          }
+        }
+      }
+    },
+    "Edit Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑账号"
+          }
+        }
+      }
+    },
+    "Remove Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除账号"
+          }
+        }
+      }
+    },
+    "Account name": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号名称"
+          }
+        }
+      }
+    },
+    "Account actions": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号操作"
+          }
+        }
+      }
+    },
+    "Add an account to see its instances.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加账号以查看其下的实例。"
+          }
+        }
+      }
+    },
+    "Could not load saved accounts.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取已保存的账号。"
+          }
+        }
+      }
+    },
+    "This account is already added.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账号已添加。"
+          }
+        }
+      }
+    },
+    "Could not save account credentials. Please try again.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存账号凭据，请重试。"
+          }
+        }
+      }
+    },
+    "Could not remove account credentials. Please try again.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移除账号凭据，请重试。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

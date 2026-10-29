@@ -47,6 +47,8 @@ done
 # 为什么必须 Terminal：真机构建/安装要访问钥匙串私钥，SSH/CI 那种非交互会话会报
 # `errSecInternalComponent`。以前只能人肉 `open -a Terminal` + 轮询日志（每轮多 1–2 分钟，
 # 且失败时看不到关键行）。现在一条命令拿到退出码 + 末尾日志。
+# Codex 等受限 agent 必须在沙箱外执行 --detach：沙箱内 LaunchServices 可能
+# 报找不到应用或 kLSNoExecutableErr；这不代表 Terminal 未安装，也与默认终端无关。
 if [[ "$DETACH" -eq 1 && "${UI_TESTS_IN_TERMINAL:-0}" != "1" ]]; then
   stamp="$(date +%s)"
   detach_log="${TMPDIR:-/tmp}/orzmc-ui-tests-$stamp.log"
@@ -62,7 +64,17 @@ echo "__UI_TESTS_EXIT__=\$?" >>"$detach_log"
 EOF2
   chmod +x "$runner"
   echo "▶ 在 Terminal.app 里执行（日志：${detach_log}）"
-  open -a Terminal "$runner"
+  # Agent 沙箱内 LaunchServices 按名称查找可能失败，即使 Terminal 已安装；
+  # 显式使用系统路径，也不受用户默认终端设置影响。
+  terminal_app="/System/Applications/Utilities/Terminal.app"
+  if [[ ! -d "$terminal_app" ]]; then
+    echo "✗ 找不到系统 Terminal.app：$terminal_app" >&2
+    exit 1
+  fi
+  if ! /usr/bin/open -a "$terminal_app" "$runner"; then
+    echo "✗ 无法启动 Terminal.app；agent 请在沙箱外重试（LaunchServices 的找不到应用/可执行文件错误可能由沙箱导致）。任务：$runner" >&2
+    exit 1
+  fi
   printf '  等待结果'
   for _ in $(seq 1 900); do
     grep -q "__UI_TESTS_EXIT__=" "$detach_log" 2>/dev/null && break

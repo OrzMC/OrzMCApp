@@ -74,7 +74,7 @@ final class MCSManagerPanelsModel {
             lastValidationError = String(localized: "The API key is empty.")
             return false
         }
-        guard !panels.contains(where: { $0.url == panel.url && $0.label == panel.label }) else {
+        guard !panels.contains(where: { $0.url == panel.url && store.apiKey(for: $0.id) == trimmedKey }) else {
             lastValidationError = String(localized: "This panel is already added.")
             return false
         }
@@ -97,14 +97,17 @@ final class MCSManagerPanelsModel {
             lastValidationError = String(localized: "The panel address is not valid.")
             return false
         }
-        guard !panels.contains(where: { $0.id != id && $0.url == updated.url && $0.label == updated.label }) else {
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveKey = trimmedKey.isEmpty ? store.apiKey(for: id) : trimmedKey
+        guard !panels.contains(where: {
+            $0.id != id && $0.url == updated.url && store.apiKey(for: $0.id) == effectiveKey
+        }) else {
             lastValidationError = String(localized: "This panel is already added.")
             return false
         }
         lastValidationError = nil
 
         panels[index] = updated
-        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if !isDemo {
             store.savePanels(panels)
             if !trimmedKey.isEmpty {

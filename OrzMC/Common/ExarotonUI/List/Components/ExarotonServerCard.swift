@@ -52,15 +52,11 @@ struct ExarotonServerCard: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-            Text(server.name ?? String(localized: "Server"))
-                .font(.headline)
-                .lineLimit(1)
-            if let status {
-                OrzMCStatusBadge(verbatim: status.localizedTitle, style: status.statusStyle)
-            }
-            Spacer(minLength: 0)
-        }
+        RemoteInstanceHeading(
+            name: server.name ?? String(localized: "Server"),
+            statusTitle: status?.localizedTitle,
+            statusStyle: status?.statusStyle ?? .idle
+        )
     }
 
     /// 服务器 id **单独一行**：和版本/玩家标签挤在一行时，窄屏上必然被截断（真机反馈）。

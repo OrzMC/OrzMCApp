@@ -59,7 +59,7 @@ struct MCSManagerSection: View {
             Button {
                 sheet = .editor(.add)
             } label: {
-                Label(String(localized: "Add Panel"), systemImage: "plus.circle")
+                Label(String(localized: "Add Account"), systemImage: "plus.circle")
                     .font(.callout)
             }
             .buttonStyle(.plain)
@@ -67,7 +67,7 @@ struct MCSManagerSection: View {
             .accessibilityIdentifier("mcsm.addPanel")
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("mcsm.section")
+
         .sheet(item: $sheet) { current in
             switch current {
             case .editor(let mode):
@@ -135,19 +135,8 @@ struct MCSManagerSection: View {
     // MARK: - 组件
 
     private var header: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "square.stack.3d.up")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            Text(String(localized: "MCSManager"))
-                .font(.subheadline.weight(.semibold))
-            if instanceCount > 0 {
-                Text("\(instanceCount)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
+        RemoteProviderHeader(name: "MCSManager", systemImage: "square.stack.3d.up",
+                             count: instanceCount, identifier: "mcsm.section")
     }
 
     private var emptyCard: some View {
@@ -169,27 +158,22 @@ struct MCSManagerSection: View {
         let instances = mcsm.instances(of: panel.id)
 
         return VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            HStack(spacing: 6) {
-                Text(panel.label)
-                    .font(.callout.weight(.medium))
-                Text(panel.url.host ?? panel.url.absoluteString)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if model?.isLoading == true {
-                    ProgressView().controlSize(.mini)
-                }
+            RemoteAccountHeader(
+                name: panel.label,
+                subtitle: panel.url.host ?? panel.url.absoluteString,
+                isLoading: model?.isLoading == true
+            ) {
                 Menu {
                     Button {
                         sheet = .editor(.edit(panel))
                     } label: {
-                        Label(String(localized: "Edit Panel"), systemImage: "slider.horizontal.3")
+                        Label(String(localized: "Edit Account"), systemImage: "slider.horizontal.3")
                     }
                     Divider()
                     Button(role: .destructive) {
                         mcsm.removePanel(id: panel.id)
                     } label: {
-                        Label(String(localized: "Remove Panel"), systemImage: "trash")
+                        Label(String(localized: "Remove Account"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -234,8 +218,7 @@ struct MCSManagerSection: View {
                     sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(instance.nickname)
-                            .font(.callout)
+                        RemoteInstanceHeading(name: instance.nickname, statusTitle: state.localizedTitle, statusStyle: state.statusStyle)
                         if let address = instance.address {
                             Text(address)
                                 .font(.caption.monospaced())
@@ -254,10 +237,6 @@ struct MCSManagerSection: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                OrzMCStatusBadge(
-                    verbatim: state.localizedTitle,
-                    style: state.statusStyle
-                )
                 if model?.isBusy(instance) == true {
                     ProgressView().controlSize(.mini)
                 }
@@ -367,5 +346,5 @@ struct MCSManagerConsoleTarget: Identifiable {
     let instance: MCSManagerInstance
     let model: MCSManagerModel
 
-    var id: String { instance.id }
+    var id: String { "\(ObjectIdentifier(model)):\(instance.id)" }
 }

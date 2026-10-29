@@ -87,8 +87,12 @@ struct MCSManagerPanelEditor: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        RemoteAccountEditor(
+            title: isEditing ? String(localized: "Edit Account") : String(localized: "Add Account"),
+            canSave: canSave,
+            onSave: { if onSave(label, url, apiKey) { testResult = nil } },
+            onCancel: onCancel
+        ) {
                 Section {
                     TextField(String(localized: "Panel name (optional)"), text: $label)
                         .accessibilityIdentifier("mcsm.labelField")
@@ -179,26 +183,6 @@ struct MCSManagerPanelEditor: View {
                             .foregroundStyle(OrzMCTheme.Palette.danger)
                     }
                 }
-            }
-            .formStyle(.grouped)
-            .navigationTitle(
-                isEditing ? String(localized: "Edit Panel") : String(localized: "Add Panel")
-            )
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "Cancel")) { onCancel() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "Save")) {
-                        if onSave(label, url, apiKey) {
-                            testResult = nil
-                        }
-                    }
-                    .disabled(!canSave)
-                    .keyboardShortcut(.defaultAction)
-                    .accessibilityIdentifier("mcsm.savePanel")
-                }
-            }
         }
         .frame(
             minWidth: Self.minWidth,
