@@ -298,7 +298,9 @@ struct SelfHostedServerView: View {
     /// 名单来自 RCON（`list` / `whitelist list` / `banlist`），不是 SLP 的 sample：
     /// sample 常常被服务端隐藏，而且拿不到白名单和封禁。
     private func playersCard(_ profile: SelfHostedServerProfile) -> some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+        let canRunCommands = model.canRunCommands
+        let actionsEnabled = canRunCommands && !model.isSending
+        return VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
             HStack(spacing: OrzMCTheme.Spacing.sm) {
                 Label("Players", systemImage: "person.2")
                     .font(.subheadline.weight(.semibold))
@@ -314,7 +316,7 @@ struct SelfHostedServerView: View {
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .disabled(model.isFetchingLists || !model.canRunCommands)
+                .disabled(model.isFetchingLists || !canRunCommands)
                 .help("Reload online / whitelist / ban lists")
             }
 
@@ -328,40 +330,43 @@ struct SelfHostedServerView: View {
                 .labelsHidden()
             }
 
-            switch playerListTab {
-            case .online:
-                if model.currentOnlinePlayers.isEmpty {
-                    emptyRow(String(localized: "Nobody is online right now."))
-                }
-                ForEach(model.currentOnlinePlayers, id: \.self) { name in
-                    playerRow(name) {
-                        if model.canRunCommands {
-                            action("Kick") { await model.performPlayerAction("kick \(name)") }
-                            action("Grant OP") { await model.performPlayerAction("op \(name)") }
-                            action("Ban") { await model.performPlayerAction("ban \(name)") }
+            LazyVStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                switch playerListTab {
+                case .online:
+                    if model.currentOnlinePlayers.isEmpty {
+                        emptyRow(String(localized: "Nobody is online right now."))
+                    }
+                    ForEach(model.currentOnlinePlayers, id: \.self) { name in
+                        playerRow(name) {
+                            if canRunCommands {
+                                action("Kick", enabled: actionsEnabled) { await model.performPlayerAction("kick \(name)") }
+                                action("Grant OP", enabled: actionsEnabled) { await model.performPlayerAction("op \(name)") }
+                                action("Ban", enabled: actionsEnabled) { await model.performPlayerAction("ban \(name)") }
+                            }
+                        }
+                    }
+                case .whitelist:
+                    if model.currentLists.whitelisted.isEmpty {
+                        emptyRow(String(localized: "The whitelist is empty."))
+                    }
+                    ForEach(model.currentLists.whitelisted, id: \.self) { name in
+                        playerRow(name) {
+                            action("Remove from Whitelist", enabled: actionsEnabled) { await model.performPlayerAction("whitelist remove \(name)") }
+                            action("Grant OP", enabled: actionsEnabled) { await model.performPlayerAction("op \(name)") }
+                        }
+                    }
+                case .banned:
+                    if model.currentLists.banned.isEmpty {
+                        emptyRow(String(localized: "Nobody is banned."))
+                    }
+                    ForEach(model.currentLists.banned, id: \.name) { entry in
+                        playerRow(entry.name, subtitle: entry.reason) {
+                            action("Unban", enabled: actionsEnabled) { await model.performPlayerAction("pardon \(entry.name)") }
                         }
                     }
                 }
-            case .whitelist:
-                if model.currentLists.whitelisted.isEmpty {
-                    emptyRow(String(localized: "The whitelist is empty."))
-                }
-                ForEach(model.currentLists.whitelisted, id: \.self) { name in
-                    playerRow(name) {
-                        action("Remove from Whitelist") { await model.performPlayerAction("whitelist remove \(name)") }
-                        action("Grant OP") { await model.performPlayerAction("op \(name)") }
-                    }
-                }
-            case .banned:
-                if model.currentLists.banned.isEmpty {
-                    emptyRow(String(localized: "Nobody is banned."))
-                }
-                ForEach(model.currentLists.banned, id: \.name) { entry in
-                    playerRow(entry.name, subtitle: entry.reason) {
-                        action("Unban") { await model.performPlayerAction("pardon \(entry.name)") }
-                    }
-                }
             }
+            .id(playerListTab)
 
             if profile.rconEnabled {
                 HStack(spacing: OrzMCTheme.Spacing.sm) {
@@ -392,7 +397,7 @@ struct SelfHostedServerView: View {
                     Button("Set Up RCON") { edit(profile) }
                         .font(.caption)
                 }
-            } else if !model.canRunCommands {
+            } else if !canRunCommands {
                 Text("RCON needs a password. Add it in Settings to manage players.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -440,11 +445,11 @@ struct SelfHostedServerView: View {
 
     /// 注意参数类型必须是 `LocalizedStringKey`：`Button("Kick")` 传 String 字面量会走
     /// `StringProtocol` 那个重载，**不会本地化**——之前中文界面里显示英文 Kick/OP/Ban 就是这个原因。
-    private func action(_ title: LocalizedStringKey, perform: @escaping () async -> Void) -> some View {
+    private func action(_ title: LocalizedStringKey, enabled: Bool, perform: @escaping () async -> Void) -> some View {
         Button(title) { Task { await perform() } }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .disabled(!model.canRunCommands || model.isSending)
+            .disabled(!enabled)
     }
 
     private func addToList() {
