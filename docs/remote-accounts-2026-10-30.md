@@ -41,3 +41,11 @@ exaroton 保留额度池、软件与内存等特有展示和详情；MCSManager 
 仅 DEBUG 支持 `ORZMC_DEMO_MCSM_PANELS`（现有面板元数据 JSON）与 `ORZMC_DEMO_MCSM_KEYS`（按账号 UUID 映射的凭据 JSON）。由测试进程环境传入 App，不将 Mac 的 Keychain 或配置数据库复制到模拟器，不将凭据写入仓库。
 
 `testSnapshotConfiguredRemoteAccounts` 只读加载和截图，使用 `ORZMC_UITEST_SNAPSHOTS=1` 显式开启；exaroton 使用已有 `ORZMC_DEMO_TOKEN` 注入。只读验收覆盖 Mac 上的管理员/普通用户两个账号，各自两台实例。
+
+## exaroton 账号名称（2026-10-30）
+
+账号卡不重复显示供应商副标题。未填写名称或从旧单账号数据迁入的占位名称，通过 exaroton 的只读 `GET /account/` 获取 `name`；失败时显示通用“账号”占位，用户仍可手动命名。新版本显式填写的名称不会被自动结果覆盖；旧记录无法区分手填和默认的 `exaroton`，因此该名称按旧默认值处理。切换 Token 或删除账号后到达的旧请求结果会被丢弃。旧记录没有自动命名标记时仍能读取并迁移。
+
+Mac 现有凭据与模拟器测试凭据一致；只读实测 `User-Agent: OrzMC` 请求账号接口返回 200 且包含名称，应用内真实账号 UI 用例、完整 Mac 门禁及整套模拟器 UI 回归通过。Python 默认 User-Agent 被服务端返回 403，不能将该探针结果视作账号或凭据失效。不会输出或提交凭据。
+
+同一演示场景的改前/改后截图为 `ui-remote-accounts/multiple-exaroton.png` 与 `ui-remote-accounts/account-polish-after.png`（iPhone SE 模拟器，不含真实账号信息）。Mac 开发包已安装并通过只读面板自检。
