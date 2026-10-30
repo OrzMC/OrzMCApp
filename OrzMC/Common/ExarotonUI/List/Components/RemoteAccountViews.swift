@@ -81,8 +81,10 @@ struct RemoteProviderHeader: View {
     let systemImage: String
     let count: Int
     let identifier: String
+    let addIdentifier: String
+    let onAdd: () -> Void
 
-    var body: some View {
+    private var title: some View {
         HStack(spacing: OrzMCTheme.Spacing.xs) {
             Label {
                 Text(verbatim: name).accessibilityIdentifier(identifier)
@@ -93,7 +95,23 @@ struct RemoteProviderHeader: View {
             if count > 0 {
                 Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
-            Spacer(minLength: 0)
+        }
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                title.fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: OrzMCTheme.Spacing.xs)
+                RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
+            }
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                title
+                HStack {
+                    Spacer(minLength: 0)
+                    RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
+                }
+            }
         }
     }
 }
@@ -106,8 +124,7 @@ struct RemoteAddAccountButton: View {
         Button(action: action) {
             Label("Add Account", systemImage: "plus.circle").font(.callout)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.tint)
+        .buttonStyle(.bordered)
         .accessibilityIdentifier(identifier)
     }
 }

@@ -680,6 +680,26 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "configured-mcsm-accounts")
     }
 
+    @MainActor
+    func testProviderAddButtonsAppearBesideHeaders() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        let exaroton = app.staticTexts["exaroton.section"]
+        let exarotonAdd = app.buttons["exaroton.addAccount"]
+        XCTAssertTrue(exaroton.waitForExistence(timeout: 20))
+        XCTAssertTrue(exarotonAdd.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(exarotonAdd.frame.midX, exaroton.frame.midX)
+        XCTAssertLessThan(abs(exarotonAdd.frame.midY - exaroton.frame.midY), 30)
+        app.swipeUp()
+        let mcsm = app.staticTexts["mcsm.section"]
+        let mcsmAdd = app.buttons["mcsm.addPanel"]
+        XCTAssertTrue(mcsm.waitForExistence(timeout: 10))
+        XCTAssertTrue(mcsmAdd.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(mcsmAdd.frame.midX, mcsm.frame.midX)
+        XCTAssertLessThan(abs(mcsmAdd.frame.midY - mcsm.frame.midY), 30)
+    }
+
     func testMultipleRemoteAccountsShowInstances() throws {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MULTI_ACCOUNT": "1",
                            "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])

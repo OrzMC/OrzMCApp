@@ -12,7 +12,9 @@ struct ExarotonAccountsSection: View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
             RemoteProviderHeader(name: "exaroton", systemImage: "cloud",
                                  count: accounts.models.values.reduce(0) { $0 + $1.servers.count },
-                                 identifier: "exaroton.section")
+                                 identifier: "exaroton.section", addIdentifier: "exaroton.addAccount") {
+                editing = nil; name = ""; token = ""; showingEditor = true
+            }
             if accounts.accounts.isEmpty {
                 Text("Add an account to see its instances.", comment: "Remote provider empty state")
                     .font(.callout).foregroundStyle(.secondary)
@@ -28,8 +30,6 @@ struct ExarotonAccountsSection: View {
                                 }
                                 Button("Remove Account", systemImage: "trash", role: .destructive) { accounts.remove(account.id) }
                             } label: { Image(systemName: "ellipsis.circle").foregroundStyle(.secondary) }
-                            .menuStyle(.borderlessButton)
-                            .fixedSize()
                             .accessibilityLabel(Text("Account actions", comment: "Account menu accessibility label"))
                         }
                         ExarotonServerList().environment(model)
@@ -41,9 +41,6 @@ struct ExarotonAccountsSection: View {
             }
             if let error = accounts.errorMessage {
                 Text(verbatim: error).font(.caption).foregroundStyle(OrzMCTheme.Palette.danger)
-            }
-            RemoteAddAccountButton(identifier: "exaroton.addAccount") {
-                editing = nil; name = ""; token = ""; showingEditor = true
             }
         }
         .sheet(isPresented: $showingEditor) {
