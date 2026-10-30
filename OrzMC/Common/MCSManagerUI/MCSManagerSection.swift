@@ -56,9 +56,6 @@ struct MCSManagerSection: View {
                 }
             }
 
-            RemoteAddAccountButton(identifier: "mcsm.addPanel") {
-                sheet = .editor(.add)
-            }
         }
         .accessibilityElement(children: .contain)
 
@@ -130,7 +127,9 @@ struct MCSManagerSection: View {
 
     private var header: some View {
         RemoteProviderHeader(name: "MCSManager", systemImage: "square.stack.3d.up",
-                             count: instanceCount, identifier: "mcsm.section")
+                             count: instanceCount, identifier: "mcsm.section", addIdentifier: "mcsm.addPanel") {
+            sheet = .editor(.add)
+        }
     }
 
     private var emptyCard: some View {
@@ -173,8 +172,6 @@ struct MCSManagerSection: View {
                     Image(systemName: "ellipsis.circle")
                         .foregroundStyle(.secondary)
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
                 .accessibilityIdentifier("mcsm.panelMenu")
             }
 
@@ -325,8 +322,6 @@ struct MCSManagerSection: View {
             Image(systemName: "ellipsis.circle")
                 .foregroundStyle(.secondary)
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
         .accessibilityIdentifier("mcsm.instanceMenu")
         .accessibilityLabel(String(localized: "Server actions"))
     }
