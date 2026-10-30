@@ -158,6 +158,51 @@ final class ExarotonAccountsTests: XCTestCase {
         XCTAssertEqual(untouched.token, "second-token")
     }
 
+    func testAutomaticNameAndExplicitNameArePreserved() async throws {
+        let suite = "exaroton-names-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = MemoryCredentials()
+        let model = ExarotonAccountsModel(defaults: defaults,
+            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            deleteToken: { store.tokens[$0] = nil })
+        XCTAssertTrue(model.save(id: nil, label: "", token: "token-a"))
+        let id = try XCTUnwrap(model.accounts.first?.id)
+        await model.resolveDefaultName(for: id, lookup: { _ in "  Actual account  " })
+        XCTAssertEqual(model.accounts.first?.label, "Actual account")
+        XCTAssertTrue(model.save(id: id, label: "Actual account", token: "token-b"))
+        await model.resolveDefaultName(for: id, lookup: { _ in "Other account" })
+        XCTAssertEqual(model.accounts.first?.label, "Other account")
+        await model.resolveDefaultName(for: id, lookup: { _ in
+            XCTAssertTrue(model.save(id: id, label: "My label", token: ""))
+            return "Stale response"
+        })
+        XCTAssertEqual(model.accounts.first?.label, "My label")
+        await model.resolveDefaultName(for: id, lookup: { _ in "Should not replace" })
+        XCTAssertEqual(model.accounts.first?.label, "My label")
+        let restored = ExarotonAccountsModel(defaults: defaults,
+            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            deleteToken: { store.tokens[$0] = nil })
+        XCTAssertEqual(restored.accounts.first?.label, "My label")
+    }
+
+    func testLegacyDefaultCanResolveToProviderName() async throws {
+        let suite = "exaroton-legacy-name-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = MemoryCredentials()
+        let id = UUID()
+        let legacy = "[{\"id\":\"\(id.uuidString)\",\"label\":\"exaroton\"}]"
+        defaults.set(Data(legacy.utf8), forKey: ExarotonAccountsModel.accountsKey)
+        store.tokens[ExarotonAccountsModel.tokenKey(id)] = "legacy-token"
+        let model = ExarotonAccountsModel(defaults: defaults,
+            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            deleteToken: { store.tokens[$0] = nil })
+        XCTAssertNotEqual(model.accounts.first?.displayName, "exaroton")
+        await model.resolveDefaultName(for: id, lookup: { _ in "exaroton" })
+        XCTAssertEqual(model.accounts.first?.displayName, "exaroton")
+    }
+
     func testFailedMigrationKeepsLegacyCredential() throws {
         let suite = "exaroton-tests-" + UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

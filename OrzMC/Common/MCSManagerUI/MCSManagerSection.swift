@@ -56,15 +56,9 @@ struct MCSManagerSection: View {
                 }
             }
 
-            Button {
+            RemoteAddAccountButton(identifier: "mcsm.addPanel") {
                 sheet = .editor(.add)
-            } label: {
-                Label(String(localized: "Add Account"), systemImage: "plus.circle")
-                    .font(.callout)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tint)
-            .accessibilityIdentifier("mcsm.addPanel")
         }
         .accessibilityElement(children: .contain)
 

@@ -20,29 +20,31 @@ struct ExarotonAccountsSection: View {
             ForEach(accounts.accounts) { account in
                 if let model = accounts.models[account.id] {
                     VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-                        RemoteAccountHeader(name: account.label, subtitle: "exaroton", isLoading: model.isLoadingList) {
+                        RemoteAccountHeader(name: account.displayName, isLoading: model.isLoadingList) {
                             Menu {
                                 Button("Refresh") { Task { await model.reloadList() } }
                                 Button("Edit Account", systemImage: "slider.horizontal.3") {
                                     editing = account; name = account.label; token = ""; showingEditor = true
                                 }
                                 Button("Remove Account", systemImage: "trash", role: .destructive) { accounts.remove(account.id) }
-                            } label: { Image(systemName: "ellipsis.circle") }
+                            } label: { Image(systemName: "ellipsis.circle").foregroundStyle(.secondary) }
+                            .menuStyle(.borderlessButton)
+                            .fixedSize()
                             .accessibilityLabel(Text("Account actions", comment: "Account menu accessibility label"))
                         }
                         ExarotonServerList().environment(model)
                             .id(ObjectIdentifier(model))
                     }
                     .padding(OrzMCTheme.Spacing.md).orzMCPanel()
+                    .task(id: ObjectIdentifier(model)) { await accounts.resolveDefaultName(for: account.id) }
                 }
             }
             if let error = accounts.errorMessage {
                 Text(verbatim: error).font(.caption).foregroundStyle(OrzMCTheme.Palette.danger)
             }
-            Button("Add Account", systemImage: "plus.circle") {
+            RemoteAddAccountButton(identifier: "exaroton.addAccount") {
                 editing = nil; name = ""; token = ""; showingEditor = true
             }
-            .accessibilityIdentifier("exaroton.addAccount")
         }
         .sheet(isPresented: $showingEditor) {
             RemoteAccountEditor(

@@ -4,7 +4,7 @@ import SwiftUI
 /// Shared account header; provider-specific menus and contents stay with their provider.
 struct RemoteAccountHeader<Actions: View>: View {
     let name: String
-    let subtitle: String
+    var subtitle: String? = nil
     let isLoading: Bool
     @ViewBuilder var actions: () -> Actions
 
@@ -12,7 +12,10 @@ struct RemoteAccountHeader<Actions: View>: View {
         HStack(alignment: .top, spacing: OrzMCTheme.Spacing.sm) {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
                 Text(verbatim: name).font(.headline)
-                Text(verbatim: subtitle).font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("remote.accountName")
+                if let subtitle, !subtitle.isEmpty {
+                    Text(verbatim: subtitle).font(.caption).foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: OrzMCTheme.Spacing.xs)
             if isLoading { ProgressView().controlSize(.small) }
@@ -92,5 +95,19 @@ struct RemoteProviderHeader: View {
             }
             Spacer(minLength: 0)
         }
+    }
+}
+
+struct RemoteAddAccountButton: View {
+    let identifier: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Add Account", systemImage: "plus.circle").font(.callout)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .accessibilityIdentifier(identifier)
     }
 }

@@ -653,6 +653,20 @@ final class RemotePanelsUITests: XCTestCase {
     }
 
     /// 远程托管（假服务器）：列表 + 详情各区块。
+    @MainActor
+    func testRealExarotonAccountNameIsResolved() throws {
+        let token = ProcessInfo.processInfo.environment["ORZMC_DEMO_TOKEN"] ?? ""
+        try XCTSkipIf(token.isEmpty, "需要本地 exaroton 测试凭据")
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        let name = app.staticTexts.matching(identifier: "remote.accountName").firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 30))
+        let resolved = NSPredicate(format: "label != %@ AND label != %@", "账号", "Account")
+        expectation(for: resolved, evaluatedWith: name)
+        waitForExpectations(timeout: 30)
+    }
+
     func testSnapshotConfiguredRemoteAccounts() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
         let app = makeApp(["ORZMC_DEMO_TAB": "managed"])

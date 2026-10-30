@@ -4,6 +4,11 @@ import Observation
 struct ExarotonAccount: Identifiable, Codable, Equatable {
     let id: UUID
     var label: String
+    var autoName: Bool? = nil
+
+    var displayName: String {
+        label.isEmpty || (label == "exaroton" && autoName == nil) ? String(localized: "Account") : label
+    }
 }
 
 /// Metadata is non-secret; each token has its own Keychain item. Models never share mutable credentials.
@@ -13,6 +18,7 @@ final class ExarotonAccountsModel {
     private(set) var accounts: [ExarotonAccount] = []
     private(set) var models: [UUID: ExarotonServerModel] = [:]
     var errorMessage: String?
+    private var isDemo = false
     private let defaults: UserDefaults
     private let loadToken: (String) -> String?
     private let saveToken: (String, String) throws -> Void
@@ -33,10 +39,11 @@ final class ExarotonAccountsModel {
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
         if env["ORZMC_DEMO_FAKE_SERVER"] == "1" || !(env["ORZMC_DEMO_TOKEN"] ?? "").isEmpty {
+            isDemo = true
             stop()
             let count = env["ORZMC_DEMO_MULTI_ACCOUNT"] == "1" ? 2 : 1
             for index in 1...count {
-                let account = ExarotonAccount(id: UUID(), label: "exaroton \(index)")
+                let account = ExarotonAccount(id: UUID(), label: count == 1 ? "" : "exaroton \(index)", autoName: count == 1)
                 accounts.append(account)
                 models[account.id] = ExarotonServerModel(accountToken: env["ORZMC_DEMO_FAKE_SERVER"] == "1" ? "" : env["ORZMC_DEMO_TOKEN"])
             }
@@ -53,7 +60,7 @@ final class ExarotonAccountsModel {
             // Keep the legacy credential until both the new Keychain item and metadata exist.
             let legacyKey = ExarotonServerModel.accountTokenPersistentKey
             let legacy = loadToken(legacyKey) ?? defaults.string(forKey: legacyKey) ?? ""
-            if !legacy.isEmpty, save(id: nil, label: "exaroton", token: legacy) {
+            if !legacy.isEmpty, save(id: nil, label: "", token: legacy) {
                 try? deleteToken(legacyKey)
                 defaults.removeObject(forKey: legacyKey)
             }
@@ -82,7 +89,9 @@ final class ExarotonAccountsModel {
         do {
             try saveToken(credential, key)
             let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
-            let account = ExarotonAccount(id: accountID, label: name.isEmpty ? "exaroton" : name)
+            let previous = accounts.first(where: { $0.id == accountID })
+            let automatic = name.isEmpty || (previous?.autoName == true && previous?.label == name)
+            let account = ExarotonAccount(id: accountID, label: name, autoName: automatic)
             var updated = accounts
             if let index = updated.firstIndex(where: { $0.id == accountID }) { updated[index] = account }
             else { updated.append(account) }
@@ -97,6 +106,38 @@ final class ExarotonAccountsModel {
         } catch {
             errorMessage = String(localized: "Could not save account credentials. Please try again.", comment: "Keychain persistence failure")
             return false
+        }
+    }
+
+    /// Resolve only the placeholder; never overwrite an explicit user name or a newer model.
+    func resolveDefaultName(
+        for id: UUID,
+        lookup: @MainActor (ExarotonServerModel) async throws -> String? = { model in
+            let response = try await model.makeClient().getAccount()
+            guard case .ok(let ok) = response else { return nil }
+            return try ok.body.json.data?.name
+        }
+    ) async {
+        #if DEBUG
+        let env = ProcessInfo.processInfo.environment
+        if env["ORZMC_DEMO_FAKE_SERVER"] == "1" { return }
+        #endif
+        guard let account = accounts.first(where: { $0.id == id }), (account.autoName ?? (account.label == "exaroton")),
+              let model = models[id], !model.token.isEmpty else { return }
+        do {
+            guard let name = try await lookup(model)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !name.isEmpty, let index = accounts.firstIndex(where: { $0.id == id }),
+                  (accounts[index].autoName ?? (accounts[index].label == "exaroton")),
+                  models[id] === model else { return }
+            guard accounts[index].label != name || accounts[index].autoName == nil else { return }
+            var updated = accounts
+            updated[index].label = name
+            updated[index].autoName = true
+            let data = try JSONEncoder().encode(updated)
+            if !isDemo { defaults.set(data, forKey: Self.accountsKey) }
+            accounts = updated
+        } catch {
+            // Keep the placeholder; the account and its servers remain usable offline.
         }
     }
 
