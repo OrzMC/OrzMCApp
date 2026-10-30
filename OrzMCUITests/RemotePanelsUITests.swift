@@ -223,6 +223,23 @@ final class RemotePanelsUITests: XCTestCase {
         keep(XCTAttachment(screenshot: app.screenshot()))
     }
 
+    /// 同一玩家出现在多个名单时，切换后不能复用上一名单的操作按钮。
+    func testPlayerActionsFollowSelectedList() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.staticTexts["alice"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["踢出"].exists)
+        selectPlayerTab(app, matching: "白名单")
+        XCTAssertTrue(app.staticTexts["carol"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons.matching(identifier: "移出白名单").count, 2)
+        XCTAssertFalse(app.buttons["踢出"].exists)
+        selectPlayerTab(app, matching: "在线")
+        XCTAssertTrue(app.buttons["踢出"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["移出白名单"].exists)
+    }
+
     /// 设置 sheet：点「设置」应立即出现（这是真机反馈过的"偶现加载很久/空白"）。
     func testServerSettingsSheetAppearsImmediately() {
         let app = makeApp()
