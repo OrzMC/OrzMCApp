@@ -7,6 +7,7 @@
 //
 
 import Testing
+import OrzMCFoundation
 
 @testable import OrzMCRemoteHosting
 
@@ -59,6 +60,24 @@ struct ConsoleTextBufferTests {
         #expect(!buffer.isEmpty)
     }
 
+    @Test("多字节超长行按字节裁剪，保留尾部")
+    func trimsMultibyteLineByBytes() {
+        var buffer = ConsoleTextBuffer(limit: 64)
+        buffer.append(String(repeating: "长", count: 100))
+        #expect(!buffer.isEmpty)
+        #expect(buffer.text.utf8.count <= 64)
+        #expect(buffer.text.hasSuffix("长"))
+    }
+
+    @Test("CRLF 超限时按完整行裁剪")
+    func trimsCRLFAtLineBoundary() {
+        var buffer = ConsoleTextBuffer(limit: 64)
+        for index in 0..<20 { buffer.append("第\(index)行-padding\r\n") }
+        #expect(buffer.text.hasPrefix("第"))
+        #expect(buffer.text.hasSuffix("\r\n"))
+        #expect(buffer.text.contains("第19行"))
+    }
+
     @Test("`\\r` 覆盖式进度条不被裁剪破坏")
     func keepsCarriageReturns() {
         var buffer = ConsoleTextBuffer(limit: 2048)
@@ -66,5 +85,55 @@ struct ConsoleTextBufferTests {
         // 缓冲只负责原样累积；`\r` 的覆盖语义由 `ConsoleTextParser` 处理（红线）。
         #expect(buffer.text.contains("\r"))
         #expect(buffer.text.hasSuffix("100%\n"))
+    }
+}
+
+@Suite("控制台增量行")
+struct ConsoleLineBufferTests {
+    @Test func fragmentsMatchTheExistingParser() {
+        let chunks = ["第一行\r", "\n", "10%\r", "50%", "\n\n", "最后", "\r", "完成"]
+        var raw = ConsoleTextBuffer()
+        var rows = ConsoleLineBuffer()
+        for chunk in chunks {
+            raw.append(chunk)
+            rows.append(chunk)
+            #expect(rows.lines.map(\.text) == ConsoleTextParser.lines(in: raw.text))
+        }
+    }
+
+    @Test func preservesRetainedRowIdentityWhileTrimming() {
+        var raw = ConsoleTextBuffer(limit: 100)
+        var rows = ConsoleLineBuffer(limit: 100)
+        for index in 0..<20 {
+            let before = rows.lines
+            let chunk = "row-\(index)-abcdefgh\n"
+            raw.append(chunk)
+            rows.append(chunk)
+            #expect(rows.lines.map(\.text) == ConsoleTextParser.lines(in: raw.text))
+            for row in before where rows.lines.contains(where: { $0.text == row.text }) {
+                #expect(rows.lines.first(where: { $0.text == row.text })?.id == row.id)
+            }
+        }
+    }
+
+    @Test func partialLineKeepsIdentityUntilTerminated() {
+        var rows = ConsoleLineBuffer()
+        rows.append("partial")
+        let id = rows.lines.first?.id
+        rows.append(" text\rnew\nnext")
+        #expect(rows.lines.first?.id == id)
+        #expect(rows.lines.map(\.text) == ["new", "next"])
+    }
+
+    @Test func resetAndOversizedLineMatchExistingBuffer() {
+        var raw = ConsoleTextBuffer(limit: 64)
+        var rows = ConsoleLineBuffer(limit: 64)
+        let text = String(repeating: "长", count: 100)
+        raw.reset(to: text)
+        rows.reset(to: text)
+        #expect(rows.lines.map(\.text) == ConsoleTextParser.lines(in: raw.text))
+        rows.append("more")
+        raw.append("more")
+        #expect(rows.lines.map(\.text) == ConsoleTextParser.lines(in: raw.text))
     }
 }

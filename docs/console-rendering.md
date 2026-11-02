@@ -94,6 +94,12 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 （自建服务器 RCON 控制台另有 400 行上限：一页最多看这么多，省内存）。
 上限只出现在缓冲区里，视图不做裁剪。
 
+MCSManager 的实时输出由 `OrzMCRemoteHosting.ConsoleLineBuffer` 增量拆行，
+沿用 `ConsoleTextParser` 的回车及换行语义；保留行的 ID 在追加与整行裁剪时保持稳定。
+其原始文本仍由 `ConsoleTextBuffer` 以默认 256 KiB 上限管理，超限按 UTF-8 字节及完整字符边界裁剪。
+轮询快照是整段替换，因此会重建行。该缓冲依赖 Minecraft 文本语义，保留在应用层；
+通用行容器和跟随状态仍在 `OrzSwiftKit`，不把供应商或格式细节放进公共 UI 基础库。
+
 ## 验收
 
 ```bash
@@ -103,6 +109,7 @@ swift test --filter ConsoleTextTests
 # 三处缓冲区的拆分/颜色（RemoteConsoleBuffer 4 例 + ServerConsoleBuffer 9 例）
 swift test --filter RemoteConsoleBufferTests
 swift test --filter ServerConsoleBufferTests
+swift test --filter ConsoleLineBufferTests
 
 # 端到端：iOS 模拟器里看 exaroton 控制台（假 live 会塞带 ANSI/§ 的样本行）
 cd swift/app && ./scripts/dev/run-ios-ui-tests.sh
