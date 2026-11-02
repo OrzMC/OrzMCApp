@@ -174,6 +174,7 @@ final class MCServerProbeTests: XCTestCase {
         let stream = FakeStream(incoming:
             Self.rconPacket(id: 1, type: 2, body: "")        // auth ok
             + Self.rconPacket(id: 2, type: 0, body: "There are 1 of a max of 10 players online")
+            + Self.rconPacket(id: 3, type: 0, body: "Unknown request")
         )
         let probe = MCServerProbe(streamFactory: { stream })
 
@@ -189,12 +190,15 @@ final class MCServerProbeTests: XCTestCase {
         let stream = FakeStream(
             incoming:
                 Self.rconPacket(id: 1, type: 2, body: "")
-                + Self.rconPacket(id: 2, type: 0, body: "line one")
+                + Self.rconPacket(id: 2, type: 0, body: "line one\n")
                 + Self.rconPacket(id: 2, type: 0, body: "line two")
+                + Self.rconPacket(id: 3, type: 0, body: "Unknown request")
         )
         let probe = MCServerProbe(streamFactory: { stream })
         let reply = try await probe.runRCON(host: "127.0.0.1", port: 25575, password: "s", command: "help")
         XCTAssertEqual(reply, "line one\nline two")
+        XCTAssertTrue(stream.written.suffix(Self.rconPacket(id: 3, type: 100, body: "").count)
+            .elementsEqual(Self.rconPacket(id: 3, type: 100, body: "")))
         XCTAssertTrue(stream.closed)
     }
 
@@ -206,6 +210,20 @@ final class MCServerProbeTests: XCTestCase {
             XCTFail("should throw")
         } catch {
             XCTAssertEqual(error as? MCRCONError, .authFailed)
+        }
+    }
+
+    func testRCONMissingEndProbeFailsInsteadOfReturningPartialOutput() async {
+        let stream = FakeStream(incoming:
+            Self.rconPacket(id: 1, type: 2, body: "")
+            + Self.rconPacket(id: 2, type: 0, body: "partial")
+        )
+        let probe = MCServerProbe(streamFactory: { stream })
+        do {
+            _ = try await probe.runRCON(host: "h", port: 1, password: "s", command: "list")
+            XCTFail("missing probe response must not be reported as complete output")
+        } catch {
+            XCTAssertTrue(error is MCStreamError)
         }
     }
 }

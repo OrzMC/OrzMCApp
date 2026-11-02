@@ -54,6 +54,7 @@ final class SelfHostedServersModelTests: XCTestCase {
         for line in lines {
             bytes += rconPacket(id: 2, type: 0, body: line)
         }
+        bytes += rconPacket(id: 3, type: 0, body: "Unknown request")
         return bytes
     }
 
