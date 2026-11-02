@@ -17,7 +17,7 @@ changed="$(git diff --name-only "$(git rev-parse origin/main 2>/dev/null || echo
 # 秘密扫描对**任何**改动都跑：凭据最容易随手写进 docs / HANDOFF / 提交信息里。
 python3 scripts/dev/check-secrets.py || exit 1
 
-if [ -n "$changed" ] && ! grep -qE '\.(swift|pbxproj|xcstrings|yml|sh|py)$' <<<"$changed"; then
+if [ -n "$changed" ] && ! grep -qE '\.(swift|pbxproj|xcstrings|yml|sh|py)$|(^|/)Package\.resolved$' <<<"$changed"; then
   echo "[pre-push] 只有文档/资源改动，跳过其余本地检查"
   exit 0
 fi
