@@ -1,9 +1,46 @@
 import XCTest
+import Socket
 
 @testable import OrzMCProtocol
 
 /// 读缓冲：TCP 一次送回来的字节数不等于我们要的字节数（真实 bug：多出来的被丢掉 → 下一个包永远读不到）。
 final class MCReadBufferTests: XCTestCase {
+
+    func testCancelledSocketCannotBeginConnection() {
+        let stream = SocketByteStream()
+        stream.cancel()
+        XCTAssertThrowsError(try stream.connect(host: "127.0.0.1", port: 1))
+        stream.close()
+        stream.close()
+    }
+
+    func testCancelEndsSocketRead() throws {
+        let server = try Socket.create(family: .inet, type: .stream, proto: .tcp)
+        try server.listen(on: 0, node: "127.0.0.1")
+        let fixture = IdleSocketFixture(server: server)
+        let accepted = expectation(description: "client connected")
+        let readFinished = expectation(description: "cancel interrupts read")
+        let stream = SocketByteStream()
+
+        DispatchQueue.global().async {
+            if let client = try? fixture.server.acceptClientConnection() {
+                accepted.fulfill()
+                fixture.release.wait()
+                client.close()
+            }
+            fixture.server.close()
+        }
+        defer { fixture.release.signal() }
+        try stream.connect(host: "127.0.0.1", port: server.listeningPort)
+        wait(for: [accepted], timeout: 3)
+        DispatchQueue.global().async {
+            _ = try? stream.read(count: 1)
+            stream.close()
+            readFinished.fulfill()
+        }
+        stream.cancel()
+        wait(for: [readFinished], timeout: 3)
+    }
 
     func testTakeReturnsRequestedPrefix() {
         var buffer = MCReadBuffer()
@@ -36,6 +73,12 @@ final class MCReadBufferTests: XCTestCase {
         XCTAssertTrue(buffer.isEmpty)
         XCTAssertNil(buffer.take(1))
     }
+}
+
+private final class IdleSocketFixture: @unchecked Sendable {
+    let server: Socket
+    let release = DispatchSemaphore(value: 0)
+    init(server: Socket) { self.server = server }
 }
 
 /// `RaceWithTimeout`：超时必须**立刻**返回，而不是等被卡住的工作收尾。

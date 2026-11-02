@@ -73,8 +73,8 @@ public struct MCServerProbe: Sendable {
         let stream = streamFactory()
         return try await RaceWithTimeout.run(
             timeout: timeout,
-            // 超时后关 socket：卡在 read 的线程会立刻报错退出（不用等它自己超时）。
-            onTimeout: { stream.close() },
+            // 唤醒阻塞读；连接中则记录取消并在连接返回后由 IO 线程关闭。
+            onTimeout: { stream.cancel() },
             work: { [self] in try await runBlocking { try body(stream) } }
         )
     }
