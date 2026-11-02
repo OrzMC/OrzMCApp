@@ -5,6 +5,11 @@
 
 import Foundation
 import Socket
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 /// Minecraft 的两种文本协议（Server List Ping / RCON）共用的**字节流**。
 ///
@@ -21,6 +26,12 @@ public protocol MCByteStream: AnyObject, Sendable {
     /// RCON 的多包响应靠它判断"后面还有没有下一包"。
     func hasPendingInput(timeoutMilliseconds: Int) throws -> Bool
     func close()
+    /// Interrupt an in-flight operation; may be called concurrently with the IO worker.
+    func cancel()
+}
+
+public extension MCByteStream {
+    func cancel() { close() }
 }
 
 /// 读缓冲：`read(count:)` 可能一次读回**多于**需要的字节（TCP 不按包边界送），
@@ -57,16 +68,34 @@ public enum MCStreamError: Error, Equatable {
 
 /// 生产用实现：BlueSocket 的阻塞 socket。
 public final class SocketByteStream: MCByteStream, @unchecked Sendable {
+    // Only the IO worker accesses `socket` and `buffer`. The timeout thread may
+    // call cancel(), which shuts down the published descriptor without mutating
+    // BlueSocket's unsynchronized internal state.
     private var socket: Socket?
     private var buffer = MCReadBuffer()
+    private let stateLock = NSLock()
+    private var descriptor: Int32 = -1
+    private var cancelled = false
 
     public init() {}
 
     public func connect(host: String, port: Int32) throws {
         do {
+            stateLock.lock()
+            let alreadyCancelled = cancelled
+            stateLock.unlock()
+            guard !alreadyCancelled else { throw MCStreamError.connectionClosed }
             let socket = try Socket.create(family: .inet, type: .stream, proto: .tcp)
             // 超时：连不上要**尽快**告诉用户，而不是挂到系统默认的 75 秒。
             try socket.connect(to: host, port: port, timeout: 8_000)
+            stateLock.lock()
+            let wasCancelled = cancelled
+            if !wasCancelled { descriptor = socket.socketfd }
+            stateLock.unlock()
+            if wasCancelled {
+                socket.close()
+                throw MCStreamError.connectionClosed
+            }
             self.socket = socket
         } catch {
             throw MCStreamError.connectFailed("\(host):\(port) — \(error)")
@@ -96,8 +125,20 @@ public final class SocketByteStream: MCByteStream, @unchecked Sendable {
     }
 
     public func close() {
+        stateLock.lock()
+        descriptor = -1
         socket?.close()
         socket = nil
+        stateLock.unlock()
         buffer.removeAll()
+    }
+
+    public func cancel() {
+        stateLock.lock()
+        cancelled = true
+        if descriptor >= 0 {
+            _ = shutdown(descriptor, Int32(SHUT_RDWR))
+        }
+        stateLock.unlock()
     }
 }
