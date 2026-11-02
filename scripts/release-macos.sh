@@ -583,6 +583,7 @@ ARCHIVE_COMMAND=(
     -configuration "$CONFIGURATION"
     -destination "generic/platform=macOS"
     -archivePath "$ARCHIVE_PATH"
+    -onlyUsePackageVersionsFromResolvedFile
     ${ARCHIVE_DERIVED_DATA_ARGS[@]+"${ARCHIVE_DERIVED_DATA_ARGS[@]}"}
     -skipPackagePluginValidation
     -skipMacroValidation

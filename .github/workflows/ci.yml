@@ -78,11 +78,50 @@ jobs:
           xcodebuild build \
             -scheme OrzMC \
             -destination 'platform=macOS,arch=x86_64' \
+            -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+
+  dependency-drift:
+    # Independent main-branch probe: the required build below always tests the lockfile.
+    if: github.event_name != 'pull_request'
+    runs-on: macos-26
+    needs: split
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+      - name: Resolve package dependencies
+        # 独立、无缓存的 runner 测试依赖 main 分支，不改变锁定组合门禁。
+        run: |
+          rm -f OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -scheme OrzMC -destination 'platform=macOS'
+
+      - name: Build against current dependency branches
+        run: |
+          xcodebuild build -scheme OrzMC -destination 'platform=macOS' \
+            -skipPackagePluginValidation -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+  ui-smoke:
+    runs-on: macos-26
+    needs: split
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+      - name: Select an available iPhone simulator
+        run: |
+          xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/simulators.json")); names=[x["name"] for runtime,devices in d["devices"].items() if "iOS" in runtime for x in devices if x["name"].startswith("iPhone") and x.get("isAvailable")]; assert names, "No available iPhone simulator"; print("SIM_NAME="+names[0])' >> "$GITHUB_ENV"
+      - name: Run remote-hosting UI smoke test
+        env:
+          UI_ONLY_TESTING: OrzMCUITests/RemotePanelsUITests/testProviderAddButtonsAppearBesideHeaders
+        run: ./scripts/dev/check.sh --ui
 
   build:
     # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
@@ -106,7 +145,7 @@ jobs:
           xcodebuild -version
 
       # 只在 main 落盘（PR 只 restore），避免每轮/每分支新增一份 3GiB。
-      # key 用工程文件哈希（稳定）；HEAD 重解析导致的依赖变化由 xcodebuild 自己增量重编。
+      # key 包含工程和锁文件；依赖漂移由独立任务检测。
       - name: Restore SwiftPM / DerivedData cache
         id: cache
         uses: actions/cache/restore@v4
@@ -114,35 +153,9 @@ jobs:
           path: |
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/Developer/Xcode/DerivedData
-          key: xcode-${{ matrix.cache_key }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj') }}
+          key: xcode-${{ matrix.cache_key }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
           restore-keys: |
             xcode-${{ matrix.cache_key }}-
-
-      - name: Resolve package dependencies
-        # **PR 用锁定依赖，main 用 HEAD 解析**（2026-10-26 成本复盘 O2）：
-        # 以前每个 PR 都删 `Package.resolved` 强制解析到分支最新 → `OrzMCKit` 及其传递依赖
-        # 常常重编，缓存命中也没用（build 稳定 6.8 min）。
-        # 现在：PR 走锁文件（可缓存、可复现），main 仍做 HEAD 解析来尽早发现依赖漂移；
-        # 发版流水线也走锁文件（见 release-app.yml），保证发出去的是测过的那套版本。
-        if: github.event_name != 'pull_request'
-        # HEAD 制：删除锁文件以强制解析到分支最新（不锁旧 revision）。
-        # 坑：共享仓库缓存（org.swift.swiftpm/repositories）里的**分支 ref** 可能落后于上游，
-        # 删除 Package.resolved 也没用——解析会用缓存里的旧 main。先显式刷新分支依赖
-        # （OrzMCKit main），否则 CI 会把源码回退到旧 revision（实测过）。
-        run: |
-          rm -f OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-          for repo in "$HOME"/Library/Caches/org.swift.swiftpm/repositories/OrzMCKit-*; do
-            [ -d "$repo" ] || continue
-            git -C "$repo" fetch --prune origin '+refs/heads/*:refs/heads/*' || true
-          done
-          # 缓存里的 SourcePackages 解析状态/checkout 也钉着旧 revision，清掉让 Xcode 重新取
-          rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/checkouts/OrzMCKit
-          rm -f "$HOME"/Library/Developer/Xcode/DerivedData/*/SourcePackages/workspace-state.json
-          # Clang 模块缓存不能跟着 DerivedData 缓存走：runner 镜像升级 SDK 后 mtime 变了，
-          # 复用旧 .pcm 会报 "has been modified since the module file … was built" 直接构建失败。
-          # 重新编译模块只要几秒，比修缓存 key 稳。
-          rm -rf "$HOME"/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
-          xcodebuild -resolvePackageDependencies -scheme OrzMC -destination '${{ matrix.destination }}'
 
       - name: Unit tests (SwiftPM + app target)
         # 两套都跑：SwiftPM 包单测（Sources/*）+ 应用层 target `OrzMCTests`
@@ -152,12 +165,13 @@ jobs:
         # 不在本仓库里（第一次就踩了这个坑）。
         if: matrix.cache_key == 'macos'
         run: |
-          swift test
+          swift test --disable-automatic-resolution
           xcodebuild test \
             -project OrzMC.xcodeproj \
             -scheme OrzMC \
             -destination 'platform=macOS' \
             -only-testing:OrzMCTests \
+            -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
@@ -169,11 +183,15 @@ jobs:
           xcodebuild build \
             -scheme OrzMC \
             -destination '${{ matrix.destination }}' \
+            -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+
+      - name: Verify dependency locks remain unchanged
+        run: git diff --exit-code -- Package.resolved OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
       - name: Save SwiftPM / DerivedData cache
         if: github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'

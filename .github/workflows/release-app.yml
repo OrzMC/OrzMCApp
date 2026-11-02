@@ -82,7 +82,9 @@ jobs:
         run: |
           xcrun xcodebuild -resolvePackageDependencies \
             -scheme OrzMC \
+            -onlyUsePackageVersionsFromResolvedFile \
             -derivedDataPath DerivedData
+          git diff --exit-code -- OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
       - name: Build, notarize, and publish release
         env:
