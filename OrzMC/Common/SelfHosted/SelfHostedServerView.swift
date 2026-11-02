@@ -564,20 +564,16 @@ struct SelfHostedServerView: View {
     private var consoleLog: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    if model.currentConsoleLines.isEmpty {
-                        Text("Commands and replies show up here.")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    ForEach(model.currentConsoleLines) { line in
-                        // 与 macOS 本地控制台 / exaroton 控制台同一个渲染组件：
-                        // ANSI 与 `§` 颜色由 `ConsoleTextParser` 解析，这里只给"没有颜色码时"兜底色。
-                        ConsoleLineText(segments: line.segments, fallback: color(for: line.kind))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                            .id(line.id)
-                    }
+                OrzMCConsoleRows(model.currentConsoleLines, id: \.id, spacing: 2) { line in
+                    // ANSI 与 `§` 颜色由共享解析器处理，这里只提供默认颜色。
+                    ConsoleLineText(segments: line.segments, fallback: color(for: line.kind))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .id(line.id)
+                } empty: {
+                    Text("Commands and replies show up here.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
                 .padding(OrzMCTheme.Spacing.xs)
             }

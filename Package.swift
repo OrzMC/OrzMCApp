@@ -31,6 +31,7 @@ let package = Package(
         )
     ],
     dependencies: [
+        .package(url: "https://github.com/OrzGeeker/OrzSwiftKit.git", branch: "main"),
         .package(url: "https://github.com/Kitura/BlueSocket.git", from: "2.0.4")
     ],
     targets: [
@@ -40,7 +41,7 @@ let package = Package(
         ),
         .target(
             name: "OrzMCLauncher",
-            dependencies: ["OrzMCFoundation"],
+            dependencies: ["OrzMCFoundation", .product(name: "ConsoleCore", package: "OrzSwiftKit")],
             path: "Sources/OrzMCLauncher"
         ),
         // iOS 专用（服务器状态查询 / RCON）；与 GUI 的 `OrzMC/` 源码分开，独立可测。
@@ -59,7 +60,7 @@ let package = Package(
         .target(
             name: "OrzMCDesignSystem",
             // 设计系统要认识 `ConsoleTextSegment`（终端文本渲染），所以依赖 Foundation 层。
-            dependencies: ["OrzMCFoundation"],
+            dependencies: ["OrzMCFoundation", .product(name: "ConsoleUI", package: "OrzSwiftKit")],
             path: "Sources/OrzMCDesignSystem"
         ),
         .testTarget(

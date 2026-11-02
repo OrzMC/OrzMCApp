@@ -38,7 +38,9 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 ```
 
 * **解析在底层**：不依赖 SwiftUI，`swift test` 就能覆盖；将来 CLI / 别的端要显示日志可以直接用。
-* **渲染只有一份**：`ConsoleLineText`，三处控制台都指向它。
+* **渲染只有一份**：`ConsoleLineText`，本地、自建、exaroton 和 MCSManager 控制台都指向它。
+* **惰性行布局共用**：四处均经 `OrzMCConsoleRows` 使用 `OrzSwiftKit` 的 `ConsoleUI.ConsoleRows`；
+  滚动容器、空态、间距和业务操作仍由各场景配置。
 * **缓冲区只做分块**：`ServerConsoleBuffer` 负责"半行/多行/上限"，`RemoteConsoleBuffer` 负责
   "一条 WS 消息可能是多行"，颜色不再在缓冲区里被剥掉。
 
@@ -79,11 +81,12 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 | 控制台 | 做法 |
 |---|---|
 | exaroton | `ScrollView` + `.defaultScrollAnchor(.bottom)`（日志只会往后追加） |
+| MCSManager | `ScrollView` + `.defaultScrollAnchor(.bottom)`；实时增量与轮询快照共用文本缓冲 |
 | 自建服务器 | `ScrollViewReader` + 新增行时 `scrollTo(last)`（行数少、需要按 id 定位） |
 | macOS 本地服务端 | `ConsoleFollowState`（暂停/未读/搜索）+ `ConsoleScrollObserver` |
 
-`ConsoleFollowState` 已经是一个可单测的纯值类型（`Tests/OrzMCLauncherTests`），
-真要合并时**把它下沉到 `OrzMCFoundation`** 即可，视图不必再重写一遍滚动逻辑。
+`ConsoleFollowState` 已迁至 `OrzSwiftKit` 的 `ConsoleCore`，应用通过兼容类型别名引用同一实现。
+目前只有本地控制台使用该跟随状态机；远程控制台仍保留各自的滚动行为，避免迁移时改变交互。
 
 ## 上限
 
