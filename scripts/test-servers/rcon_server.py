@@ -7,6 +7,7 @@ import socket
 import struct
 import sys
 import threading
+import time
 
 # 绑定所有网卡：模拟器用 127.0.0.1，真机用 Mac 的局域网地址（0.0.0.0 两边都能连）。
 HOST = ""
@@ -49,9 +50,12 @@ def handle(conn):
                 if body == "list":
                     # 故意拆成两包，验证客户端会把后续包也读回来
                     conn.sendall(varint_packet(rid, 0, "There are 2 of a max of 20 players online:"))
+                    time.sleep(0.3)  # exceeds the old 120 ms quiet-period heuristic
                     conn.sendall(varint_packet(rid, 0, " alice, bob"))
                 else:
                     conn.sendall(varint_packet(rid, 0, reply))
+            else:                                           # non-command end probe
+                conn.sendall(varint_packet(rid, 0, "Unknown request"))
     finally:
         conn.close()
 
