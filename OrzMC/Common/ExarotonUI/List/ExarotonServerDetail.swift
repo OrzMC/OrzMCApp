@@ -148,12 +148,12 @@ struct ExarotonServerDetail: View {
                             .accessibilityIdentifier("remote.consolePanel")
                         } else {
                             ScrollView(.vertical, showsIndicators: true) {
-                                LazyVStack(alignment: .leading, spacing: 0) {
+                                OrzMCConsoleRows(model.consoleLines, id: \.id) { line in
                                     // 三个控制台共用同一套 ANSI/`§` 渲染（`ConsoleLineText`）。
-                                    ForEach(model.consoleLines) { line in
-                                        ConsoleLineText(segments: line.segments)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
+                                    ConsoleLineText(segments: line.segments)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                } empty: {
+                                    EmptyView()
                                 }
                                 .textSelection(.enabled)
                                 // 与空态同一内边距，日志首行和占位对得上（以前文字直接贴着圆角边框）。

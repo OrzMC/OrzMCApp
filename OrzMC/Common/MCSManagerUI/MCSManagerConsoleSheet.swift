@@ -128,18 +128,14 @@ struct MCSManagerConsoleSheet: View {
 
     private var console: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                if lines.isEmpty {
-                    Text(isLoading ? String(localized: "Loading…") : String(localized: "No output yet"))
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                        ConsoleLineText(segments: ConsoleTextParser.parse(line))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
+            OrzMCConsoleRows(Array(lines.enumerated()), id: \.offset) { _, line in
+                ConsoleLineText(segments: ConsoleTextParser.parse(line))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } empty: {
+                Text(isLoading ? String(localized: "Loading…") : String(localized: "No output yet"))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(OrzMCTheme.Spacing.xs)
         }

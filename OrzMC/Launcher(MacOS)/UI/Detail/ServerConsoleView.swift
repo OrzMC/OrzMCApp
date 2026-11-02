@@ -164,17 +164,16 @@ struct ServerConsoleView: View {
     private var logList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 1) {
-                    ForEach(filteredLines) { line in
-                        // ANSI / `§` 颜色由共享解析器给出（`ConsoleTextParser`），这里只排版。
-                        // 本地回显的命令行没有颜色码 → 用主题强调色兜底。
-                        ConsoleLineText(
-                            segments: line.segments,
-                            fallback: line.isCommand ? OrzMCTheme.Palette.accent : nil
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .id(line.id)
-                    }
+                OrzMCConsoleRows(filteredLines, id: \.id, spacing: 1) { line in
+                    // 本地回显的命令行没有颜色码 → 用主题强调色兜底。
+                    ConsoleLineText(
+                        segments: line.segments,
+                        fallback: line.isCommand ? OrzMCTheme.Palette.accent : nil
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .id(line.id)
+                } empty: {
+                    EmptyView()
                 }
                 .padding(OrzMCTheme.Spacing.sm)
                 .textSelection(.enabled)
