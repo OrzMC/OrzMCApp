@@ -290,5 +290,8 @@ step "执行 UI 测试（模拟器）"
 # 把我们刚修好的 UITargetAppPath 又覆盖回不带 .app 的版本。
 # 空数组要用 ${arr[@]+"${arr[@]}"} 展开成"零个参数"；写成 "${arr[@]:-}" 会变成一个空字符串参数，
 # xcodebuild 会报 `Unknown build action ''`。
-xcodebuild test-without-building -xctestrun "$SIM_XCTESTRUN" -destination "$DESTINATION" 2>&1 \
+ONLY_ARGS=()
+[[ -n "${UI_ONLY_TESTING:-}" ]] && ONLY_ARGS+=(-only-testing:"$UI_ONLY_TESTING")
+xcodebuild test-without-building -xctestrun "$SIM_XCTESTRUN" -destination "$DESTINATION" \
+  ${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"} 2>&1 \
   | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
