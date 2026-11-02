@@ -28,15 +28,20 @@ public struct ConsoleTextBuffer: Sendable {
 
     /// 追加一段输出（可能是半行，也可能没有换行）。
     public mutating func append(_ chunk: String) {
-        guard !chunk.isEmpty else { return }
+        _ = appendReportingTrim(chunk)
+    }
+
+    /// Returns the discarded prefix so incremental consumers can retire matching rows.
+    mutating func appendReportingTrim(_ chunk: String) -> String {
+        guard !chunk.isEmpty else { return "" }
         storage.append(contentsOf: chunk)
-        trimIfNeeded()
+        return trimIfNeeded()
     }
 
     /// 整段替换（首次加载历史 / 用户点刷新时用）。
     public mutating func reset(to text: String) {
         storage = text
-        trimIfNeeded()
+        _ = trimIfNeeded()
     }
 
     public mutating func removeAll() {
@@ -44,15 +49,29 @@ public struct ConsoleTextBuffer: Sendable {
     }
 
     /// 超长时从前面裁掉，**切在换行之后**：宁可多留一点，也不要把一行切成两半。
-    private mutating func trimIfNeeded() {
-        guard storage.utf8.count > limit else { return }
+    private mutating func trimIfNeeded() -> String {
+        guard storage.utf8.count > limit else { return "" }
         // 目标：让尾部大约剩 limit 字节；从前向后找第一个换行作为切点。
         let excess = storage.utf8.count - limit
-        let cutIndex = storage.index(storage.startIndex, offsetBy: min(excess, storage.count))
-        if let newline = storage[cutIndex...].firstIndex(of: "\n") {
-            storage = String(storage[storage.index(after: newline)...])
-        } else {
-            storage = String(storage[cutIndex...])
+        // `excess` is a byte count, not a Character count. Advancing by that many
+        // Characters can discard the entire buffer for multibyte text.
+        var cutIndex = storage.startIndex
+        var removedBytes = 0
+        while cutIndex < storage.endIndex && removedBytes < excess {
+            let next = storage.index(after: cutIndex)
+            removedBytes += storage[cutIndex..<next].utf8.count
+            cutIndex = next
         }
+        let retainedStart: String.Index
+        let scalars = storage.unicodeScalars
+        if let newline = scalars[cutIndex...].firstIndex(of: "\n"),
+           let afterNewline = String.Index(scalars.index(after: newline), within: storage) {
+            retainedStart = afterNewline
+        } else {
+            retainedStart = cutIndex
+        }
+        let removed = String(storage[..<retainedStart])
+        storage = String(storage[retainedStart...])
+        return removed
     }
 }

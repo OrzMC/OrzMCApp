@@ -1003,4 +1003,18 @@ extension RemotePanelsUITests {
         let value = field.value as? String ?? ""
         XCTAssertFalse(value.contains("/list"), "发送成功后输入框应清空，实际：\(value)")
     }
+
+    func testSnapshotMCSManagerConsole() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        let row = app.buttons.matching(identifier: "mcsm.instanceRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "演示生存服")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20))
+        row.tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出"))
+            .firstMatch.waitForExistence(timeout: 15))
+        snap(app, "mcsm-console")
+    }
 }

@@ -30,7 +30,7 @@ struct MCSManagerConsoleSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     /// 控制台文本的累积器（实时流追加 / 轮询整段替换）。
-    @State private var buffer = ConsoleTextBuffer()
+    @State private var buffer = ConsoleLineBuffer()
     @State private var command = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -42,10 +42,6 @@ struct MCSManagerConsoleSheet: View {
     private static let refreshInterval: Duration = .seconds(3)
 
     private var state: RemoteServerState { model.state(of: instance) }
-
-    private var lines: [String] {
-        ConsoleTextParser.lines(in: buffer.text)
-    }
 
     /// 输出是从哪来的。
     private enum StreamState: Equatable {
@@ -128,8 +124,8 @@ struct MCSManagerConsoleSheet: View {
 
     private var console: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            OrzMCConsoleRows(Array(lines.enumerated()), id: \.offset) { _, line in
-                ConsoleLineText(segments: ConsoleTextParser.parse(line))
+            OrzMCConsoleRows(buffer.lines, id: \.id) { line in
+                ConsoleLineText(segments: ConsoleTextParser.parse(line.text))
                     .frame(maxWidth: .infinity, alignment: .leading)
             } empty: {
                 Text(isLoading ? String(localized: "Loading…") : String(localized: "No output yet"))
