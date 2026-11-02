@@ -45,7 +45,7 @@ public struct MCServerProbe: Sendable {
 
     // MARK: - RCON
 
-    /// 登录 + 执行一条命令，返回服务端输出（多包响应只取第一条，够用于 `list` / `say` 这类）。
+    /// 登录 + 执行一条命令，读取直到服务端响应结束探针。
     public func runRCON(
         host: String,
         port: Int32,
@@ -179,18 +179,25 @@ public struct MCServerProbe: Sendable {
         let request = RCONPacket(id: 2, type: .command, body: command)
         try stream.write(request.data)
 
-        // 返回可能是**多个包**（长输出会拆包：`help` / `list` 人多时）。
-        // 第一包必须读；之后在 120ms 内还有数据就继续读，直到没有为止。
+        // Minecraft RCON may split output across packets. A quiet-period heuristic
+        // silently truncates output on a slow connection. After the first response,
+        // send a non-command probe and read until its distinct request ID returns.
+        // Do not send both requests together: Minecraft may read them as one packet.
         var chunks: [String] = []
-        var isFirst = true
-        while isFirst || (try? stream.hasPendingInput(timeoutMilliseconds: 120)) == true {
+        var probeSent = false
+        while true {
             guard let packet = try readRCONPacket(stream: stream) else { throw MCRCONError.packetMalFormat }
             guard packet.type == .response else { throw MCRCONError.responseInvalid }
-            let body = packet.body
-            if !body.isEmpty { chunks.append(body) }
-            isFirst = false
+            if packet.id == 3 && probeSent { break }
+            guard packet.id == 2 else { throw MCRCONError.responseInvalid }
+            chunks.append(packet.body)
+            if !probeSent {
+                let probe = RCONPacket(id: 3, type: .endProbe, body: "")
+                try stream.write(probe.data)
+                probeSent = true
+            }
         }
-        return chunks.joined(separator: "\n")
+        return chunks.joined()
     }
 
     private static func readRCONPacket(stream: MCByteStream) throws -> RCONPacket? {

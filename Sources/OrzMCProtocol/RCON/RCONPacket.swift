@@ -15,6 +15,8 @@ struct RCONPacket {
         case response = 0
         case command = 2
         case auth = 3
+        /// Minecraft RCON replies to an unknown packet type without executing a command.
+        case endProbe = 100
     }
     
     private(set) var id: Int32
