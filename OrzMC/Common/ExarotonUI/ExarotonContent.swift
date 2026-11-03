@@ -70,7 +70,7 @@ struct ExarotonContent: View {
                     MCSManagerSection().environment(mcsm)
                 }
                 .padding(OrzMCTheme.Spacing.lg)
-                .frame(maxWidth: 780)
+                .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
                 .frame(maxWidth: .infinity)
             }
             .navigationTitle(String(localized: "Remote Servers"))

@@ -15,6 +15,7 @@ import SwiftUI
 /// 列表行与详情页顶部共用这个组件，字段顺序固定：
 /// `名称 + 状态徽标` → `软件 / 玩家` 标签 → `地址（可复制）` → `MOTD`。
 struct ExarotonServerCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let server: ExarotonServer
     /// 实际状态（WebSocket 推送优先）。列表/详情页传 `model.effectiveStatus(for:)`，
     /// 卡片本身不依赖 `ExarotonServerModel`，保持纯展示、可预览可单测。
@@ -73,13 +74,33 @@ struct ExarotonServerCard: View {
     }
 
     private var tags: some View {
-        HStack(spacing: OrzMCTheme.Spacing.xs) {
-            if let software = server.software {
-                OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
+                    if let software = server.software {
+                        Text(verbatim: "\(software.name ?? "—") \(software.version ?? "")")
+                    }
+                    if let players = server.players {
+                        Text("\(Int(players.count ?? 0))/\(Int(players.max ?? 0)) players")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: OrzMCTheme.Spacing.xs) { tagContents }
+                    VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) { tagContents }
+                }
             }
-            if let players = server.players {
-                OrzMCTag(String(localized: "\(Int(players.count ?? 0))/\(Int(players.max ?? 0)) players"))
-            }
+        }
+    }
+
+    @ViewBuilder private var tagContents: some View {
+        if let software = server.software {
+            OrzMCTag("\(software.name ?? "—") \(software.version ?? "")")
+        }
+        if let players = server.players {
+            OrzMCTag(String(localized: "\(Int(players.count ?? 0))/\(Int(players.max ?? 0)) players"))
         }
     }
 

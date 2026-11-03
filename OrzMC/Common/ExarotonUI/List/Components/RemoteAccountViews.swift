@@ -77,6 +77,7 @@ struct RemoteInstanceHeading: View {
 }
 
 struct RemoteProviderHeader: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let name: String
     let systemImage: String
     let count: Int
@@ -99,18 +100,26 @@ struct RemoteProviderHeader: View {
     }
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: OrzMCTheme.Spacing.sm) {
-                title.fixedSize(horizontal: true, vertical: false)
-                Spacer(minLength: OrzMCTheme.Spacing.xs)
-                RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
-            }
-            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-                title
-                HStack {
-                    Spacer(minLength: 0)
+        if dynamicTypeSize.isAccessibilitySize {
+            stackedHeader
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: OrzMCTheme.Spacing.sm) {
+                    title.fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: OrzMCTheme.Spacing.xs)
                     RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
                 }
+                stackedHeader
+            }
+        }
+    }
+
+    private var stackedHeader: some View {
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+            title.fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer(minLength: 0)
+                RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
             }
         }
     }
