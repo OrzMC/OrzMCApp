@@ -16,6 +16,7 @@ import SwiftUI
 struct MCSManagerSection: View {
 
     @Environment(MCSManagerPanelsModel.self) private var mcsm
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// 当前要显示的弹窗。
     ///
@@ -201,38 +202,18 @@ struct MCSManagerSection: View {
         let state = model?.state(of: instance) ?? instance.status.remoteState
 
         return VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-                // 点实例名 = 打开控制台（最常用的动作给最直接的手势）。
-                // 生命周期动作留在 `⋯` 菜单里 —— 那是"有副作用"的操作，要多一步确认。
-                Button {
-                    guard let model else { return }
-                    sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        RemoteInstanceHeading(name: instance.nickname, statusTitle: state.localizedTitle, statusStyle: state.statusStyle)
-                        if let address = instance.address {
-                            Text(address)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                        }
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
+                    instanceButton(instance, model: model, state: state)
+                    HStack(spacing: OrzMCTheme.Spacing.sm) {
+                        instanceActions(instance, model: model, state: state)
                     }
                 }
-                .buttonStyle(.plain)
-                .disabled(model == nil)
-                .accessibilityIdentifier("mcsm.instanceRow")
-                Spacer(minLength: 8)
-                if let players = instance.players,
-                   let current = players.current, let max = players.max,
-                   state == .online {
-                    Text("\(current)/\(max)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                if model?.isBusy(instance) == true {
-                    ProgressView().controlSize(.mini)
-                }
-                if let model {
-                    actionsMenu(instance, model: model, state: state)
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                    instanceButton(instance, model: model, state: state)
+                    Spacer(minLength: 8)
+                    instanceActions(instance, model: model, state: state)
                 }
             }
 
@@ -246,6 +227,43 @@ struct MCSManagerSection: View {
                     .foregroundStyle(OrzMCTheme.Palette.danger)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private func instanceButton(_ instance: MCSManagerInstance, model: MCSManagerModel?, state: RemoteServerState) -> some View {
+        // 点实例名 = 打开控制台（最常用的动作给最直接的手势）。
+        // 生命周期动作留在 `⋯` 菜单里 —— 那是"有副作用"的操作，要多一步确认。
+        Button {
+            guard let model else { return }
+            sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                RemoteInstanceHeading(name: instance.nickname, statusTitle: state.localizedTitle, statusStyle: state.statusStyle)
+                if let address = instance.address {
+                    Text(address)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(model == nil)
+        .accessibilityIdentifier("mcsm.instanceRow")
+    }
+
+    @ViewBuilder private func instanceActions(_ instance: MCSManagerInstance, model: MCSManagerModel?, state: RemoteServerState) -> some View {
+        if let players = instance.players,
+           let current = players.current, let max = players.max,
+           state == .online {
+            Text("\(current)/\(max)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        if model?.isBusy(instance) == true {
+            ProgressView().controlSize(.mini)
+        }
+        if let model {
+            actionsMenu(instance, model: model, state: state)
         }
     }
 
