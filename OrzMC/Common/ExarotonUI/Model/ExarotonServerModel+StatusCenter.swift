@@ -10,6 +10,7 @@
 //  让 `@Observable` 的 `statusVersion` 跟着状态变化走。
 //
 
+import Foundation
 import OrzMCRemoteHosting
 
 // MARK: - 状态换算
@@ -47,13 +48,26 @@ extension ExarotonServerModel {
     ///
     /// - 只有状态**真的变化**时才递增 `statusVersion`（界面用它触发更新）；
     /// - 快照存在 `statusCenter`，界面用 `effectiveStatus(for:)` 读。
-    func publishStatus(_ status: ServerStatus, for serverID: String, source: RemoteStatusSource) {
+    func publishStatus(_ status: ServerStatus, for serverID: String, source: RemoteStatusSource, at date: Date = Date()) {
+        let id = instanceID(serverID)
         let changed = statusCenter.publish(
             status.remoteInstanceStatus,
-            for: instanceID(serverID),
-            source: source
+            for: id,
+            source: source,
+            at: date
         )
+        if status == .STOPPING {
+            if stoppingObservedAt[id] == nil { stoppingObservedAt[id] = date }
+        } else {
+            stoppingObservedAt.removeValue(forKey: id)
+        }
         if changed { statusVersion &+= 1 }
+    }
+
+    /// 只能表示本账号首次观察到停止状态之后的时间，不能推测服务器之前已等待多久。
+    func stopProgress(for serverID: String, now: Date = Date()) -> RemoteStopProgress? {
+        guard let start = stoppingObservedAt[instanceID(serverID)] else { return nil }
+        return RemoteStopProgress(since: start, now: now)
     }
 
     /// 推送通道收到任何消息都算"它还活着"（包括 keep-alive），轮询据此决定要不要兜底。
@@ -84,6 +98,7 @@ extension ExarotonServerModel {
             for instance in statusCenter.allStatuses.keys
             where instance.provider == .exaroton && !ids.contains(instance) {
                 statusCenter.forget(instance)
+                stoppingObservedAt.removeValue(forKey: instance)
             }
             for (serverID, status) in newValue {
                 publishStatus(status, for: serverID, source: .local)
@@ -94,6 +109,7 @@ extension ExarotonServerModel {
     /// 换账号 / 退出登录时清空远程状态（否则旧账号的状态会漂到新账号的列表上）。
     func resetRemoteStatus() {
         statusCenter.reset()
+        stoppingObservedAt.removeAll()
         statusVersion &+= 1
     }
 }

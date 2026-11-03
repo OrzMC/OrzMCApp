@@ -81,6 +81,32 @@ final class RemoteStatusConsistencyTests: XCTestCase {
 @MainActor
 final class RemoteStatusCenterTests: XCTestCase {
 
+    func testStoppingProgressSurvivesDuplicateUpdatesAndIsIsolatedPerInstance() {
+        let model = ExarotonServerModel()
+        let start = Date(timeIntervalSince1970: 1_000)
+        model.publishStatus(.STOPPING, for: "a", source: .webSocket, at: start)
+        model.publishStatus(.STOPPING, for: "a", source: .polling, at: start.addingTimeInterval(10))
+        model.publishStatus(.STOPPING, for: "b", source: .polling, at: start.addingTimeInterval(15))
+        XCTAssertEqual(model.stopProgress(for: "a", now: start.addingTimeInterval(20))?.seconds, 20)
+        XCTAssertEqual(model.stopProgress(for: "b", now: start.addingTimeInterval(20))?.seconds, 5)
+        XCTAssertNil(model.stopProgress(for: "other", now: start))
+        model.publishStatus(.OFFLINE, for: "a", source: .polling, at: start.addingTimeInterval(21))
+        XCTAssertNil(model.stopProgress(for: "a", now: start.addingTimeInterval(22)))
+        XCTAssertNotNil(model.stopProgress(for: "b", now: start.addingTimeInterval(22)))
+        model.publishStatus(.STOPPING, for: "a", source: .webSocket, at: start.addingTimeInterval(30))
+        XCTAssertEqual(model.stopProgress(for: "a", now: start.addingTimeInterval(32))?.seconds, 2)
+    }
+
+    func testStoppingProgressIsRemovedWhenStatusIsForgottenOrAccountResets() {
+        let model = ExarotonServerModel()
+        model.publishStatus(.STOPPING, for: "a", source: .webSocket)
+        model.liveStatuses = [:]
+        XCTAssertNil(model.stopProgress(for: "a"))
+        model.publishStatus(.STOPPING, for: "a", source: .polling)
+        model.resetRemoteStatus()
+        XCTAssertNil(model.stopProgress(for: "a"))
+    }
+
     func testPublishOnlyEmitsOnRealChange() async {
         let model = ExarotonServerModel()
         var iterator = model.statusEvents().makeAsyncIterator()

@@ -33,6 +33,8 @@ extension ExarotonServerModel {
                     return
                 }
                 servers = serverData.data ?? []
+                let currentIDs = Set(servers.compactMap(\.id).map { instanceID($0) })
+                stoppingObservedAt = stoppingObservedAt.filter { currentIDs.contains($0.key) }
                 creditPools = poolData.data ?? []
                 hasLoadedList = true
                 // 轮询结果也走同一个状态入口：业务侧只看事件，不用管数据从哪来。
