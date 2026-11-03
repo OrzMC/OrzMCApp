@@ -93,6 +93,7 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 
 ### UI-3（P1）Exaroton 停止也有"等了多久"（与 MCSM 对齐）
 
+- **进度（2026-11-03）**：已在模拟器用假服务器验证停止秒数持续更新与重进详情不重置；按首次观察到停止状态计时，无法推测应用接入前已等待的时间。真机目视验收由维护者后续统一进行，因此本项尚未全部验收。
 - **现状不对称**：MCSM 停止中显示 `Stopping… 12s`，久等变红并给强杀入口（`MCSManagerSection.stopHint`）；
   exaroton 只有一个 `feedback` 行（`ExarotonServerActionSection.feedback`），没有秒数、没有久等提示。
 - **要做**：exaroton 侧复用 `RemoteStopProgress`（`Sources/OrzMCRemoteHosting/RemoteStopProgress.swift`）

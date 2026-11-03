@@ -733,6 +733,50 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "accounts-mcsm-instances")
     }
 
+    func testExarotonStoppingProgressContinuesAfterReentering() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_STATUS": "stopping"])
+        app.launch()
+        allowSystemPrompts()
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        let detailMarker = app.staticTexts["概览"]
+        openDetail(app, card: card, detailMarker: detailMarker)
+        let progress = app.staticTexts["exaroton.stopProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 10))
+        let first = progress.label
+        Thread.sleep(forTimeInterval: 2)
+        XCTAssertNotEqual(first, progress.label, "停止进度应持续更新")
+        let beforeReentry = progress.label
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        openDetail(app, card: card, detailMarker: detailMarker)
+        XCTAssertTrue(progress.waitForExistence(timeout: 10))
+        func seconds(_ value: String) -> Int {
+            Int(value.filter(\.isNumber)) ?? -1
+        }
+        XCTAssertGreaterThanOrEqual(seconds(progress.label), seconds(beforeReentry), "重进详情不能重置计时")
+        XCTAssertFalse(app.buttons["mcsm.forceStopInline"].exists, "exaroton 不提供强杀")
+        XCTAssertFalse(app.buttons["强制停止"].exists, "exaroton 不提供强杀")
+    }
+
+    func testSnapshotExarotonStopping() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_STATUS": "stopping"])
+        app.launch()
+        allowSystemPrompts()
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+        XCTAssertTrue(app.staticTexts["概览"].waitForExistence(timeout: 20))
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.52))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        snap(app, "exaroton-stopping-actions")
+    }
+
     func testSnapshotTourRemote() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")

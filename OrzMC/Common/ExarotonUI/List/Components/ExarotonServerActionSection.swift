@@ -104,6 +104,9 @@ struct ExarotonServerActionSection: View {
             .disabled(model.gate.pendingActions.contains(serverID))
             #endif
 
+            if status == .STOPPING, let progress = model.stopProgress(for: serverID) {
+                stopHint(progress)
+            }
             feedback
 
             OrzMCBanner(
@@ -118,6 +121,25 @@ struct ExarotonServerActionSection: View {
 
 
     // MARK: - 请求反馈（非模态，错误就地可重试）
+
+    private func stopHint(_ progress: RemoteStopProgress) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let live = model.stopProgress(for: serverID, now: context.date) ?? progress
+            if live.suggestsForceStop {
+                Text(String(localized: "Still stopping after \(live.seconds)s — it may be stuck.",
+                            comment: "停止进度：久等提示，秒数为占位"))
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .font(.caption.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("exaroton.stopProgress")
+            } else {
+                Text(String(localized: "Stopping… \(live.seconds)s", comment: "停止进度秒数"))
+                    .foregroundStyle(.secondary)
+                    .font(.caption.monospacedDigit())
+                    .accessibilityIdentifier("exaroton.stopProgress")
+            }
+        }
+    }
 
     @ViewBuilder
     private var feedback: some View {

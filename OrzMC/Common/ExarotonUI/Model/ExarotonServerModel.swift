@@ -111,6 +111,8 @@ final class ExarotonServerModel {
     /// 一个账号一份：WS 活的/刷新节律都是账号级的，多账号互不干扰。
     @ObservationIgnored
     let statusCenter = RemoteStatusCenter()
+    /// 首次观察到停止状态的时间，按账号模型和实例隔离；重复轮询不重置计时。
+    var stoppingObservedAt: [RemoteInstanceID: Date] = [:]
     var creditPools = [ExarotonCreditPool]()
     var errorMessage: String?
     var isLoadingList = false
