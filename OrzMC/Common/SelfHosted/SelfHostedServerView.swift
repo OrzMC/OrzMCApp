@@ -24,6 +24,16 @@ struct SelfHostedServerView: View {
     @FocusState private var commandFocused: Bool
     @State private var playerListTab: PlayerListTab = .online
     @State private var playerNameDraft = ""
+    @State private var consoleSearch = ""
+    @AppStorage("console.wrapLines") private var wrapConsoleLines = false
+
+    private var filteredConsoleLines: [SelfHostedServersModel.ConsoleLine] {
+        let query = consoleSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return model.currentConsoleLines }
+        return model.currentConsoleLines.filter {
+            $0.segments.map(\.text).joined().localizedCaseInsensitiveContains(query)
+        }
+    }
 
     enum PlayerListTab: Hashable {
         case online
@@ -507,6 +517,7 @@ struct SelfHostedServerView: View {
                     .disabled(model.currentConsoleLines.isEmpty)
             }
 
+            OrzMCConsoleControls(search: $consoleSearch)
             consoleLog
 
             HStack(spacing: OrzMCTheme.Spacing.sm) {
@@ -563,24 +574,28 @@ struct SelfHostedServerView: View {
 
     private var consoleLog: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                OrzMCConsoleRows(model.currentConsoleLines, id: \.id, spacing: 2) { line in
+            ScrollView(wrapConsoleLines ? .vertical : [.vertical, .horizontal]) {
+                OrzMCConsoleRows(filteredConsoleLines, id: \.id, spacing: 2) { line in
                     // ANSI 与 `§` 颜色由共享解析器处理，这里只提供默认颜色。
                     ConsoleLineText(segments: line.segments, fallback: color(for: line.kind))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                         .id(line.id)
                 } empty: {
-                    Text("Commands and replies show up here.")
+                    Text(consoleSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                         ? String(localized: "Commands and replies show up here.")
+                         : String(localized: "No matching logs", comment: "Console search has no matches"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
+                .fixedSize(horizontal: !wrapConsoleLines, vertical: false)
                 .padding(OrzMCTheme.Spacing.xs)
             }
             .frame(minHeight: 140, maxHeight: 220)
             .consoleSurface()
-            .onChange(of: model.currentConsoleLines.count) {
-                if let last = model.currentConsoleLines.last { proxy.scrollTo(last.id, anchor: .bottom) }
+            .consoleMagnification()
+            .onChange(of: filteredConsoleLines.count) {
+                if let last = filteredConsoleLines.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }
     }

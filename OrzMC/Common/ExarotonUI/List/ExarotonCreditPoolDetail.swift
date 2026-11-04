@@ -14,6 +14,7 @@ struct ExarotonCreditPoolDetail: View {
     @State private var members: [ExarotonCreditMember]?
     @State private var servers: [ExarotonServer]?
     @State private var isLoading = false
+    @State private var selectedServer: ExarotonServer?
 
     init(creditPool: ExarotonCreditPool) {
         _creditPool = State(initialValue: creditPool)
@@ -59,12 +60,16 @@ struct ExarotonCreditPoolDetail: View {
             if let servers, !servers.isEmpty {
                 Section {
                     ForEach(servers) { server in
-                        NavigationLink(value: server) {
-                            ExarotonServerView(
-                                server: server,
-                                status: model.effectiveStatus(for: server)
-                            )
+                        Button {
+                            selectedServer = server
+                        } label: {
+                            ExarotonServerCardPanel(server: server)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("remote.serverCard")
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                 } header: {
                     Label("Servers", systemImage: "server.rack")
@@ -75,6 +80,9 @@ struct ExarotonCreditPoolDetail: View {
             await fetchDataWithLoading()
         }
         .navigationTitle(creditPool.name ?? String(localized: "Credit Pool Detail"))
+        .navigationDestination(item: $selectedServer) { server in
+            ExarotonServerDetail(server: server).environment(model)
+        }
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
@@ -108,6 +116,12 @@ struct ExarotonCreditPoolDetail: View {
     }
 
     func fetchData() async {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_POOL"] == "1" {
+            servers = [ExarotonServerList.demoServer]
+            return
+        }
+        #endif
         let info = await model.fetchCreditPoolInfo(creditPool)
         guard let info
         else {

@@ -37,6 +37,7 @@ struct ServerConsoleView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 日志过滤（不区分大小写的子串匹配）。
     @State private var searchText = ""
+    @AppStorage("console.wrapLines") private var wrapConsoleLines = false
     @State private var pendingRisky: RiskyAction?
 
     private var software: SettingsModel.ServerSoftware? { target?.software }
@@ -75,6 +76,8 @@ struct ServerConsoleView: View {
                 onRequestFollow: requestReturnToLatest
             )
             Divider()
+            OrzMCConsoleControls(search: $searchText)
+                .padding(OrzMCTheme.Spacing.sm)
             logList
             Divider()
             ConsoleInputRow(
@@ -86,7 +89,6 @@ struct ServerConsoleView: View {
             )
         }
         .navigationTitle("Console — \(title)")
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Search log")
         .toolbar {
             if let software, let availability {
                 ToolbarItemGroup {
@@ -163,7 +165,7 @@ struct ServerConsoleView: View {
 
     private var logList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(wrapConsoleLines ? .vertical : [.vertical, .horizontal]) {
                 OrzMCConsoleRows(filteredLines, id: \.id, spacing: 1) { line in
                     // 本地回显的命令行没有颜色码 → 用主题强调色兜底。
                     ConsoleLineText(
@@ -175,6 +177,7 @@ struct ServerConsoleView: View {
                 } empty: {
                     EmptyView()
                 }
+                .fixedSize(horizontal: !wrapConsoleLines, vertical: false)
                 .padding(OrzMCTheme.Spacing.sm)
                 .textSelection(.enabled)
                 .background(
@@ -185,6 +188,7 @@ struct ServerConsoleView: View {
                 )
             }
             .consoleSurface()
+            .consoleMagnification()
             .overlay {
                 if filteredLines.isEmpty, !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     // 无参版本会自动带上搜索词，无需自己传。

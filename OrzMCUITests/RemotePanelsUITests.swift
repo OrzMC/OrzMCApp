@@ -75,7 +75,8 @@ final class RemotePanelsUITests: XCTestCase {
 
         let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 20))
-        card.tap()
+        openDetail(app, card: card, detailMarker: app.staticTexts["概览"])
+        XCTAssertTrue(app.staticTexts["概览"].exists, "应进入服务器详情")
 
         let placeholder = app.staticTexts["等待服务器输出…"]
         for _ in 0..<8 where !placeholder.exists { app.swipeUp() }
@@ -123,7 +124,8 @@ final class RemotePanelsUITests: XCTestCase {
 
         let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 20))
-        card.tap()
+        openDetail(app, card: card, detailMarker: app.staticTexts["概览"])
+        XCTAssertTrue(app.staticTexts["概览"].exists, "应进入服务器详情")
 
         let done = app.staticTexts["[20:11:12] [Server thread/INFO]: Done (9.874s)! For help, type \"help\""]
         for _ in 0..<8 where !done.exists { app.swipeUp() }
@@ -565,9 +567,7 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "详情页的徽章图标应在旋转")
 
         for round in 1...2 {
-            let back = app.navigationBars.buttons.firstMatch
-            XCTAssertTrue(back.waitForExistence(timeout: 10), "第 \(round) 次：详情页应有返回按钮")
-            back.tap()
+            returnToServerList(app, card: card)
             XCTAssertTrue(card.waitForExistence(timeout: 20), "第 \(round) 次返回后应回到列表")
             XCTAssertTrue(badgeIsSpinning(app, around: "启动中…"), "第 \(round) 次返回后列表徽章仍应在转")
             openDetail(app, card: card, detailMarker: detailMarker)
@@ -587,12 +587,24 @@ final class RemotePanelsUITests: XCTestCase {
         }
     }
 
-    /// 徽章区域在 0.4 秒内是否发生过变化（= 图标在转）。
+    /// 列表刷新或导航转场可能吞掉一次点击；仍要求最终确实回到列表。
+    private func returnToServerList(_ app: XCUIApplication, card: XCUIElement) {
+        for _ in 0..<3 {
+            if card.exists { return }
+            let back = app.navigationBars.buttons.firstMatch
+            if back.waitForExistence(timeout: 5) { back.tap() }
+            if card.waitForExistence(timeout: 5) { return }
+        }
+    }
+
+    /// 三次取样避免真机偶尔连续截到同一动画帧；任意两帧不同才算在转。
     private func badgeIsSpinning(_ app: XCUIApplication, around label: String) -> Bool {
         guard let first = badgeFingerprint(app, around: label) else { return false }
-        Thread.sleep(forTimeInterval: 0.4)
+        Thread.sleep(forTimeInterval: 0.23)
         guard let second = badgeFingerprint(app, around: label) else { return false }
-        return first != second
+        Thread.sleep(forTimeInterval: 0.37)
+        guard let third = badgeFingerprint(app, around: label) else { return false }
+        return first != second || second != third || first != third
     }
 
     /// 截取徽章（图标 + 文案）区域并算一个指纹。
@@ -748,7 +760,7 @@ final class RemotePanelsUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 2)
         XCTAssertNotEqual(first, progress.label, "停止进度应持续更新")
         let beforeReentry = progress.label
-        app.navigationBars.buttons.firstMatch.tap()
+        returnToServerList(app, card: card)
         XCTAssertTrue(card.waitForExistence(timeout: 20))
         openDetail(app, card: card, detailMarker: detailMarker)
         XCTAssertTrue(progress.waitForExistence(timeout: 10))
@@ -775,6 +787,33 @@ final class RemotePanelsUITests: XCTestCase {
         let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.52))
         start.press(forDuration: 0.1, thenDragTo: end)
         snap(app, "exaroton-stopping-actions")
+    }
+
+    func testCreditPoolServerOpensDetail() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "starting"])
+        app.launch()
+        allowSystemPrompts()
+        let pool = app.buttons["remote.creditPoolCard"]
+        XCTAssertTrue(pool.waitForExistence(timeout: 20))
+        pool.tap()
+        let card = app.buttons["remote.serverCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+        XCTAssertTrue(app.staticTexts["概览"].waitForExistence(timeout: 20))
+    }
+
+    func testSnapshotCreditPoolServer() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "starting"])
+        app.launch()
+        allowSystemPrompts()
+        let pool = app.buttons["remote.creditPoolCard"]
+        XCTAssertTrue(pool.waitForExistence(timeout: 20))
+        pool.tap()
+        XCTAssertTrue(app.staticTexts["Demo Pool"].waitForExistence(timeout: 20))
+        snap(app, "credit-pool-server")
     }
 
     func testSnapshotTourRemote() throws {
@@ -1007,9 +1046,10 @@ extension RemotePanelsUITests {
         XCTAssertTrue(app.buttons["控制台"].exists)
     }
 
-    /// P2-7 第 5 步：控制台面板能打开、能显示输出、能发命令（演示面板是空实现）。
+    /// 控制台显示日志、正确处理终端重绘，并将命令原样送到假面板。
     func testMCSManagerConsoleSheetShowsOutput() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_MCSM_REDRAW": "1"])
         app.launch()
         allowSystemPrompts()
 
@@ -1034,18 +1074,60 @@ extension RemotePanelsUITests {
                 .firstMatch.waitForExistence(timeout: 15),
             "应显示假面板返回的日志行"
         )
+        XCTAssertTrue(app.staticTexts["> list"].waitForExistence(timeout: 15), "退格重绘应显示 list")
+        XCTAssertFalse(app.staticTexts["> lislist"].exists, "退格前缀不能重复显示")
 
         // 在线实例可以发命令：输入后「发送」可用，点完输入框清空。
         let field = app.textFields["mcsm.commandField"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
-        field.typeText("/list")
+        field.typeText("list")
+        XCTAssertEqual(field.value as? String, "list")
         let send = app.buttons["mcsm.sendCommand"]
         XCTAssertTrue(send.isEnabled, "在线实例应允许发命令")
         send.tap()
         // 空输入框在 XCUITest 里的 `value` 是**占位符文本**（不是空串），所以断言"命令已经不在里面"。
         let value = field.value as? String ?? ""
-        XCTAssertFalse(value.contains("/list"), "发送成功后输入框应清空，实际：\(value)")
+        XCTAssertFalse(value.contains("list"), "发送成功后输入框应清空，实际：\(value)")
+        let echo = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示命令：list")).firstMatch
+        XCTAssertTrue(echo.waitForExistence(timeout: 15), "假面板应收到原样的 list 命令")
+    }
+
+    func testMCSManagerConsoleCanFilterAndChangeDisplay() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_MCSM_LONG_LOG": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
+        app.launch()
+        allowSystemPrompts()
+        let row = app.buttons.matching(identifier: "mcsm.instanceRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "演示生存服")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20))
+        row.tap()
+        let original = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出")).firstMatch
+        XCTAssertTrue(original.waitForExistence(timeout: 15))
+        let search = app.textFields["console.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText("not-a-log-line")
+        XCTAssertTrue(app.staticTexts["没有匹配的日志"].waitForExistence(timeout: 10))
+        XCTAssertFalse(original.exists)
+        search.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "not-a-log-line".count))
+        XCTAssertTrue(original.waitForExistence(timeout: 10))
+        let console = app.scrollViews["mcsm.console"]
+        XCTAssertGreaterThan(original.frame.width, console.frame.width + 50, "测试日志必须超出可视宽度")
+        let originalX = original.frame.minX
+        console.swipeLeft()
+        XCTAssertLessThan(original.frame.minX, originalX - 10, "长日志应能横向浏览")
+        let initialWidth = original.frame.width
+        console.pinch(withScale: 0.6, velocity: -1)
+        let oldWidth = original.frame.width
+        XCTAssertLessThan(oldWidth, initialWidth, "双指捏合应缩小日志")
+        console.pinch(withScale: 1.3, velocity: 1)
+        XCTAssertGreaterThan(original.frame.width, oldWidth, "双指张开应放大日志")
+        let wrap = app.switches["console.wrapLines"]
+        XCTAssertTrue(wrap.waitForExistence(timeout: 5))
+        wrap.tap()
+        XCTAssertLessThanOrEqual(original.frame.width, console.frame.width + 1, "开启换行后日志应适应可视宽度")
+        wrap.tap()
     }
 
     func testSnapshotMCSManagerConsole() throws {

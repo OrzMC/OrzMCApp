@@ -3763,6 +3763,56 @@
         }
       }
     },
+    "Decrease font size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缩小字号"
+          }
+        }
+      }
+    },
+    "Increase font size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放大字号"
+          }
+        }
+      }
+    },
+    "Wrap lines": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动换行"
+          }
+        }
+      }
+    },
+    "Log display": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日志显示"
+          }
+        }
+      }
+    },
+    "No matching logs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的日志"
+          }
+        }
+      }
+    },
     "Search log": {
       "localizations": {
         "zh-Hans": {

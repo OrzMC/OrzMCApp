@@ -21,7 +21,7 @@
 ```
 ┌───────────────────────────────┐
 │ OrzMCFoundation               │  纯逻辑：文本 → 分段 + 样式（无 UI、可 CLI 复用、可单测）
-│ ConsoleTextParser             │  ANSI SGR / § 解析、控制字符丢弃、\r 覆盖、多行拆分
+│ ConsoleTextParser             │  ANSI SGR / § 解析、行内退格重绘、\r 覆盖、多行拆分
 │ ConsoleTextSegment/ConsoleColor│
 └───────────────┬───────────────┘
                 │
@@ -55,7 +55,9 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 | `ESC [ 38;5;n m` | 256 色（16 基础 + 6×6×6 立方 + 24 灰阶） |
 | `ESC [ 38;2;r;g;b m` | 真彩色 |
 | `ESC [ 48… m` | **背景色**：吃掉参数、不渲染（控制台底色由主题统一） |
-| 其它 CSI（清行/光标）、OSC（标题/超链接）、两字节 ESC | **丢弃**（只影响终端，不该出现在文本里） |
+| `\b` | 光标回退一个标量，后写字符覆盖对应位置；行首退格不产生负位置 |
+| `ESC [ K` / `ESC [ 0 K` / `ESC [ 1 K` / `ESC [ 2 K` | 清除光标之后、之前或整行，保留光标位置 |
+| 其它 CSI、OSC（标题/超链接）、两字节 ESC | **丢弃**（未实现完整终端光标定位） |
 | `§0–§f` | Minecraft 颜色（映射到标准 RGB） |
 | `§l` / `§r` | 加粗 / 重置；`§k §m §n §o`（随机/删除线/下划线/斜体）只吃掉码 |
 | `\r`（单行内） | 后写覆盖前面的：`10%\r50%\r100%` → `100%` |
@@ -65,6 +67,7 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 
 实现细节：全部按 **Unicode 标量**遍历。Swift 把 `"\r\n"` 当作**一个** `Character`，
 按字符比较会漏掉这个换行（第一版就是这么错的，被 `testCRLFIsOneLineBreak` 挡住）。
+这不是完整终端模拟器：退格按标量处理，复杂字形和双宽字符的光标列宽仍有局限。
 
 ## 颜色映射（`ConsolePalette`）
 

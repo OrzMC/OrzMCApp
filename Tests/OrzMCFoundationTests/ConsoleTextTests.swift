@@ -102,6 +102,27 @@ final class ConsoleTextTests: XCTestCase {
         XCTAssertEqual(ConsoleTextParser.parse("a\u{07}b\u{00}c").map(\.text), ["abc"])
     }
 
+    func testTerminalRedrawReplacesColoredPartialCommand() {
+        // 脱敏后的真实 MCSManager 输出：终端先着色绘制 lis，再退格重绘 list。
+        let raw = "> \u{1B}[31ml\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31ms\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K"
+        XCTAssertEqual(ConsoleTextParser.parse(raw), [ConsoleTextSegment(text: "> list")])
+    }
+
+    func testBackspaceOverwritesWithoutErasingUntouchedSuffix() {
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}X"), "aXc")
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}X\u{1B}[K"), "aX")
+        XCTAssertEqual(ConsoleTextParser.plainText("\u{08}a"), "a")
+    }
+
+    func testEraseLineKeepsCursorAndUnaffectedCells() {
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}\u{1B}[1KX"), " Xc")
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}\u{1B}[2KX"), " X ")
+        XCTAssertEqual(ConsoleTextParser.parse("\u{1B}[31mab\u{08}\u{1B}[32mX"), [
+            ConsoleTextSegment(text: "a", color: .red),
+            ConsoleTextSegment(text: "X", color: .green),
+        ])
+    }
+
     func testTabsAreKept() {
         XCTAssertEqual(ConsoleTextParser.parse("a\tb").map(\.text), ["a\tb"])
     }

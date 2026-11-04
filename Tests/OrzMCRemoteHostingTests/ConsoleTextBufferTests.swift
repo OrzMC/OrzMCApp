@@ -90,6 +90,21 @@ struct ConsoleTextBufferTests {
 
 @Suite("控制台增量行")
 struct ConsoleLineBufferTests {
+    @Test func commandRedrawIsCorrectAcrossStreamFragments() {
+        var rows = ConsoleLineBuffer()
+        rows.append("> \u{1B}[31mlis\u{1B}[0m")
+        rows.append("\u{08}\u{08}")
+        rows.append("\u{08}list\u{1B}[K\r\r\n")
+        #expect(rows.lines.map(\.plainText) == ["> list"])
+    }
+
+    @Test func searchableTextIgnoresColorCodesAcrossSegments() {
+        var rows = ConsoleLineBuffer()
+        rows.append("hello §aworld\n")
+        #expect(rows.lines.first?.plainText == "hello world")
+        #expect(rows.lines.first?.segments.map(\.text).joined() == "hello world")
+    }
+
     @Test func fragmentsMatchTheExistingParser() {
         let chunks = ["第一行\r", "\n", "10%\r", "50%", "\n\n", "最后", "\r", "完成"]
         var raw = ConsoleTextBuffer()
