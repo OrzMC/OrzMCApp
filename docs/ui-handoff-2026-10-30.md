@@ -122,6 +122,21 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 - 跑完 §6.3 的截图巡检后，把"看着别扭但不确定该怎么改"的点整理成一张表（位置 / 现象 / 两个候选方案）
   交给维护者挑。**这一项不算完成度，只是交材料。**
 
+### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
+
+- **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"
+  收进 `OrzMC/Common/RemoteHostingUI/`（`RemoteProviderSection` / `RemoteAccountCard` / `RemoteAccountMenu` /
+  `RemoteInstanceRow` / `RemoteInlineLoading`·`RemoteInlineEmpty`·`RemoteInlineError` / `RemoteEmptyCard`），
+  `RemoteAccountViews.swift` 从 `ExarotonUI/List/Components/` 移到这个中立目录。
+- **视觉变化**（每项都有前后截图，见 [`ui-remote-hosting-2026-11-05/`](ui-remote-hosting-2026-11-05/)）：
+  ① 账号卡里不再"面板套面板"（exaroton 的实例/额度池改成与 MCSM 同一套平铺行）；
+  ② 两家供应商的空态/加载/失败同一种排版（以前 exaroton 是一行灰字、MCSM 是一张卡片；
+  错误以前一边是横幅一边是红字，MCSM 还没有重试）；③ 账号菜单统一成"刷新 → 编辑 → 删除"（MCSM 补上刷新）。
+- **没动**：分组顺序（exaroton → MCSManager）、状态徽章、停止进度、控制台、额度池/内存/强杀等供应商能力，
+  以及**主应用窗口**。
+- **门禁**：`check.sh` / `check.sh --ui` 全绿；iPhone SE3 有线真机 UI 套件结果见父仓库 `HANDOFF.md` §5。
+- **新截图用例**：`testSnapshotTourRemoteProviders`（两家都有数据）与 `testSnapshotTourRemoteEmptyProviders`（两家都空）。
+
 ---
 
 ## 5. 红线（破坏任何一条，改动会被打回）

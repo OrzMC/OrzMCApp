@@ -6,7 +6,11 @@
 //
 //  分组口径（维护者拍板）：多供应商**按供应商分组**，不做过滤 —— exaroton 保持自己的列表，
 //  MCSManager 在同一个「远程托管」页里单独一组；每组各自显示实例与状态。
-//  状态徽章只有一个实现（`OrzMCStatusBadge`），这里只做布局。
+//
+//  2026-11-05 跨端重构：分组的"标题行 / 账号卡 / 行骨架 / 加载·空·错误态"改走
+//  `Common/RemoteHostingUI`（与 exaroton 同一套），这里只留 MCSM 特有的能力：
+//  面板编辑、实例动作菜单、强杀二次确认、控制台 sheet，以及"点实例行 = 开控制台"。
+//  状态徽章只有一个实现（`OrzMCStatusBadge`，经 `RemoteInstanceHeading`）。
 //
 
 import OrzMCDesignSystem
@@ -16,7 +20,6 @@ import SwiftUI
 struct MCSManagerSection: View {
 
     @Environment(MCSManagerPanelsModel.self) private var mcsm
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// 当前要显示的弹窗。
     ///
@@ -45,18 +48,31 @@ struct MCSManagerSection: View {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
     }
 
+    /// 一个面板都没配时给引导（与 exaroton 的空态同一套卡片）。
+    private var emptyState: ContentState? {
+        guard mcsm.panels.isEmpty else { return nil }
+        return ContentState(
+            title: String(localized: "No panels yet"),
+            message: String(
+                localized: "Add an MCSManager panel (address + API key) to see its instances here."
+            ),
+            systemImage: "square.stack.3d.up"
+        )
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
-            header
-
-            if mcsm.panels.isEmpty {
-                emptyCard
-            } else {
-                ForEach(mcsm.panels) { panel in
-                    panelCard(panel)
-                }
+        RemoteProviderSection(
+            name: "MCSManager",
+            systemImage: "square.stack.3d.up",
+            count: instanceCount,
+            identifier: "mcsm.section",
+            addIdentifier: "mcsm.addPanel",
+            onAdd: { sheet = .editor(.add) },
+            emptyState: emptyState
+        ) {
+            ForEach(mcsm.panels) { panel in
+                panelCard(panel)
             }
-
         }
         .accessibilityElement(children: .contain)
 
@@ -126,132 +142,95 @@ struct MCSManagerSection: View {
 
     // MARK: - 组件
 
-    private var header: some View {
-        RemoteProviderHeader(name: "MCSManager", systemImage: "square.stack.3d.up",
-                             count: instanceCount, identifier: "mcsm.section", addIdentifier: "mcsm.addPanel") {
-            sheet = .editor(.add)
-        }
-    }
-
-    private var emptyCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(String(localized: "No panels yet"))
-                .font(.callout.weight(.medium))
-            Text(String(localized: "Add an MCSManager panel (address + API key) to see its instances here."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(OrzMCTheme.Spacing.md)
-        .orzMCPanel()
-    }
-
+    /// 一个 MCSManager 面板 = 一张账号卡（与 exaroton 账号卡同一个骨架）。
     private func panelCard(_ panel: MCSManagerPanel) -> some View {
         let model = mcsm.model(for: panel.id)
         let instances = mcsm.instances(of: panel.id)
 
-        return VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            RemoteAccountHeader(
-                name: panel.label,
-                subtitle: panel.url.host ?? panel.url.absoluteString,
-                isLoading: model?.isLoading == true
-            ) {
-                Menu {
-                    Button {
-                        sheet = .editor(.edit(panel))
-                    } label: {
-                        Label(String(localized: "Edit Account"), systemImage: "slider.horizontal.3")
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        mcsm.removePanel(id: panel.id)
-                    } label: {
-                        Label(String(localized: "Remove Account"), systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityIdentifier("mcsm.panelMenu")
-            }
-
+        return RemoteAccountCard(
+            name: panel.label,
+            subtitle: panel.url.host ?? panel.url.absoluteString,
+            isLoading: model?.isLoading == true
+        ) {
+            RemoteAccountMenu(
+                onRefresh: {
+                    Task { await model?.reload() }
+                },
+                onEdit: {
+                    sheet = .editor(.edit(panel))
+                },
+                onRemove: {
+                    mcsm.removePanel(id: panel.id)
+                },
+                identifier: "mcsm.panelMenu"
+            )
+        } content: {
+            // 失败要能就地重试：面板抽风（令牌过期 / 网络抖动）时不必杀进程重开。
             if let error = model?.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(OrzMCTheme.Palette.danger)
-                    .fixedSize(horizontal: false, vertical: true)
+                RemoteInlineError(message: error) {
+                    Task { await model?.reload() }
+                }
             }
-
             if instances.isEmpty {
-                Text(model?.isLoading == true ? String(localized: "Loading…") : String(localized: "No instances"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if model?.isLoading == true {
+                    RemoteInlineLoading()
+                } else {
+                    RemoteInlineEmpty()
+                }
             } else {
-                ForEach(instances) { instance in
-                    row(instance, model: model)
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
+                    ForEach(instances) { instance in
+                        row(instance, model: model)
+                    }
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(OrzMCTheme.Spacing.md)
-        .orzMCPanel()
     }
 
+    /// 一条实例行：点名字/地址 = 打开控制台；生命周期动作留在 `⋯` 里（有副作用，多一步确认）。
     private func row(_ instance: MCSManagerInstance, model: MCSManagerModel?) -> some View {
         let state = model?.state(of: instance) ?? instance.status.remoteState
 
-        return VStack(alignment: .leading, spacing: 4) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
-                    instanceButton(instance, model: model, state: state)
-                    HStack(spacing: OrzMCTheme.Spacing.sm) {
-                        instanceActions(instance, model: model, state: state)
-                    }
-                }
-            } else {
-                HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-                    instanceButton(instance, model: model, state: state)
-                    Spacer(minLength: 8)
-                    instanceActions(instance, model: model, state: state)
-                }
-            }
-
-            if let model, state == .stopping, let progress = model.stopProgress(for: instance) {
-                stopHint(instance, model: model, progress: progress)
-            }
-
-            if let error = model?.actionErrors[instance.id] {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(OrzMCTheme.Palette.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func instanceButton(_ instance: MCSManagerInstance, model: MCSManagerModel?, state: RemoteServerState) -> some View {
-        // 点实例名 = 打开控制台（最常用的动作给最直接的手势）。
-        // 生命周期动作留在 `⋯` 菜单里 —— 那是"有副作用"的操作，要多一步确认。
-        Button {
-            guard let model else { return }
-            sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                RemoteInstanceHeading(name: instance.nickname, statusTitle: state.localizedTitle, statusStyle: state.statusStyle)
+        return RemoteInstanceRow(
+            name: instance.nickname,
+            statusTitle: state.localizedTitle,
+            statusStyle: state.statusStyle,
+            onTap: {
+                guard let model else { return }
+                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+            },
+            tapIdentifier: "mcsm.instanceRow",
+            details: {
                 if let address = instance.address {
                     Text(address)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                 }
+            },
+            trailing: {
+                instanceAccessories(instance, model: model, state: state)
+            },
+            footer: {
+                if let model, state == .stopping, let progress = model.stopProgress(for: instance) {
+                    stopHint(instance, model: model, progress: progress)
+                }
+                if let error = model?.actionErrors[instance.id] {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(OrzMCTheme.Palette.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-        }
-        .buttonStyle(.plain)
-        .disabled(model == nil)
-        .accessibilityIdentifier("mcsm.instanceRow")
+        )
     }
 
-    @ViewBuilder private func instanceActions(_ instance: MCSManagerInstance, model: MCSManagerModel?, state: RemoteServerState) -> some View {
+    /// 右侧：玩家数 → 请求中转圈 → `⋯` 动作菜单（顺序固定，窄屏也不换位置）。
+    @ViewBuilder
+    private func instanceAccessories(
+        _ instance: MCSManagerInstance,
+        model: MCSManagerModel?,
+        state: RemoteServerState
+    ) -> some View {
         if let players = instance.players,
            let current = players.current, let max = players.max,
            state == .online {
@@ -288,9 +267,11 @@ struct MCSManagerSection: View {
                         )
                     )
                     .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .accessibilityIdentifier("mcsm.stopProgress")
                 } else {
                     Text(String(localized: "Stopping… \(live.seconds)s", comment: "停止进度秒数"))
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("mcsm.stopProgress")
                 }
                 if live.suggestsForceStop {
                     Button(String(localized: "Force Stop")) {
@@ -302,7 +283,6 @@ struct MCSManagerSection: View {
                 }
             }
             .font(.caption.monospacedDigit())
-            .accessibilityIdentifier("mcsm.stopProgress")
         }
     }
 

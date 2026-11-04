@@ -6,7 +6,11 @@
 import OrzMCDesignSystem
 import SwiftUI
 
-/// Both account and credit-pool lists use the same destination and card treatment.
+/// 列表里的实例行：点进详情页。
+///
+/// 行本身走 `RemoteInstanceRow`（与 MCSM 实例行同一套骨架），**不再套第二层面板**：
+/// 账号卡已经是一张面板，里面再套一层圆角面板在手机上像"卡片里的卡片"，
+/// 也和 MCSM 那一段的平铺行不是一种观感。
 struct ExarotonServerCardLink: View {
     @Environment(ExarotonServerModel.self) private var model
     let server: ExarotonServer
@@ -15,13 +19,15 @@ struct ExarotonServerCardLink: View {
         NavigationLink {
             ExarotonServerDetail(server: server).environment(model)
         } label: {
-            ExarotonServerCardPanel(server: server)
+            ExarotonServerCard(server: server, status: model.effectiveStatus(for: server), showsCopy: false)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("remote.serverCard")
     }
 }
 
+/// 额度池详情页里的实例行：那里是 `Form` 的 section，行背景是透明的，
+/// 所以单独给一层面板，否则看起来像"没渲染完"。列表里**不用**这个。
 struct ExarotonServerCardPanel: View {
     @Environment(ExarotonServerModel.self) private var model
     let server: ExarotonServer
@@ -58,32 +64,17 @@ struct ExarotonServerCard: View {
     var showsCopy = true
 
     var body: some View {
-        HStack(alignment: .top, spacing: OrzMCTheme.Spacing.sm) {
-            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
-                header
+        RemoteInstanceRow(
+            name: server.name ?? String(localized: "Server"),
+            statusTitle: status?.localizedTitle,
+            statusStyle: status?.statusStyle ?? .idle,
+            showsDisclosure: showsDisclosure,
+            details: {
                 idLine
                 tags
                 addresses
                 motd
             }
-
-            Spacer(minLength: 0)
-
-            if showsDisclosure {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 4)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-
-    private var header: some View {
-        RemoteInstanceHeading(
-            name: server.name ?? String(localized: "Server"),
-            statusTitle: status?.localizedTitle,
-            statusStyle: status?.statusStyle ?? .idle
         )
     }
 

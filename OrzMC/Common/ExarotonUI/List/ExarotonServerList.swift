@@ -7,26 +7,29 @@ struct ExarotonServerList: View {
     @State private var showsDemoDetail = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
+            // 加载 / 空 / 失败三态与 MCSM 分组共用一套排版（`RemoteHostingSkeleton.swift`）：
+            // 同一个窗口里两段必须"长得一样、都在说话"。
             if let message = model.listLoadError {
-                OrzMCBanner(verbatim: message, role: .error)
-                Button("Retry") { Task { await model.reloadList() } }.disabled(model.isLoadingList)
+                RemoteInlineError(message: message) {
+                    Task { await model.reloadList() }
+                }
             }
             if model.isLoadingList && model.servers.isEmpty {
-                ProgressView("Loading remote servers…")
+                RemoteInlineLoading()
             } else if model.servers.isEmpty && model.creditPools.isEmpty && model.listLoadError == nil {
-                Text("No instances").font(.callout).foregroundStyle(.secondary)
+                RemoteInlineEmpty()
             }
             ForEach(model.servers, id: \.id) { server in
                 ExarotonServerCardLink(server: server)
             }
             if !model.creditPools.isEmpty {
-                Label("Credit Pools", systemImage: "bubbles.and.sparkles").font(.subheadline)
+                RemoteSubsectionLabel(title: String(localized: "Credit Pools"), systemImage: "bubbles.and.sparkles")
                 ForEach(model.creditPools) { pool in
                     NavigationLink {
                         ExarotonCreditPoolDetail(creditPool: pool).environment(model)
                     } label: {
-                        ExarotonCreditPoolView(creditPool: pool).padding(OrzMCTheme.Spacing.sm).orzMCPanel()
+                        ExarotonCreditPoolView(creditPool: pool)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("remote.creditPoolCard")
