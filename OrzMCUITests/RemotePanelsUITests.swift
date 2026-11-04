@@ -1178,4 +1178,25 @@ extension RemotePanelsUITests {
         for _ in 0..<6 { console.swipeLeft() }
         snap(app, "mcsm-long-end")
     }
+
+    func testMCSManagerConsoleScrollsThroughManyLines() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_MCSM_MANY_LOGS": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
+        app.launch()
+        allowSystemPrompts()
+        let row = app.buttons.matching(identifier: "mcsm.instanceRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "演示生存服")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20))
+        row.tap()
+        let console = app.scrollViews["mcsm.console"]
+        XCTAssertTrue(console.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出"))
+            .firstMatch.waitForExistence(timeout: 15))
+        let oldest = app.staticTexts["LOGROW-000"]
+        for _ in 0..<8 where !oldest.isHittable { console.swipeDown() }
+        XCTAssertTrue(oldest.isHittable, "向上浏览应能到达最早的日志")
+        let latest = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出")).firstMatch
+        for _ in 0..<8 where !latest.isHittable { console.swipeUp() }
+        XCTAssertTrue(latest.isHittable, "向下浏览应能回到最新的日志")
+    }
 }
