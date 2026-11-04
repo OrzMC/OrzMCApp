@@ -259,7 +259,7 @@ struct MCSManagerSection: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
-        if model?.isBusy(instance) == true {
+        if model?.isBusy(instance) == true && state != .starting && state != .stopping && state != .restarting {
             ProgressView().controlSize(.mini)
         }
         if let model {

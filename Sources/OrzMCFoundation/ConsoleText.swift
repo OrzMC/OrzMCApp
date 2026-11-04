@@ -25,7 +25,7 @@ public struct ConsoleTextSegment: Hashable, Sendable {
     }
 }
 
-/// 控制台文本解析：把**带颜色码的原始输出**拆成「分段 + 样式」，并丢掉所有控制字符。
+/// 控制台文本解析：把**带颜色码的原始输出**拆成「分段 + 样式」，并处理行内编辑。
 ///
 /// 支持两种颜色码（真实日志两种都会出现）：
 ///
@@ -37,13 +37,20 @@ public struct ConsoleTextSegment: Hashable, Sendable {
 /// 处理规则（见 `docs/console-rendering.md`）：
 /// - SGR：`0` 重置、`1` 加粗、`22` 取消加粗、`30–37` / `90–97` 前景色、`39` 默认前景色、
 ///   `38;5;n` / `38;2;r;g;b` 扩展色；**背景色与其余 SGR 参数忽略**；
-/// - **其余所有转义序列直接丢弃**（非 `m` 的 CSI、OSC、两字节 ESC），绝不把 `\u{1B}` 漏到界面；
+/// - 退格移动行内光标，后续字符覆盖原内容；CSI `K` 清除当前行的指定区域；
+/// - 其余转义序列直接丢弃，绝不把 `\u{1B}` 漏到界面；
 /// - `\r`：同一行内后写的覆盖前面的（进度条），见 `lines(in:)`；
 /// - 畸形/被截断的序列按「丢弃控制符、保留可见文本」处理。
 ///
 /// 实现说明：全部按 **Unicode 标量**遍历，而不是 `Character` ——
 /// Swift 会把 `"\r\n"` 当成**一个** Character，按字符比较会漏掉这个换行（实测踩过）。
 public enum ConsoleTextParser {
+
+    private struct Cell {
+        var scalar: UnicodeScalar
+        var color: ConsoleColor?
+        var isBold: Bool
+    }
 
     /// 解析**单行**文本（不处理 `\n`；`\r` 取最后一次覆盖后的内容）。
     public static func parse(_ line: String) -> [ConsoleTextSegment] {
@@ -64,16 +71,10 @@ public enum ConsoleTextParser {
         }
         guard !scalars.isEmpty else { return [] }
 
-        var segments: [ConsoleTextSegment] = []
-        var buffer = ""
+        var cells: [Cell] = []
+        var position = 0
         var color: ConsoleColor?
         var isBold = false
-
-        func flush() {
-            guard !buffer.isEmpty else { return }
-            segments.append(ConsoleTextSegment(text: buffer, color: color, isBold: isBold))
-            buffer.removeAll(keepingCapacity: true)
-        }
 
         var index = 0
         while index < scalars.count {
@@ -90,9 +91,22 @@ public enum ConsoleTextParser {
                         cursor += 1
                     }
                     if cursor < scalars.count, scalars[cursor] == "m" {
-                        // 只有 SGR 会改样式；其它 CSI（清行、光标）跳过去就行。
-                        flush()
                         applySGR(parameters, color: &color, isBold: &isBold)
+                    } else if cursor < scalars.count, scalars[cursor] == "K" {
+                        // Erase in line does not move the cursor. A blank preserves
+                        // columns before the cursor when the whole line is cleared.
+                        let blank = Cell(scalar: " ", color: nil, isBold: false)
+                        switch parameters {
+                        case "", "0":
+                            if position < cells.count { cells.removeSubrange(position...) }
+                        case "1":
+                            if !cells.isEmpty {
+                                for offset in 0...min(position, cells.count - 1) { cells[offset] = blank }
+                            }
+                        case "2":
+                            for offset in cells.indices { cells[offset] = blank }
+                        default: break
+                        }
                     }
                     index = cursor + 1
                     continue
@@ -119,17 +133,31 @@ public enum ConsoleTextParser {
             if scalar == "\u{00A7}" {                                // §
                 let next = index + 1
                 guard next < scalars.count else { break }
-                flush()
                 applyMinecraft(scalars[next], color: &color, isBold: &isBold)
                 index = next + 1
                 continue
             }
 
+            if scalar == "\u{08}" {
+                position = max(0, position - 1)
+                index += 1
+                continue
+            }
             if isConsoleControl(scalar) { index += 1; continue }      // 其余控制字符（保留 \t）
-            buffer.unicodeScalars.append(scalar)
+            let cell = Cell(scalar: scalar, color: color, isBold: isBold)
+            if position < cells.count { cells[position] = cell } else { cells.append(cell) }
+            position += 1
             index += 1
         }
-        flush()
+        var segments: [ConsoleTextSegment] = []
+        for cell in cells {
+            if let last = segments.indices.last, segments[last].color == cell.color,
+               segments[last].isBold == cell.isBold {
+                segments[last].text.unicodeScalars.append(cell.scalar)
+            } else {
+                segments.append(ConsoleTextSegment(text: String(cell.scalar), color: cell.color, isBold: cell.isBold))
+            }
+        }
         return segments
     }
 

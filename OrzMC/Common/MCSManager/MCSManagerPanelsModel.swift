@@ -269,6 +269,7 @@ final class MCSManagerPanelsModel {
 actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
 
     private var flip = false
+    private var commandOutput = ""
 
     /// 演示面板按**普通用户**走（真机验收时维护者用的就是普通 key）。
     func currentUser(advancedInstances: Bool) async throws -> MCSManagerCurrentUser {
@@ -287,13 +288,21 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
     /// 演示模式也支持动作（否则验收时按钮全是灰的）。
     func perform(_ action: RemoteServerAction, daemonID: String, instanceUUID: String) async throws {}
 
-    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {}
+    func sendCommand(_ command: String, daemonID: String, instanceUUID: String) async throws {
+        commandOutput = "\n演示命令：\(command)"
+    }
 
     func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
-        """
-        [12:00:00] [Server thread/INFO]: 演示面板的控制台输出
+        let suffix = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_LONG_LOG"] == "1"
+            ? " " + String(repeating: "0123456789", count: 12) : ""
+        let history = """
+        [12:00:00] [Server thread/INFO]: 演示面板的控制台输出\(suffix)
         [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
         """
+        if ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_REDRAW"] == "1" {
+            return history + "\n> \u{1B}[31mlis\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K\r\r\n" + commandOutput
+        }
+        return history + commandOutput
     }
 
     /// 演示面板**不给**实时流通道（`nil`）→ 界面自动走轮询，正好把回退路径也验收掉。

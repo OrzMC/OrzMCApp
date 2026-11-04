@@ -6,6 +6,15 @@ public struct ConsoleLineBuffer: Sendable {
     public struct Line: Identifiable, Equatable, Sendable {
         public let id: UInt64
         public let text: String
+        public let segments: [ConsoleTextSegment]
+        public let plainText: String
+
+        init(id: UInt64, text: String) {
+            self.id = id
+            self.text = text
+            self.segments = ConsoleTextParser.parse(text)
+            self.plainText = segments.map(\.text).joined()
+        }
     }
 
     private var raw: ConsoleTextBuffer

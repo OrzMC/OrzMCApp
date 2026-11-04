@@ -103,10 +103,13 @@ public enum ConsoleAttributedText {
 public struct ConsoleLineText: View {
 
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("console.fontSize") private var fontSize: Double = 14
+    @AppStorage("console.wrapLines") private var wrapLines = false
+    @ScaledMetric(relativeTo: .body) private var fontScale: CGFloat = 1
 
     private let segments: [ConsoleTextSegment]
     private let fallback: Color?
-    private let font: Font
+    private let font: Font?
 
     /// - Parameters:
     ///   - segments: 解析后的分段（见 `ConsoleTextParser`）。
@@ -115,7 +118,7 @@ public struct ConsoleLineText: View {
     public init(
         segments: [ConsoleTextSegment],
         fallback: Color? = nil,
-        font: Font = OrzMCTheme.Typography.console
+        font: Font? = nil
     ) {
         self.segments = segments
         self.fallback = fallback
@@ -126,13 +129,14 @@ public struct ConsoleLineText: View {
     public init(
         text: String,
         color: Color? = nil,
-        font: Font = OrzMCTheme.Typography.console
+        font: Font? = nil
     ) {
         self.init(segments: [ConsoleTextSegment(text: text)], fallback: color, font: font)
     }
 
     public var body: some View {
         Text(ConsoleAttributedText.make(segments, scheme: colorScheme, fallback: fallback ?? .primary))
-            .font(font)
+            .font(font ?? .system(size: fontSize * fontScale, design: .monospaced))
+            .fixedSize(horizontal: !wrapLines, vertical: true)
     }
 }

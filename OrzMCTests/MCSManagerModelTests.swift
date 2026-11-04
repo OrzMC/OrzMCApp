@@ -1,8 +1,26 @@
 import XCTest
 import MCSMAPI
+import HTTPTypes
+import OpenAPIRuntime
 import OrzMCRemoteHosting
 
 @testable import OrzMC
+
+private actor CommandRequestCapture {
+    private(set) var paths: [String] = []
+    func record(_ request: HTTPRequest) { paths.append(request.path ?? "") }
+}
+
+private struct CommandCaptureTransport: ClientTransport {
+    let capture: CommandRequestCapture
+    func send(_ request: HTTPRequest, body: HTTPBody?, baseURL: URL, operationID: String) async throws
+        -> (HTTPResponse, HTTPBody?) {
+        await capture.record(request)
+        var response = HTTPResponse(status: .ok)
+        response.headerFields[.contentType] = "application/json"
+        return (response, HTTPBody("{\"status\":200,\"data\":{}}"))
+    }
+}
 
 /// 假面板（`MCSManagerPanelAPI`）：不发网络请求，按配置回数据 / 抛错，并记录询问过的节点。
 private actor FakePanelAPI: MCSManagerPanelAPI {
@@ -572,8 +590,26 @@ final class MCSManagerModelTests: XCTestCase {
 
         let sent = await model.sendCommand("  /list ", to: target)
         XCTAssertTrue(sent)
+        let plainSent = await model.sendCommand("list", to: target)
+        XCTAssertTrue(plainSent)
         let calls = await api.calls
         XCTAssertTrue(calls.contains("command:/list:d1/i1"), "实际调用：\(calls)")
+        XCTAssertEqual(calls.filter { $0.hasPrefix("command:") }, ["command:/list:d1/i1", "command:list:d1/i1"])
+    }
+
+    func testCommandRequestContainsOnlyTheSubmittedText() async throws {
+        let capture = CommandRequestCapture()
+        let client = MCSMClient.make(
+            serverURL: URL(string: "https://panel.example.com")!, apiKey: "fake-key",
+            transport: CommandCaptureTransport(capture: capture)
+        )
+        let api = MCSManagerAPIClient(client: client)
+        try await api.sendCommand("list", daemonID: "d1", instanceUUID: "i1")
+        let paths = await capture.paths
+        let path = try XCTUnwrap(paths.first)
+        let components = try XCTUnwrap(URLComponents(string: path))
+        XCTAssertEqual(components.queryItems?.filter { $0.name == "command" }.map(\.value), ["list"])
+        XCTAssertEqual(paths.count, 1)
     }
 
     /// 控制台：把面板给的日志尾部原样取回来（渲染由 `ConsoleTextParser` 统一处理）。

@@ -24,7 +24,7 @@ struct ExarotonAccountsSection: View {
                     VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
                         RemoteAccountHeader(name: account.displayName, isLoading: model.isLoadingList) {
                             Menu {
-                                Button("Refresh") { Task { await model.reloadList() } }
+                                Button("Refresh", systemImage: "arrow.clockwise") { Task { await model.reloadList() } }
                                 Button("Edit Account", systemImage: "slider.horizontal.3") {
                                     editing = account; name = account.label; token = ""; showingEditor = true
                                 }

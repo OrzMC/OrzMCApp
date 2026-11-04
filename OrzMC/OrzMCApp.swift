@@ -13,6 +13,19 @@ import OrzAppUpdater
 @main
 struct OrzMCApp: App {
 
+#if DEBUG && os(iOS)
+    /// 手势 UI 用例使用独立偏好域，避免覆盖真机用户的字号和换行设置。
+    private let uiTestDefaults: UserDefaults? = {
+        guard ProcessInfo.processInfo.environment["ORZMC_DEMO_ISOLATE_DEFAULTS"] == "1" else { return nil }
+        let suite = "com.joker.OrzMC.console-ui-tests"
+        guard let defaults = UserDefaults(suiteName: suite) else {
+            preconditionFailure("Unable to isolate console UI test preferences")
+        }
+        defaults.removePersistentDomain(forName: suite)
+        return defaults
+    }()
+#endif
+
 #if os(macOS)
     /// 整个 macOS 应用**唯一**的组合根：主窗口与 Settings 共享同一份状态。
     @State private var app = AppModel()
@@ -49,6 +62,9 @@ struct OrzMCApp: App {
 #elseif os(iOS)
         WindowGroup {
             ContentView()
+#if DEBUG
+                .defaultAppStorage(uiTestDefaults ?? .standard)
+#endif
         }
 #endif
     }

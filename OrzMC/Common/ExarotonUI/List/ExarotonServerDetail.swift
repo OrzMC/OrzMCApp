@@ -35,6 +35,14 @@ struct ExarotonServerDetail: View {
     @State private var confirmRestart = false
     @State private var showConsoleCommandInput = false
     @State private var consoleCommand: String = ""
+    @State private var consoleSearch = ""
+    @AppStorage("console.wrapLines") private var wrapConsoleLines = false
+
+    private var filteredConsoleLines: [RemoteConsoleBuffer.Line] {
+        let query = consoleSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return model.consoleLines }
+        return model.consoleLines.filter { $0.text.localizedCaseInsensitiveContains(query) }
+    }
 
     var body: some View {
 
@@ -122,6 +130,8 @@ struct ExarotonServerDetail: View {
 
                     Section("Console") {
 
+                        OrzMCConsoleControls(search: $consoleSearch)
+
                         // 有日志才用滚动视图；空态**不进 `ScrollView`**：
                         // `.defaultScrollAnchor(.bottom)` 会把空内容顶到下方（再叠个 `Spacer` 就跑到
                         // 左下角），真机反馈的“等待服务器输出…”贴底就是这个组合造成的。
@@ -147,21 +157,24 @@ struct ExarotonServerDetail: View {
                             .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("remote.consolePanel")
                         } else {
-                            ScrollView(.vertical, showsIndicators: true) {
-                                OrzMCConsoleRows(model.consoleLines, id: \.id) { line in
+                            ScrollView(wrapConsoleLines ? .vertical : [.vertical, .horizontal], showsIndicators: true) {
+                                OrzMCConsoleRows(filteredConsoleLines, id: \.id) { line in
                                     // 三个控制台共用同一套 ANSI/`§` 渲染（`ConsoleLineText`）。
                                     ConsoleLineText(segments: line.segments)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 } empty: {
-                                    EmptyView()
+                                    Text("No matching logs", comment: "Console search has no matches")
+                                        .foregroundStyle(.secondary)
                                 }
+                                .fixedSize(horizontal: !wrapConsoleLines, vertical: false)
                                 .textSelection(.enabled)
                                 // 与空态同一内边距，日志首行和占位对得上（以前文字直接贴着圆角边框）。
                                 .padding(OrzMCTheme.Spacing.xs)
                             }
                             .frame(height: 160)
                             .consoleSurface()
-                            .defaultScrollAnchor(.bottom)
+                            .consoleMagnification()
+                            .defaultScrollAnchor(.bottomLeading)
                             .accessibilityIdentifier("remote.consoleLog")
                         }
 

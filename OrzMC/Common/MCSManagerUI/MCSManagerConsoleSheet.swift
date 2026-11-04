@@ -32,6 +32,8 @@ struct MCSManagerConsoleSheet: View {
     /// 控制台文本的累积器（实时流追加 / 轮询整段替换）。
     @State private var buffer = ConsoleLineBuffer()
     @State private var command = ""
+    @State private var search = ""
+    @AppStorage("console.wrapLines") private var wrapLines = false
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var lastLoadedAt: Date?
@@ -56,6 +58,7 @@ struct MCSManagerConsoleSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
             header
+            OrzMCConsoleControls(search: $search)
             console
             if let errorMessage {
                 Text(errorMessage)
@@ -123,21 +126,25 @@ struct MCSManagerConsoleSheet: View {
     }
 
     private var console: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            OrzMCConsoleRows(buffer.lines, id: \.id) { line in
-                ConsoleLineText(segments: ConsoleTextParser.parse(line.text))
+        ScrollView(wrapLines ? .vertical : [.vertical, .horizontal], showsIndicators: true) {
+            OrzMCConsoleRows(filteredLines, id: \.id) { line in
+                ConsoleLineText(segments: line.segments)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } empty: {
-                Text(isLoading ? String(localized: "Loading…") : String(localized: "No output yet"))
+                Text(search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                     ? (isLoading ? String(localized: "Loading…") : String(localized: "No output yet"))
+                     : String(localized: "No matching logs", comment: "Console search has no matches"))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .fixedSize(horizontal: !wrapLines, vertical: false)
             .padding(OrzMCTheme.Spacing.xs)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .consoleSurface()
-        .defaultScrollAnchor(.bottom)
+        .consoleMagnification()
+        .defaultScrollAnchor(.bottomLeading)
         .textSelection(.enabled)
         // `children: .contain`：容器上的 identifier 会**下发给子元素**并覆盖子元素自己的 id，
         // 不加这个，UI 用例就查不到 `mcsm.console` 本身（踩过：MCSManager 分组同理）。
@@ -145,9 +152,19 @@ struct MCSManagerConsoleSheet: View {
         .accessibilityIdentifier("mcsm.console")
     }
 
+    private var filteredLines: [ConsoleLineBuffer.Line] {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return buffer.lines }
+        return buffer.lines.filter { $0.plainText.localizedCaseInsensitiveContains(query) }
+    }
+
     private var commandBar: some View {
         HStack(spacing: OrzMCTheme.Spacing.sm) {
             TextField(String(localized: "Console command…"), text: $command)
+                #if os(iOS)
+                .textInputAutocapitalization(.never)
+                #endif
+                .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
                 .font(.body.monospaced())
                 .onSubmit { send() }

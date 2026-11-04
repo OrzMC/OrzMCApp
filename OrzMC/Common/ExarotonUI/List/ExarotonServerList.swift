@@ -18,15 +18,7 @@ struct ExarotonServerList: View {
                 Text("No instances").font(.callout).foregroundStyle(.secondary)
             }
             ForEach(model.servers, id: \.id) { server in
-                NavigationLink {
-                    ExarotonServerDetail(server: server).environment(model)
-                } label: {
-                    ExarotonServerCard(server: server, status: model.effectiveStatus(for: server), showsCopy: false)
-                        .padding(OrzMCTheme.Spacing.sm)
-                        .orzMCPanel()
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("remote.serverCard")
+                ExarotonServerCardLink(server: server)
             }
             if !model.creditPools.isEmpty {
                 Label("Credit Pools", systemImage: "bubbles.and.sparkles").font(.subheadline)
@@ -51,6 +43,9 @@ struct ExarotonServerList: View {
             // 用来在没有账号/钥匙串的环境（CI、模拟器、无签名桌面包）里验收详情页布局。
             if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_SERVER"] == "1", model.servers.isEmpty {
                 model.servers = [Self.demoServer]
+                if ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_POOL"] == "1" {
+                    model.creditPools = [.init(id: "demo-pool", name: "Demo Pool", credits: 10, servers: 1)]
+                }
                 // `ORZMC_DEMO_FAKE_STATUS=starting|online|offline`：把假服务器钉在某个状态，
                 // 用来验收"徽章图标是否在转 / 状态文案"（默认离线，不会转）。
                 if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_FAKE_STATUS"],

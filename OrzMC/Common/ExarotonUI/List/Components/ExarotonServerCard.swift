@@ -6,6 +6,33 @@
 import OrzMCDesignSystem
 import SwiftUI
 
+/// Both account and credit-pool lists use the same destination and card treatment.
+struct ExarotonServerCardLink: View {
+    @Environment(ExarotonServerModel.self) private var model
+    let server: ExarotonServer
+
+    var body: some View {
+        NavigationLink {
+            ExarotonServerDetail(server: server).environment(model)
+        } label: {
+            ExarotonServerCardPanel(server: server)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("remote.serverCard")
+    }
+}
+
+struct ExarotonServerCardPanel: View {
+    @Environment(ExarotonServerModel.self) private var model
+    let server: ExarotonServer
+
+    var body: some View {
+        ExarotonServerCard(server: server, status: model.effectiveStatus(for: server), showsCopy: false)
+            .padding(OrzMCTheme.Spacing.sm)
+            .orzMCPanel()
+    }
+}
+
 /// 远程服务器**卡片**。
 ///
 /// 之前这里是一行朴素的列表内容（标题 + 若干标签），和主窗口实例卡片（面板底 + 大圆角 +
