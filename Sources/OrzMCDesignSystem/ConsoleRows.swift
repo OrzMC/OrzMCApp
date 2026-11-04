@@ -75,14 +75,8 @@ private struct ConsoleMagnification: ViewModifier {
 public extension View {
     func consoleMagnification() -> some View { modifier(ConsoleMagnification()) }
 
-    /// Start with recent output, but keep short logs at the top of the surface.
-    @ViewBuilder
+    /// Keep the first visible row within the viewport when its height changes.
     func consoleScrollAnchors() -> some View {
-        if #available(iOS 18, macOS 15, *) {
-            self.defaultScrollAnchor(.bottomLeading, for: .initialOffset)
-                .defaultScrollAnchor(.topLeading, for: .alignment)
-        } else {
-            self.defaultScrollAnchor(.bottomLeading)
-        }
+        defaultScrollAnchor(.topLeading)
     }
 }
