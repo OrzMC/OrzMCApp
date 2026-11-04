@@ -294,15 +294,17 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
 
     func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
         let suffix = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_LONG_LOG"] == "1"
-            ? " " + String(repeating: "0123456789", count: 12) : ""
+            ? " " + String(repeating: "0123456789", count: 12) + " [LONG-LINE-END]" : ""
+        let earlier = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_MANY_LOGS"] == "1"
+            ? (0..<100).map { String(format: "LOGROW-%03d\n", $0) }.joined() : ""
         let history = """
         [12:00:00] [Server thread/INFO]: 演示面板的控制台输出\(suffix)
         [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
         """
         if ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_REDRAW"] == "1" {
-            return history + "\n> \u{1B}[31mlis\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K\r\r\n" + commandOutput
+            return earlier + history + "\n> \u{1B}[31mlis\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K\r\r\n" + commandOutput
         }
-        return history + commandOutput
+        return earlier + history + commandOutput
     }
 
     /// 演示面板**不给**实时流通道（`nil`）→ 界面自动走轮询，正好把回退路径也验收掉。

@@ -8,7 +8,7 @@ public typealias OrzMCConsoleRows<Data: RandomAccessCollection, ID: Hashable, Ro
 public struct OrzMCConsoleControls: View {
     @Binding private var search: String
     #if os(macOS)
-    @AppStorage("console.fontSize") private var fontSize: Double = 14
+    @AppStorage("console.fontSize") private var fontSize: Double = 10
     #endif
     @AppStorage("console.wrapLines") private var wrapLines = false
 
@@ -48,7 +48,7 @@ public struct OrzMCConsoleControls: View {
 
 /// Pinch the log without interfering with its scrolling; VoiceOver can adjust it too.
 private struct ConsoleMagnification: ViewModifier {
-    @AppStorage("console.fontSize") private var fontSize: Double = 14
+    @AppStorage("console.fontSize") private var fontSize: Double = 10
     @State private var startingSize: Double?
 
     func body(content: Content) -> some View {
@@ -74,4 +74,9 @@ private struct ConsoleMagnification: ViewModifier {
 
 public extension View {
     func consoleMagnification() -> some View { modifier(ConsoleMagnification()) }
+
+    /// Keep the first visible row within the viewport when its height changes.
+    func consoleScrollAnchors() -> some View {
+        defaultScrollAnchor(.topLeading)
+    }
 }

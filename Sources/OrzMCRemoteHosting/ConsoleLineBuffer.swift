@@ -46,7 +46,18 @@ public struct ConsoleLineBuffer: Sendable {
     }
 
     public mutating func reset(to text: String) {
-        raw.reset(to: text)
+        // Polling frequently returns the same snapshot. Rebuilding every row gives
+        // it a new identity and causes lazy scroll views to lose their position.
+        var snapshot = ConsoleTextBuffer(limit: raw.limit)
+        snapshot.reset(to: text)
+        let updated = snapshot.text
+        let previous = raw.text
+        guard updated != previous else { return }
+        if !previous.isEmpty, updated.hasPrefix(previous) {
+            append(String(updated.dropFirst(previous.count)))
+            return
+        }
+        raw = snapshot
         rebuild(raw.text)
         publishLines()
     }

@@ -174,7 +174,7 @@ struct ExarotonServerDetail: View {
                             .frame(height: 160)
                             .consoleSurface()
                             .consoleMagnification()
-                            .defaultScrollAnchor(.bottomLeading)
+                            .consoleScrollAnchors()
                             .accessibilityIdentifier("remote.consoleLog")
                         }
 

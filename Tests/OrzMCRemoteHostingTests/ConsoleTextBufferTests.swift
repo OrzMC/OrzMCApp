@@ -90,6 +90,25 @@ struct ConsoleTextBufferTests {
 
 @Suite("控制台增量行")
 struct ConsoleLineBufferTests {
+    @Test func pollingAnUnchangedSnapshotKeepsRowIdentities() {
+        var rows = ConsoleLineBuffer(limit: 64)
+        let snapshot = String(repeating: "old line\n", count: 12) + "latest\n"
+        rows.reset(to: snapshot)
+        let before = rows.lines
+        rows.reset(to: snapshot)
+        #expect(rows.lines == before)
+    }
+
+    @Test func pollingAnExtendedSnapshotKeepsExistingRowIdentities() {
+        var rows = ConsoleLineBuffer()
+        rows.reset(to: "first\nsecond")
+        let before = rows.lines
+        rows.reset(to: "first\nsecond part\nthird")
+        #expect(rows.lines[0].id == before[0].id)
+        #expect(rows.lines[1].id == before[1].id)
+        #expect(rows.lines.map(\.text) == ["first", "second part", "third"])
+    }
+
     @Test func commandRedrawIsCorrectAcrossStreamFragments() {
         var rows = ConsoleLineBuffer()
         rows.append("> \u{1B}[31mlis\u{1B}[0m")
