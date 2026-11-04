@@ -921,6 +921,29 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "21-remote-console-2")
     }
 
+    /// 远程托管页 · **辅助功能超大字号**（两家供应商同一套行骨架的换行行为）。
+    ///
+    /// 验收点：不横向溢出、名称/徽标不被截断、右侧动作自动换到下一行。
+    func testSnapshotTourRemoteAccessibilitySize() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1",
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online",
+                           "ORZMC_DEMO_TAB": "managed"])
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+        snap(app, "50-a11y-top")
+        app.swipeUp()
+        snap(app, "51-a11y-exaroton")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
+        snap(app, "52-a11y-mcsm")
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
