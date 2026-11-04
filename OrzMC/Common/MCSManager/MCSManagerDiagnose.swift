@@ -36,8 +36,18 @@ enum MCSManagerDiagnose {
     /// 所以必须有一条不依赖截图的自检。
     static let streamProbeKey = "ORZMC_DEMO_MCSM_STREAM_PROBE"
 
+    /// 可选：`ORZMC_DEMO_MCSM_RAW_LOG=1` —— 把每台实例的**原始**控制台尾部（含所有转义序列）
+    /// 逐字节写进 Caches，用来定位"终端重绘被解析坏"的真因。
+    ///
+    /// 为什么不靠截图：`> versioversion` 这种现象可能是 `\b`、CSI 光标移动、`\r` 覆盖任一组合
+    /// 造成的，只有原始字节能区分（2026-11-05：`lislist` 修好后仍有 `versioversion`）。
+    /// **只读**：只调 `outputlog` 拉尾部，不发任何命令。
+    static let rawLogKey = "ORZMC_DEMO_MCSM_RAW_LOG"
+
     static var isRequested: Bool {
-        ProcessInfo.processInfo.environment[environmentKey] == "1"
+        let environment = ProcessInfo.processInfo.environment
+        // `RAW_LOG` 单独出现也算"要跑"：定位解析问题时往往只想拿原始字节、不想再看一遍汇总。
+        return environment[environmentKey] == "1" || environment[rawLogKey] == "1"
     }
 
     /// 由 `OrzMCApp.init()` 触发（两端通用）。
@@ -46,6 +56,10 @@ enum MCSManagerDiagnose {
 
         let model = MCSManagerPanelsModel()
         model.isSceneActive = true
+
+        // 先落一条"我跑起来了 + 看到了哪些开关"的记录：`open --env` 在某些 macOS 版本上
+        // 会悄悄丢环境变量，没有这条记录就分不清"没跑"和"跑了但没数据"。
+        writeRunRecord(panels: model.panels.count)
 
         if model.panels.isEmpty {
             writeSummary(error: "no MCSManager panel configured")
@@ -60,6 +74,9 @@ enum MCSManagerDiagnose {
                 if ProcessInfo.processInfo.environment[streamProbeKey] == "1" {
                     await panelModel.probeStream()
                 }
+                if ProcessInfo.processInfo.environment[rawLogKey] == "1" {
+                    await dumpRawConsole(panelModel, panel: panel)
+                }
                 // 成功时 reload 里已经写过；这里补写一次带上最终的错误文案。
                 panelModel.writeDiagnose(error: panelModel.errorMessage)
             }
@@ -68,6 +85,85 @@ enum MCSManagerDiagnose {
         // 给写入留一点时间，然后退出（脚本据此判断"跑完了"）。
         try? await Task.sleep(for: .seconds(2))
         exit(0)
+    }
+
+    /// 诊断入口的自述：环境里的每个 `ORZMC_DEMO_*` 开关 + 读到几个面板。
+    @MainActor
+    private static func writeRunRecord(panels: Int) {
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return
+        }
+        let environment = ProcessInfo.processInfo.environment
+            .filter { $0.key.hasPrefix("ORZMC_DEMO_") }
+            .sorted { $0.key < $1.key }
+        let snapshot: [String: Any] = [
+            "at": ISO8601DateFormatter().string(from: Date()),
+            "panels": panels,
+            "environment": Dictionary(uniqueKeysWithValues: environment),
+        ]
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: snapshot,
+            options: [.prettyPrinted, .sortedKeys]
+        ) else { return }
+        try? data.write(to: directory.appendingPathComponent("orzmc-mcsm-run.json"))
+    }
+
+    /// 把每台实例的**原始**控制台尾部写成文本（仅 DEBUG 诊断用）。
+    ///
+    /// 用 `.txt` 而不是 JSON：终端输出里可能有让 `JSONSerialization` 直接失败的内容，
+    /// 诊断代码本身不应该再引入一层失败可能。
+    @MainActor
+    private static func dumpRawConsole(_ model: MCSManagerModel, panel: MCSManagerPanel) async {
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return
+        }
+        let instances = model.instances
+        var summary = "panel=\(panel.label) instances=\(instances.count) error=\(model.errorMessage ?? "-")\n"
+        for instance in instances {
+            do {
+                let text = try await model.outputLog(for: instance, tailSize: 32 * 1024)
+                let escaped = escapedForDiagnose(text)
+                let header = "instance=\(instance.nickname) id=\(instance.id) bytes=\(text.utf8.count)\n"
+                // 实例 id 形如 `daemon/uuid`，直接当文件名会写入子目录并静默失败。
+                let safeID = instance.id.replacingOccurrences(of: "/", with: "_")
+                let name = "orzmc-mcsm-raw-\(safeID).txt"
+                try? (header + escaped).write(
+                    to: directory.appendingPathComponent(name),
+                    atomically: true,
+                    encoding: .utf8
+                )
+                summary += "  \(instance.nickname): bytes=\(text.utf8.count)\n"
+            } catch {
+                summary += "  \(instance.nickname): error=\(MCSManagerErrorText.describe(error) ?? String(describing: error))\n"
+            }
+        }
+        try? summary.write(
+            to: directory.appendingPathComponent("orzmc-mcsm-raw-summary.txt"),
+            atomically: true,
+            encoding: .utf8
+        )
+    }
+
+    /// 把控制字符写成可读形式（`\u{1B}[1D`、`\b`、`\r`），保留普通文本。
+    private static func escapedForDiagnose(_ text: String) -> String {
+        var result = ""
+        result.reserveCapacity(text.utf8.count * 2)
+        for scalar in text.unicodeScalars {
+            switch scalar {
+            case "\u{1B}": result += "\\u{1B}"
+            case "\u{08}": result += "\\b"
+            case "\r": result += "\\r"
+            case "\n": result += "\\n\n"
+            case "\t": result += "\\t"
+            default:
+                if scalar.value < 0x20 || scalar.value == 0x7F {
+                    result += String(format: "\\u{%02X}", scalar.value)
+                } else {
+                    result.unicodeScalars.append(scalar)
+                }
+            }
+        }
+        return result
     }
 
     /// 一个面板都没配时也留个文件，免得"没文件"被误读成"没跑"。

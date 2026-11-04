@@ -108,6 +108,69 @@ final class ConsoleTextTests: XCTestCase {
         XCTAssertEqual(ConsoleTextParser.parse(raw), [ConsoleTextSegment(text: "> list")])
     }
 
+    // MARK: - 终端重绘（真实 MCSManager 原文字节，2026-11-05）
+    //
+    // 面板把 PTY 输出原样返回（`> ` 提示符 + 逐字回显 + 重绘）。JLine 的逐字重绘**不只**用 `\b`：
+    // 它还会用 CSI 光标左移（`ESC [ 6 D`）。以前解析器只实现了 `\b`，把 `ESC [ 6 D` 当"未知 CSI 丢弃"，
+    // 于是光标没回去、同一行被写成 `> versioversion` / `> pluginplugins`（真机截图在 issue 里）。
+    // 下面两条是**未做任何修改的原始字节**（只把 ESC 写成 `\u{1B}`）。
+
+    func testRealRedrawWithCsiCursorLeftForVersion() {
+        let raw = "> v\u{08}\u{1B}[31mve\u{1B}[0m\u{1B}[K\u{08}\u{08}ver\u{1B}[K\u{08}\u{08}\u{08}"
+            + "\u{1B}[31mvers\u{1B}[0m\u{1B}[K\u{1B}[31mi\u{1B}[0m\u{1B}[31mo\u{1B}[0m\u{1B}[6Dversion\u{1B}[K"
+        XCTAssertEqual(ConsoleTextParser.parse(raw), [ConsoleTextSegment(text: "> version")])
+    }
+
+    func testRealRedrawWithCsiCursorLeftForPlugins() {
+        let raw = "> \u{1B}[31mp\u{1B}[0m\u{08}pl\u{1B}[K\u{08}\u{08}\u{1B}[31mplu\u{1B}[0m\u{1B}[K"
+            + "\u{1B}[31mg\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31mn\u{1B}[0m\u{1B}[6Dplugins\u{1B}[K"
+        XCTAssertEqual(ConsoleTextParser.parse(raw), [ConsoleTextSegment(text: "> plugins")])
+    }
+
+    func testCursorMovementSequences() {
+        // CUB（左移）默认 1；`ESC [ 0 D` 也按 1 算（ECMA-48）。
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{1B}[1DX"), "abX")
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{1B}[DX"), "abX")
+        XCTAssertEqual(ConsoleTextParser.plainText("abc\u{1B}[0DX"), "abX")
+        // 移过头不能变成负位置。
+        XCTAssertEqual(ConsoleTextParser.plainText("ab\u{1B}[9DX"), "Xb")
+        // CUF（右移）：超出行尾的位置用空格补齐（与真终端一致）。
+        XCTAssertEqual(ConsoleTextParser.plainText("ab\u{1B}[2CX"), "ab  X")
+        // CHA（回到第 n 列，1 基）。
+        XCTAssertEqual(ConsoleTextParser.plainText("abcdef\u{1B}[1GX"), "Xbcdef")
+        XCTAssertEqual(ConsoleTextParser.plainText("abcdef\u{1B}[3GX"), "abXdef")
+        // 光标移动本身不改变颜色/加粗状态。
+        XCTAssertEqual(ConsoleTextParser.parse("\u{1B}[31mab\u{1B}[1D\u{1B}[32mX"), [
+            ConsoleTextSegment(text: "a", color: .red),
+            ConsoleTextSegment(text: "X", color: .green),
+        ])
+    }
+
+    func testCursorUpAndDownAreStillDropped() {
+        // 单行渲染器没有多行光标模型：上下移不做，但不能把可见文字吞掉。
+        XCTAssertEqual(ConsoleTextParser.plainText("ab\u{1B}[2Acd"), "abcd")
+        XCTAssertEqual(ConsoleTextParser.plainText("ab\u{1B}[1Bcd"), "abcd")
+    }
+
+    func testRealRedrawWithExtendedCommandLine() {
+        // 同一次会话里的两条长命令（原始字节）：`\e[8D` / `\e[6D` 与退格混用，
+        // 还带多段颜色重绘。期望值就是维护者在终端里打的那两条命令。
+        let addLine = "> w\u{08}\u{1B}[31mwh\u{1B}[0m\u{1B}[K\u{1B}[31mi\u{1B}[0m\u{1B}[31mt\u{1B}[0m\u{1B}[31me"
+            + "\u{1B}[0m\u{1B}[31ml\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31ms\u{1B}[0m\u{1B}[8Dwhitelist\u{1B}[K"
+            + "\u{1B}[31m \u{1B}[0m\u{1B}[31ma\u{1B}[0m\u{1B}[31md\u{1B}[0m\u{08}\u{08}\u{08} add\u{1B}[K"
+            + "\u{1B}[31m \u{1B}[0m\u{08} \u{1B}[36mP\u{1B}[0m\u{1B}[K\u{1B}[36mr\u{1B}[0m\u{1B}[36mo\u{1B}[0m"
+            + "\u{1B}[36mb\u{1B}[0m\u{1B}[36me\u{1B}[0m\u{1B}[36mB\u{1B}[0m"
+        XCTAssertEqual(ConsoleTextParser.plainText(addLine), "> whitelist add ProbeB")
+
+        let removeLine = "> w\u{08}\u{1B}[31mwh\u{1B}[0m\u{1B}[K\u{1B}[31mi\u{1B}[0m\u{1B}[31mt\u{1B}[0m\u{1B}[31me"
+            + "\u{1B}[0m\u{1B}[31ml\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31ms\u{1B}[0m\u{1B}[8Dwhitelist\u{1B}[K"
+            + "\u{1B}[31m \u{1B}[0m\u{1B}[31mr\u{1B}[0m\u{1B}[31me\u{1B}[0m\u{1B}[31mm\u{1B}[0m\u{1B}[31mo"
+            + "\u{1B}[0m\u{1B}[31mv\u{1B}[0m\u{1B}[6D remove\u{1B}[K\u{1B}[31m \u{1B}[0m\u{08} \u{1B}[36mP"
+            + "\u{1B}[0m\u{1B}[K\u{1B}[36mr\u{1B}[0m\u{1B}[36mo\u{1B}[0m\u{1B}[36mb\u{1B}[0m\u{1B}[36me"
+            + "\u{1B}[0m\u{1B}[36mB\u{1B}[0m"
+        XCTAssertEqual(ConsoleTextParser.plainText(removeLine), "> whitelist remove ProbeB")
+    }
+
     func testBackspaceOverwritesWithoutErasingUntouchedSuffix() {
         XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}X"), "aXc")
         XCTAssertEqual(ConsoleTextParser.plainText("abc\u{08}\u{08}X\u{1B}[K"), "aX")

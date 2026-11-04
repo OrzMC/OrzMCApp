@@ -302,7 +302,16 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
         [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
         """
         if ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_REDRAW"] == "1" {
-            return earlier + history + "\n> \u{1B}[31mlis\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K\r\r\n" + commandOutput
+            // 两种**真实**终端重绘形态（原文字节，来自 MCSManager 面板的 `outputlog`）：
+            // ① JLine 逐字回显只用退格：`lis` + `\b\b\b` + `list`；
+            // ② 逐字回显 + **CSI 光标左移**（`ESC [ 6 D`）才重写整行：version / plugins。
+            // ② 是 2026-11-05 `> versioversion` / `> pluginplugins` 的真因（以前只实现了 ①）。
+            let backspaceRedraw = "> \u{1B}[31mlis\u{1B}[0m\u{08}\u{08}\u{08}list\u{1B}[K\r\r\n"
+            let versionRedraw = "> v\u{08}\u{1B}[31mve\u{1B}[0m\u{1B}[K\u{08}\u{08}ver\u{1B}[K\u{08}\u{08}\u{08}"
+                + "\u{1B}[31mvers\u{1B}[0m\u{1B}[K\u{1B}[31mi\u{1B}[0m\u{1B}[31mo\u{1B}[0m\u{1B}[6Dversion\u{1B}[K\r\r\n"
+            let pluginsRedraw = "> \u{1B}[31mp\u{1B}[0m\u{08}pl\u{1B}[K\u{08}\u{08}\u{1B}[31mplu\u{1B}[0m\u{1B}[K"
+                + "\u{1B}[31mg\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31mn\u{1B}[0m\u{1B}[6Dplugins\u{1B}[K\r\r\n"
+            return earlier + history + "\n" + backspaceRedraw + versionRedraw + pluginsRedraw + commandOutput
         }
         return earlier + history + commandOutput
     }

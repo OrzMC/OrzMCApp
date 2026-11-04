@@ -21,7 +21,7 @@
 ```
 ┌───────────────────────────────┐
 │ OrzMCFoundation               │  纯逻辑：文本 → 分段 + 样式（无 UI、可 CLI 复用、可单测）
-│ ConsoleTextParser             │  ANSI SGR / § 解析、行内退格重绘、\r 覆盖、多行拆分
+│ ConsoleTextParser             │  ANSI SGR / § 解析、行内重绘（退格 + 光标移动）、\r 覆盖、多行拆分
 │ ConsoleTextSegment/ConsoleColor│
 └───────────────┬───────────────┘
                 │
@@ -56,6 +56,7 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 | `ESC [ 38;2;r;g;b m` | 真彩色 |
 | `ESC [ 48… m` | **背景色**：吃掉参数、不渲染（控制台底色由主题统一） |
 | `\b` | 光标回退一个标量，后写字符覆盖对应位置；行首退格不产生负位置 |
+| `ESC [ n D`（CUB）/ `ESC [ n C`（CUF）/ `ESC [ n G`（CHA） | 光标左移 / 右移 / 移到第 n 列；右移越过行尾的位置用空格补齐。缺省或 `0` 按 1 算 |
 | `ESC [ K` / `ESC [ 0 K` / `ESC [ 1 K` / `ESC [ 2 K` | 清除光标之后、之前或整行，保留光标位置 |
 | 其它 CSI、OSC（标题/超链接）、两字节 ESC | **丢弃**（未实现完整终端光标定位） |
 | `§0–§f` | Minecraft 颜色（映射到标准 RGB） |
@@ -67,7 +68,28 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 
 实现细节：全部按 **Unicode 标量**遍历。Swift 把 `"\r\n"` 当作**一个** `Character`，
 按字符比较会漏掉这个换行（第一版就是这么错的，被 `testCRLFIsOneLineBreak` 挡住）。
-这不是完整终端模拟器：退格按标量处理，复杂字形和双宽字符的光标列宽仍有局限。
+这不是完整终端模拟器：退格与水平光标移动按标量处理，复杂字形和双宽字符的光标列宽仍有局限；
+上下移（`ESC [ A/B`）、绝对定位（`ESC [ H`）与擦除显示区（`ESC [ J`）仍直接丢弃（单行渲染器没有行模型）。
+
+### 2026-11-05：`> versioversion` / `> pluginplugins`（CSI 光标左移被丢掉）
+
+面板的 `outputlog` 是 **PTY 原文字节**，JLine 的逐字回显会夹杂两种重绘：
+
+```text
+> \u{1B}[31ml\u{1B}[0m\u{1B}[31mi\u{1B}[0m\u{1B}[31ms\u{1B}[0m\b\b\blist\u{1B}[K          ← 只用退格
+> v\b\u{1B}[31mve\u{1B}[0m\u{1B}[K…\u{1B}[31mo\u{1B}[0m\u{1B}[6Dversion\u{1B}[K   ← 退格 + CSI 左移 6 列
+```
+
+早期只实现了 `\b`，把 `ESC [ 6 D` 当"未知 CSI"丢掉 → 光标没回去、整行 append 在行尾 →
+`> versioversion`（红）：同一个坑之前只在退格形态上修过，所以 `lislist` 好了、`versioversion` 还在。
+现在 `D` / `C` / `G` 都按 ECMA-48 处理，回归用例直接用面板的原始字节
+（`ConsoleTextTests.testRealRedrawWithCsiCursorLeftForVersion/ForPlugins`、
+`testRealRedrawWithExtendedCommandLine`），模拟器 UI 用例 `testMCSManagerConsoleSheetShowsOutput`
+也同时校验两种形态；前后对比截图见 [`ui-console-redraw-2026-11-05/`](ui-console-redraw-2026-11-05/)。
+
+复现/取证工具（仅 DEBUG）：`ORZMC_DEMO_MCSM_DIAGNOSE=1` + `ORZMC_DEMO_MCSM_RAW_LOG=1`
+会把每台实例的 `outputlog` 原文字节（转义成 `\u{1B}` / `\b` / `\r`）写到
+`~/Library/Caches/orzmc-mcsm-raw-<daemon>_<uuid>.txt`，**只拉日志、不发命令**。
 
 ## 颜色映射（`ConsolePalette`）
 
