@@ -615,15 +615,24 @@ final class RemotePanelsUITests: XCTestCase {
         let rect = text.frame.insetBy(dx: 0, dy: 0)
             .offsetBy(dx: -30, dy: -8)
             .insetBy(dx: -8, dy: -0)
+        return screenFingerprint(in: rect)
+    }
+
+    /// 对屏幕上的固定区域取指纹，避免滚动后文本离开无障碍树时 frame 变为无穷大。
+    private func screenFingerprint(in rect: CGRect) -> Int? {
         let image = XCUIScreen.main.screenshot().image
         let scale = image.scale
         let pixelRect = CGRect(x: rect.minX * scale, y: rect.minY * scale,
-                               width: max(rect.width, 1) * scale, height: max(rect.height, 1) * scale)
-        guard let cropped = image.cgImage?.cropping(to: pixelRect),
-              let data = cropped.dataProvider?.data
-        else { return nil }
+                               width: rect.width * scale, height: rect.height * scale).integral
+        guard !pixelRect.isEmpty, let cropped = image.cgImage?.cropping(to: pixelRect) else { return nil }
+        var pixels = [UInt8](repeating: 0, count: cropped.width * cropped.height * 4)
+        guard let context = CGContext(data: &pixels, width: cropped.width, height: cropped.height,
+                                      bitsPerComponent: 8, bytesPerRow: cropped.width * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.draw(cropped, in: CGRect(x: 0, y: 0, width: cropped.width, height: cropped.height))
         var hash = 5381
-        for byte in (data as Data) { hash = (hash &* 33) &+ Int(byte) }
+        for byte in pixels { hash = (hash &* 33) &+ Int(byte) }
         return hash
     }
 
@@ -1093,7 +1102,7 @@ extension RemotePanelsUITests {
         XCTAssertTrue(echo.waitForExistence(timeout: 15), "假面板应收到原样的 list 命令")
     }
 
-    func testMCSManagerConsoleCanFilterAndChangeDisplay() {
+    func testMCSManagerConsoleCanFilterAndChangeDisplay() throws {
         let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
                            "ORZMC_DEMO_MCSM_LONG_LOG": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
         app.launch()
@@ -1114,9 +1123,6 @@ extension RemotePanelsUITests {
         XCTAssertTrue(original.waitForExistence(timeout: 10))
         let console = app.scrollViews["mcsm.console"]
         XCTAssertGreaterThan(original.frame.width, console.frame.width + 50, "测试日志必须超出可视宽度")
-        let originalX = original.frame.minX
-        console.swipeLeft()
-        XCTAssertLessThan(original.frame.minX, originalX - 10, "长日志应能横向浏览")
         let initialWidth = original.frame.width
         console.pinch(withScale: 0.6, velocity: -1)
         let oldWidth = original.frame.width
@@ -1128,6 +1134,12 @@ extension RemotePanelsUITests {
         wrap.tap()
         XCTAssertLessThanOrEqual(original.frame.width, console.frame.width + 1, "开启换行后日志应适应可视宽度")
         wrap.tap()
+        XCTAssertTrue(original.waitForExistence(timeout: 10))
+        let lineRegion = original.frame.intersection(console.frame).insetBy(dx: 8, dy: 2)
+        let beforeScroll = try XCTUnwrap(screenFingerprint(in: lineRegion))
+        console.swipeLeft()
+        let afterScroll = try XCTUnwrap(screenFingerprint(in: lineRegion))
+        XCTAssertNotEqual(beforeScroll, afterScroll, "长日志应能横向浏览")
     }
 
     func testSnapshotMCSManagerConsole() throws {
