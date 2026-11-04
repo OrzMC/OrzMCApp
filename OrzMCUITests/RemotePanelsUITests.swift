@@ -1149,6 +1149,11 @@ extension RemotePanelsUITests {
         )
         XCTAssertTrue(app.staticTexts["> list"].waitForExistence(timeout: 15), "退格重绘应显示 list")
         XCTAssertFalse(app.staticTexts["> lislist"].exists, "退格前缀不能重复显示")
+        // CSI 光标左移（`ESC [ 6 D`）的重绘：2026-11-05 的真实事故是这里重复了前缀。
+        XCTAssertTrue(app.staticTexts["> version"].waitForExistence(timeout: 15), "光标左移重绘应显示 version")
+        XCTAssertFalse(app.staticTexts["> versioversion"].exists, "CSI 左移前缀不能重复显示")
+        XCTAssertTrue(app.staticTexts["> plugins"].waitForExistence(timeout: 15), "光标左移重绘应显示 plugins")
+        XCTAssertFalse(app.staticTexts["> pluginplugins"].exists, "CSI 左移前缀不能重复显示")
 
         // 在线实例可以发命令：输入后「发送」可用，点完输入框清空。
         let field = app.textFields["mcsm.commandField"]
@@ -1212,7 +1217,10 @@ extension RemotePanelsUITests {
 
     func testSnapshotMCSManagerConsole() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        // `REDRAW=1`：带上两种真实终端重绘（退格 / CSI 左移），截图能直接看到
+        // `> list` / `> version` / `> plugins` 没有被重复成 `lislist` / `versioversion`。
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_MCSM_REDRAW": "1"])
         app.launch()
         allowSystemPrompts()
         let row = app.buttons.matching(identifier: "mcsm.instanceRow")

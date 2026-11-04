@@ -107,6 +107,16 @@ public enum ConsoleTextParser {
                             for offset in cells.indices { cells[offset] = blank }
                         default: break
                         }
+                    } else if cursor < scalars.count, scalars[cursor] == "D" {
+                        // CUB（光标左移）：JLine 的逐字重绘就用它，**不能当未知序列丢掉** ——
+                        // 丢掉就会把整行 append 在行尾（`> versioversion`，2026-11-05 真实事故）。
+                        position = max(0, position - cursorOffset(parameters))
+                    } else if cursor < scalars.count, scalars[cursor] == "C" {
+                        // CUF（光标右移）：超出已有内容的位置留空格（与真终端一致）。
+                        position += cursorOffset(parameters)
+                    } else if cursor < scalars.count, scalars[cursor] == "G" {
+                        // CHA（移到第 n 列，1 基；缺省/0 = 第 1 列）。
+                        position = max(0, cursorOffset(parameters) - 1)
                     }
                     index = cursor + 1
                     continue
@@ -145,6 +155,13 @@ public enum ConsoleTextParser {
             }
             if isConsoleControl(scalar) { index += 1; continue }      // 其余控制字符（保留 \t）
             let cell = Cell(scalar: scalar, color: color, isBold: isBold)
+            // 光标被 CUF/CHA 移到行尾之外时，中间的空位用空格补齐。
+            if position > cells.count {
+                cells.append(contentsOf: repeatElement(
+                    Cell(scalar: " ", color: nil, isBold: false),
+                    count: position - cells.count
+                ))
+            }
             if position < cells.count { cells[position] = cell } else { cells.append(cell) }
             position += 1
             index += 1
@@ -376,6 +393,13 @@ public enum ConsoleTextParser {
     }
 
     // MARK: - 字符判定
+
+    /// CSI 的空格参数：缺省/`0` 按 `1` 算（ECMA-48），多于一个参数时只取第一个。
+    private static func cursorOffset(_ parameters: String) -> Int {
+        let first = parameters.split(separator: ";", omittingEmptySubsequences: false).first ?? ""
+        guard let value = Int(first), value > 0 else { return 1 }
+        return value
+    }
 
     /// CSI 的终止字节：`0x40…0x7E`；之前的都是参数/中间字节。
     private static func isFinalByte(_ scalar: UnicodeScalar) -> Bool {
