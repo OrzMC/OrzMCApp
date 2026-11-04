@@ -594,7 +594,8 @@ struct SelfHostedServerView: View {
             .frame(minHeight: 140, maxHeight: 220)
             .consoleSurface()
             .consoleMagnification()
-            .onChange(of: filteredConsoleLines.count) {
+            .onChange(of: model.currentConsoleLines.last?.id) {
+                guard consoleSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 if let last = filteredConsoleLines.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }

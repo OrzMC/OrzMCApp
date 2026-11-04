@@ -144,7 +144,7 @@ struct MCSManagerConsoleSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .consoleSurface()
         .consoleMagnification()
-        .defaultScrollAnchor(.bottomLeading)
+        .consoleScrollAnchors()
         .textSelection(.enabled)
         // `children: .contain`：容器上的 identifier 会**下发给子元素**并覆盖子元素自己的 id，
         // 不加这个，UI 用例就查不到 `mcsm.console` 本身（踩过：MCSManager 分组同理）。

@@ -1124,11 +1124,11 @@ extension RemotePanelsUITests {
         let console = app.scrollViews["mcsm.console"]
         XCTAssertGreaterThan(original.frame.width, console.frame.width + 50, "测试日志必须超出可视宽度")
         let initialWidth = original.frame.width
+        console.pinch(withScale: 1.5, velocity: 1)
+        let enlargedWidth = original.frame.width
+        XCTAssertGreaterThan(enlargedWidth, initialWidth, "双指张开应放大日志")
         console.pinch(withScale: 0.6, velocity: -1)
-        let oldWidth = original.frame.width
-        XCTAssertLessThan(oldWidth, initialWidth, "双指捏合应缩小日志")
-        console.pinch(withScale: 1.3, velocity: 1)
-        XCTAssertGreaterThan(original.frame.width, oldWidth, "双指张开应放大日志")
+        XCTAssertLessThan(original.frame.width, enlargedWidth, "双指捏合应缩小日志")
         let wrap = app.switches["console.wrapLines"]
         XCTAssertTrue(wrap.waitForExistence(timeout: 5))
         wrap.tap()
@@ -1138,8 +1138,12 @@ extension RemotePanelsUITests {
         let lineRegion = original.frame.intersection(console.frame).insetBy(dx: 8, dy: 2)
         let beforeScroll = try XCTUnwrap(screenFingerprint(in: lineRegion))
         console.swipeLeft()
+        Thread.sleep(forTimeInterval: 1)
         let afterScroll = try XCTUnwrap(screenFingerprint(in: lineRegion))
         XCTAssertNotEqual(beforeScroll, afterScroll, "长日志应能横向浏览")
+        Thread.sleep(forTimeInterval: 4)
+        let afterPolling = try XCTUnwrap(screenFingerprint(in: lineRegion))
+        XCTAssertEqual(afterScroll, afterPolling, "轮询未改变日志时不应重置滚动位置")
     }
 
     func testSnapshotMCSManagerConsole() throws {
@@ -1154,5 +1158,24 @@ extension RemotePanelsUITests {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出"))
             .firstMatch.waitForExistence(timeout: 15))
         snap(app, "mcsm-console")
+    }
+
+    func testSnapshotMCSManagerLongLine() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+                           "ORZMC_DEMO_MCSM_LONG_LOG": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
+        app.launch()
+        allowSystemPrompts()
+        let row = app.buttons.matching(identifier: "mcsm.instanceRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "演示生存服")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20))
+        row.tap()
+        let console = app.scrollViews["mcsm.console"]
+        XCTAssertTrue(console.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "演示面板的控制台输出"))
+            .firstMatch.waitForExistence(timeout: 15))
+        snap(app, "mcsm-long-start")
+        for _ in 0..<6 { console.swipeLeft() }
+        snap(app, "mcsm-long-end")
     }
 }

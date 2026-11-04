@@ -103,7 +103,7 @@ public enum ConsoleAttributedText {
 public struct ConsoleLineText: View {
 
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("console.fontSize") private var fontSize: Double = 14
+    @AppStorage("console.fontSize") private var fontSize: Double = 10
     @AppStorage("console.wrapLines") private var wrapLines = false
     @ScaledMetric(relativeTo: .body) private var fontScale: CGFloat = 1
 

@@ -294,7 +294,7 @@ actor MCSManagerDemoPanelAPI: MCSManagerPanelAPI {
 
     func outputLog(daemonID: String, instanceUUID: String, tailSize: Int?) async throws -> String {
         let suffix = ProcessInfo.processInfo.environment["ORZMC_DEMO_MCSM_LONG_LOG"] == "1"
-            ? " " + String(repeating: "0123456789", count: 12) : ""
+            ? " " + String(repeating: "0123456789", count: 12) + " [LONG-LINE-END]" : ""
         let history = """
         [12:00:00] [Server thread/INFO]: 演示面板的控制台输出\(suffix)
         [12:00:01] [Server thread/INFO]: 这一行用来验收控制台渲染
