@@ -271,7 +271,8 @@ P1 UI-4 大字号/窄屏挤压；P2 UI-5 设计令牌收敛（视觉零差异）
 | 你要改的东西 | 文件 |
 |---|---|
 | iOS 两个 Tab 入口 | `OrzMC/MobileHelper(iOS)/App/Views/ContentView.swift` |
-| 远程托管页（exaroton 段 + MCSM 段挂载点） | `OrzMC/Common/ExarotonUI/List/ExarotonServerList.swift` |
+| **两家供应商共用的骨架**（分组长相 / 账号卡 / 实例行 / 加载·空·失败态） | `OrzMC/Common/RemoteHostingUI/{RemoteHostingSkeleton,RemoteInstanceRow,RemoteAccountViews}.swift` |
+| 远程托管页（exaroton 段 + MCSM 段挂载点） | `OrzMC/Common/ExarotonUI/List/ExarotonServerList.swift`、`List/ExarotonAccountsSection.swift` |
 | 远程详情 / 动作区 / 内存区 | `OrzMC/Common/ExarotonUI/List/ExarotonServerDetail.swift`、`List/Components/ExarotonServerActionSection.swift`、`List/Components/ExarotonMemorySection.swift` |
 | MCSM 分组 / 停止进度 / 强杀确认 | `OrzMC/Common/MCSManagerUI/MCSManagerSection.swift` |
 | MCSM 控制台面板 / 面板编辑器 | `OrzMC/Common/MCSManagerUI/MCSManagerConsoleSheet.swift`、`MCSManagerPanelEditor.swift` |
