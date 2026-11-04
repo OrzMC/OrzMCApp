@@ -65,6 +65,9 @@ struct ExarotonContent: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                // 分组顺序 = `ProviderKind.allCases`：**exaroton → MCSManager**，固定不变。
+                // 这是维护者拍板的产品口径（按供应商分组、不做筛选器、不调顺序），
+                // 新增供应商时把新分组接在后面，别插到前面去。
                 VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
                     ExarotonAccountsSection().environment(accounts)
                     MCSManagerSection().environment(mcsm)

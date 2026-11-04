@@ -825,6 +825,47 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "credit-pool-server")
     }
 
+    /// 远程托管页 · **两家供应商同页**的骨架巡检（exaroton 在前、MCSManager 在后）。
+    ///
+    /// 假数据来自 `ORZMC_DEMO_FAKE_SERVER`（exaroton）与 `ORZMC_DEMO_MCSM_FAKE`（MCSM 面板），
+    /// 两段都能在 375pt 宽的 SE3 上一屏屏翻过去，用来做改前/改后的逐段对比。
+    func testSnapshotTourRemoteProviders() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1",
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online",
+                           "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+        snap(app, "30-providers-top")
+        app.swipeUp()
+        snap(app, "31-providers-exaroton-bottom")
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
+        snap(app, "32-providers-mcsm")
+        app.swipeUp()
+        snap(app, "33-providers-mcsm-bottom")
+    }
+
+    /// 远程托管页 · **两家供应商都没配**时的空态（同一套引导卡片）。
+    ///
+    /// 不带任何假数据跑：模拟器上没有钥匙串账号、也没存过面板，两段都是空。
+    func testSnapshotTourRemoteEmptyProviders() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+        snap(app, "40-providers-empty-top")
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
+        snap(app, "41-providers-empty-mcsm")
+    }
+
     func testSnapshotTourRemote() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
@@ -878,6 +919,29 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "20-remote-console")
         app.swipeUp()
         snap(app, "21-remote-console-2")
+    }
+
+    /// 远程托管页 · **辅助功能超大字号**（两家供应商同一套行骨架的换行行为）。
+    ///
+    /// 验收点：不横向溢出、名称/徽标不被截断、右侧动作自动换到下一行。
+    func testSnapshotTourRemoteAccessibilitySize() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
+                          "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
+
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1",
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online",
+                           "ORZMC_DEMO_TAB": "managed"])
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        allowSystemPrompts()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+        snap(app, "50-a11y-top")
+        app.swipeUp()
+        snap(app, "51-a11y-exaroton")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
+        snap(app, "52-a11y-mcsm")
     }
 
     private func snap(_ app: XCUIApplication, _ name: String) {

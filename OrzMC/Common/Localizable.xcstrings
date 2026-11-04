@@ -2333,6 +2333,17 @@
         }
       }
     },
+    "No accounts yet": {
+      "comment": "Remote hosting empty state (exaroton group title)",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有账号"
+          }
+        }
+      }
+    },
     "No instances": {
       "localizations": {
         "zh-Hans": {
@@ -5727,6 +5738,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "账号操作"
+          }
+        }
+      }
+    },
+    "Add an exaroton account to see its servers here.": {
+      "comment": "Remote hosting empty state (exaroton group)",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一个 exaroton 账号，这里就会列出它的服务器。"
           }
         }
       }
