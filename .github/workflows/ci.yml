@@ -106,58 +106,6 @@ jobs:
           xcodebuild build -scheme OrzMC -destination 'platform=macOS' \
             -skipPackagePluginValidation -skipMacroValidation CODE_SIGNING_ALLOWED=NO
 
-  ui-smoke:
-    # 只跑**一小撮**代表性用例（不是整套 29 个、22 分钟）：
-    # 远程托管空态 → 页顶添加入口弹表单 → 两家分组渲染 → 控制台渲染。
-    # 2026-11-06 计量：整套模拟器 UI 22 分钟，其中每个用例有 ~12 秒是
-    # `allowSystemPrompts()` 在模拟器上空等 SpringBoard 弹窗（已改掉）。
-    #
-    # 历史坑：这里曾经指向 `testProviderAddButtonsAppearBesideHeaders`，
-    # 该用例在 #139 被删掉 → xcodebuild 跑 0 个用例仍 `exit 0`，**绿灯但什么都没测**，
-    # 还白花 13 分钟（冷构建 9 分钟）。现在由 `run-ios-ui-tests.sh` 断言"实际执行 ≥1 个"。
-    runs-on: macos-26
-    needs: split
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v5
-      - name: Select Xcode 26.3
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
-      - name: Select an available iPhone simulator
-        run: |
-          xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
-          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/simulators.json")); names=[x["name"] for runtime,devices in d["devices"].items() if "iOS" in runtime for x in devices if x["name"].startswith("iPhone") and x.get("isAvailable")]; assert names, "No available iPhone simulator"; print("SIM_NAME="+names[0])' >> "$GITHUB_ENV"
-      # 缓存：和 build(ios) 共用同一份 iOS DerivedData。没有缓存时这一格是纯冷构建 9 分钟。
-      - name: Restore DerivedData cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/Library/Caches/org.swift.swiftpm
-            ~/Library/Developer/Xcode/DerivedData
-          key: xcode-ios-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
-          restore-keys: |
-            xcode-ios-
-      # 缓存里的 SwiftPM 裸克隆可能是旧的：`Package.resolved` 换了 pin 之后，
-      # SwiftPM（带 `-onlyUsePackageVersionsFromResolvedFile`）不会自动补 fetch，
-      # 于是报 `Couldn't check out revision …`（本地对应 `refresh-package.sh`）。
-      # 这里显式解析一次（允许联网取 pin），失败再清掉 SwiftPM 缓存重来。
-      - name: Resolve dependencies (repair stale cache)
-        run: |
-          xcodebuild -resolvePackageDependencies -scheme OrzMC \
-            -project OrzMC.xcodeproj -destination 'generic/platform=iOS Simulator' > /dev/null 2>&1 || {
-              echo "::warning::依赖解析失败，清掉 SwiftPM 缓存重试"
-              rm -rf "$HOME/Library/Caches/org.swift.swiftpm"
-              xcodebuild -resolvePackageDependencies -scheme OrzMC \
-                -project OrzMC.xcodeproj -destination 'generic/platform=iOS Simulator'
-            }
-      - name: Run remote-hosting UI smoke tests
-        env:
-          UI_ONLY_TESTING: >-
-            OrzMCUITests/RemotePanelsUITests/testRemotePageWithoutAccountsShowsEmptyState
-            OrzMCUITests/RemotePanelsUITests/testAddFromEmptyPageOpensProviderForms
-            OrzMCUITests/RemotePanelsUITests/testMCSManagerSectionShowsInstancesAndStatus
-            OrzMCUITests/RemotePanelsUITests/testCreditPoolServerOpensDetail
-        run: ./scripts/dev/check.sh --ui
-
   build:
     # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
     runs-on: macos-26
@@ -169,8 +117,10 @@ jobs:
           # iOS 以前**从没进过 CI**（只构建 macOS）→ iOS 代码路径可以腐烂很久没人知道。
           - destination: "platform=macOS"
             cache_key: macos
+            derived_data: OrzMC-local
           - destination: "generic/platform=iOS Simulator"
             cache_key: ios
+            derived_data: OrzMC-local-ios
     steps:
       - uses: actions/checkout@v5
 
@@ -205,6 +155,7 @@ jobs:
             -project OrzMC.xcodeproj \
             -scheme OrzMC \
             -destination 'platform=macOS' \
+            -derivedDataPath "$HOME/Library/Developer/Xcode/DerivedData/${{ matrix.derived_data }}" \
             -only-testing:OrzMCTests \
             -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
@@ -218,12 +169,30 @@ jobs:
           xcodebuild build \
             -scheme OrzMC \
             -destination '${{ matrix.destination }}' \
+            -derivedDataPath "$HOME/Library/Developer/Xcode/DerivedData/${{ matrix.derived_data }}" \
             -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+
+      # iOS 那一格顺手跑 4 个代表性 UI 用例：**复用上面刚构建好的 DerivedData**，
+      # 所以只多花 build-for-testing（约 1 分钟）+ 4 个用例（约 2 分钟）。
+      # 独立成 job 时要么每次冷构建 9 分钟，要么缓存对不上（缓存里是默认 DerivedData 目录，
+      # 而脚本用 `OrzMC-local-ios`，实测完全复用不上，17.7 分钟才跑完 4 个用例）。
+      # 用例的选择与"实际执行 ≥1 个"的断言在 scripts/dev/run-ios-ui-tests.sh 里。
+      - name: UI smoke (4 representative iOS tests)
+        if: matrix.cache_key == 'ios'
+        env:
+          UI_ONLY_TESTING: >-
+            OrzMCUITests/RemotePanelsUITests/testRemotePageWithoutAccountsShowsEmptyState
+            OrzMCUITests/RemotePanelsUITests/testAddFromEmptyPageOpensProviderForms
+            OrzMCUITests/RemotePanelsUITests/testMCSManagerSectionShowsInstancesAndStatus
+            OrzMCUITests/RemotePanelsUITests/testCreditPoolServerOpensDetail
+        run: |
+          export DERIVED_DATA_UI="$HOME/Library/Developer/Xcode/DerivedData/${{ matrix.derived_data }}"
+          ./scripts/dev/check.sh --ui
 
       - name: Verify dependency locks remain unchanged
         run: git diff --exit-code -- Package.resolved OrzMC.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
