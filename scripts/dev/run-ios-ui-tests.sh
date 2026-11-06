@@ -150,11 +150,20 @@ echo "  真实自建服务器：$([[ -n "${ORZMC_UITEST_SELFHOSTED_HOST:-}" ]] &
      "· exaroton Token：$([[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]] && echo 已提供 || echo 未提供)"
 
 step "启动假 SLP / RCON 服务端"
-python3 scripts/test-servers/slp_server.py "$SLP_PORT" >/dev/null 2>&1 & PIDS+=("$!")
-python3 scripts/test-servers/rcon_server.py "$RCON_PORT" >/dev/null 2>&1 & PIDS+=("$!")
+# 日志留档：起不来时把服务端自己的输出打出来。以前丢进 /dev/null，CI 上只看到
+# "✗ 端口 25566 没起来"，完全不知道为什么（2026-11-06 排了一轮）。
+SLP_LOG="$(mktemp -t orzmc-slp)"
+RCON_LOG="$(mktemp -t orzmc-rcon)"
+python3 scripts/test-servers/slp_server.py "$SLP_PORT" >"$SLP_LOG" 2>&1 & PIDS+=("$!")
+python3 scripts/test-servers/rcon_server.py "$RCON_PORT" >"$RCON_LOG" 2>&1 & PIDS+=("$!")
 for port in "$SLP_PORT" "$RCON_PORT"; do
   for _ in $(seq 1 50); do nc -z 127.0.0.1 "$port" 2>/dev/null && break; sleep 0.1; done
-  nc -z 127.0.0.1 "$port" 2>/dev/null || { echo "✗ 端口 ${port} 没起来" >&2; exit 1; }
+  if ! nc -z 127.0.0.1 "$port" 2>/dev/null; then
+    echo "✗ 端口 ${port} 没起来" >&2
+    echo "--- slp_server 输出 ---" >&2; cat "$SLP_LOG" >&2 || true
+    echo "--- rcon_server 输出 ---" >&2; cat "$RCON_LOG" >&2 || true
+    exit 1
+  fi
 done
 
 # 执行 `test-without-building` 并**核对"确实跑了用例"**。
