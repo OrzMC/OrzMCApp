@@ -13,13 +13,29 @@ struct ExarotonContent: View {
     @State private var accounts = ExarotonAccountsModel()
     /// MCSManager 面板（P2-7 第 4 步）：与 exaroton **同一页按供应商分组**。
     @State private var mcsm = MCSManagerPanelsModel()
-    /// 页顶添加入口选中的供应商：对应分组的编辑器据此弹表单（选完即清）。
-    @State private var addRequest: ProviderKind?
+    /// 当前要弹的账号表单。
+    ///
+    /// ⚠️ 必须由**这一层**弹：空态页（一个账号都没有）时两家分组都还没渲染，
+    /// 把 sheet 挂在分组里会出现"选了供应商什么也没发生"（2026-11-06 维护者实测）。
+    @State private var editorSheet: EditorSheet?
     @Environment(\.scenePhase) private var scenePhase
 
     /// 两家供应商一个账号都没配 → 只显示空态说明页。
     private var isEmpty: Bool {
         accounts.accounts.isEmpty && mcsm.panels.isEmpty
+    }
+
+    enum EditorSheet: Identifiable {
+        /// `nil` = 新增账号。
+        case exarotonAccount(ExarotonAccount?)
+        case mcsmanagerPanel(MCSManagerPanelEditor.Mode)
+
+        var id: String {
+            switch self {
+            case .exarotonAccount(let account): return "exaroton-\(account?.id.uuidString ?? "new")"
+            case .mcsmanagerPanel(let mode): return "mcsm-\(mode.id)"
+            }
+        }
     }
 
     #if DEBUG
@@ -89,6 +105,9 @@ struct ExarotonContent: View {
             accounts.setActive(phase == .active)
             mcsm.isSceneActive = phase == .active
         }
+        .sheet(item: $editorSheet) { current in
+            editor(for: current)
+        }
         #if DEBUG
         .task { await runDiagnosticsIfRequested() }
         #endif
@@ -104,7 +123,10 @@ private extension ExarotonContent {
         HStack {
             Spacer(minLength: 0)
             RemoteAddProviderMenu { provider in
-                addRequest = provider
+                switch provider {
+                case .exaroton: editorSheet = .exarotonAccount(nil)
+                case .mcsmanager: editorSheet = .mcsmanagerPanel(.add)
+                }
             }
         }
     }
@@ -139,17 +161,52 @@ private extension ExarotonContent {
         .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
     }
 
+    /// 按供应商弹对应表单（两家共用同一个 sheet 入口）。
+    @ViewBuilder
+    func editor(for sheet: EditorSheet) -> some View {
+        switch sheet {
+        case .exarotonAccount(let account):
+            ExarotonAccountEditorSheet(existing: account, onClose: { editorSheet = nil })
+                .environment(accounts)
+        case .mcsmanagerPanel(let mode):
+            MCSManagerPanelEditor(
+                mode: mode,
+                onSave: { label, url, key in
+                    switch mode {
+                    case .add:
+                        guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
+                    case .edit(let panel):
+                        guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
+                            return false
+                        }
+                    }
+                    editorSheet = nil
+                    Task { await mcsm.reloadAll(); mcsm.start() }
+                    return true
+                },
+                onCancel: { editorSheet = nil }
+            )
+            .environment(mcsm)
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(OrzMCTheme.Radius.lg)
+            .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
+            #if os(iOS)
+            .presentationDetents([.large])
+            #endif
+        }
+    }
+
     /// 有账号：页顶入口 + 按供应商分组（顺序固定 exaroton → MCSManager，没配的那家整组不出现）。
     var providerPage: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
                 addMenu
                 if !accounts.accounts.isEmpty {
-                    ExarotonAccountsSection(addRequest: $addRequest)
+                    ExarotonAccountsSection(onEditAccount: { editorSheet = .exarotonAccount($0) })
                         .environment(accounts)
                 }
                 if !mcsm.panels.isEmpty {
-                    MCSManagerSection(addRequest: $addRequest)
+                    MCSManagerSection(onEditPanel: { editorSheet = .mcsmanagerPanel(.edit($0)) })
                         .environment(mcsm)
                 }
             }

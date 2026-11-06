@@ -768,6 +768,42 @@ final class RemotePanelsUITests: XCTestCase {
         app.buttons["取消"].tap()
     }
 
+    /// **空态页也要能加**：先前两版把表单挂在分组里，没账号时分组不渲染 →
+    /// 选完供应商什么也不发生（2026-11-06 维护者实测）。
+    @MainActor
+    func testAddFromEmptyPageOpensProviderForms() {
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let add = app.buttons["remote.addProvider"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20))
+        XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
+
+        add.tap()
+        XCTAssertTrue(app.buttons["exaroton"].waitForExistence(timeout: 10))
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "60-add-menu-from-empty")
+        }
+        app.buttons["exaroton"].tap()
+        XCTAssertTrue(app.textFields["exaroton.nameField"].waitForExistence(timeout: 15),
+                      "空态页选 exaroton 后应弹出账号表单")
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "61-exaroton-form-from-empty")
+        }
+        app.buttons["取消"].tap()
+
+        add.tap()
+        XCTAssertTrue(app.buttons["MCSManager"].waitForExistence(timeout: 10))
+        app.buttons["MCSManager"].tap()
+        XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 15),
+                      "空态页选 MCSManager 后应弹出面板表单")
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "62-mcsm-form-from-empty")
+        }
+        app.buttons["取消"].tap()
+    }
+
     /// 一家都没配时：只给空态说明页，不渲染任何供应商分组。
     @MainActor
     func testRemotePageWithoutAccountsShowsEmptyState() {
@@ -1333,5 +1369,23 @@ extension RemotePanelsUITests {
         for _ in 0..<8 where !oldest.isHittable { console.swipeDown() }
         XCTAssertTrue(oldest.isHittable, "向上浏览应能回到最早的日志")
     }
+    /// 面板卡片 `⋯` → 「编辑账号」：编辑表单由页面层弹（重构后不能再依赖分组内部）。
+    @MainActor
+    func testPanelMenuEditOpensEditor() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let menu = app.buttons["mcsm.panelMenu"]
+        for _ in 0..<4 where !menu.exists { app.swipeUp() }
+        XCTAssertTrue(menu.waitForExistence(timeout: 20), "面板卡应有 ⋯ 菜单")
+        menu.tap()
+        XCTAssertTrue(app.buttons["编辑账号"].waitForExistence(timeout: 10))
+        app.buttons["编辑账号"].tap()
+        XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 15), "应弹出面板编辑表单")
+        app.buttons["取消"].tap()
+    }
+
+    /// 制造面板 / 控制台 等 MCSM 用例的公共前置
 }
 
