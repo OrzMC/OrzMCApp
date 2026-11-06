@@ -151,15 +151,18 @@ done
 
 # 真机预检（**只警告，不阻断**）：
 #
-# 2026-10-26 的实测结论 —— 真机 XCUITest 失败的两个真因都不是版本：
-#   ① **设备没插数据线**（只在 Wi-Fi 上）：runner 起来 19 秒后
-#      `Connection peer refused channel request for "dtxproxy:…"` → `exit 74`；
-#      插上**数据线**（`Transport Type: wired`）后这个错误消失；
-#   ② 插线后暴露出真正的门槛：`Timed out while enabling automation mode`
-#      —— 设备上需要允许"自动化模式"（设置 → 开发者 → 启用 UI 自动化 / 或首次弹出的授权提示）。
+# 2026-11-06 复核（推翻 2026-10-26 的"必须插数据线"结论）：
+#   · **Wi-Fi 也能跑**：`transportType=localNetwork`、没插线，整套真机 UI 测试
+#     `** TEST EXECUTE SUCCEEDED **`（同一天同一台 iPhone SE3 / iOS 27.2）。
+#   · 真机 UI 测试的**实际门槛**是设备允许「UI 自动化」
+#     （设置 → 开发者 → 启用 UI 自动化），否则报
+#     `Timed out while enabling automation mode`；
+#     **插线状态下同样会报**（2026-11-06 19:12 实测），所以"插线"不是判据。
+#   · 设备保持**解锁亮屏**；OS 比 Xcode SDK 新时只提示（27.2 vs 27.0 当天跑通了）。
+#   · 插线的价值：安装/日志更稳、更快，但**不是必需**。
 #
-# 所以这里只做**信息性提醒**（设备版本比 Xcode SDK 新时提一句），绝不 exit —— 早期版本我误判为
-# "版本不匹配必失败"，会挡住本来能跑的机器。
+# 所以这里只做**信息性提醒**，绝不 exit —— 早期版本误判为"版本不匹配必失败"/"必须插线"，
+# 会挡住本来能跑的机器。
 preflight_device() {
   local udid="$1" dev_os sdk_ver
   dev_os="$(xcrun devicectl device info details --device "$udid" --json-output - 2>/dev/null \
@@ -180,14 +183,18 @@ PY2
     printf '  通常仍能跑，但真机 UI 测试失败时这会是第一个要排除的项（升级 Xcode 或用 --simulator）。\n' >&2
   fi
 
-  # 运输方式：Wi-Fi 上跑真机 UI 测试会出现 `Connection peer refused channel request …` / runner exit 74，
-  # 插数据线（wired）就好 —— 这是本项目实测踩过一整晚的坑（2026-10-26）。
+  # 运输方式：只报信息，不再说"必须插线"。
+  # 2026-11-06 实测：`localNetwork`（Wi-Fi、没插线）整套真机 UI 测试通过；
+  # 失败时先查「启用 UI 自动化」与设备锁屏，而不是连接方式。
   local transport
   transport="$(xcrun devicectl device info details --device "$udid" 2>/dev/null \
     | sed -n 's/.*Transport Type: *//p' | head -1)"
-  if [[ -n "$transport" && "$transport" != "wired" ]]; then
-    printf '\n\033[33m⚠ 设备当前连接方式：%s（不是数据线）\033[0m\n' "$transport" >&2
-    printf '  真机 XCUITest 在 Wi-Fi 连接下会以 `DTX 握手被拒 / runner exit 74` 失败；请插数据线重试。\n' >&2
+  if [[ -n "$transport" ]]; then
+    printf '\n\033[36mℹ 设备连接方式：%s\033[0m\n' "$transport" >&2
+    if [[ "$transport" != "wired" ]]; then
+      printf '  Wi-Fi 也能跑真机 UI 测试（2026-11-06 实测）；插线只是安装/日志更稳。\n' >&2
+      printf '  失败时先确认：设备解锁亮屏 + 设置→开发者→启用 UI 自动化（否则 Timed out while enabling automation mode）。\n' >&2
+    fi
   fi
 }
 

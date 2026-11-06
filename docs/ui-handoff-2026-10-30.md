@@ -29,7 +29,7 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 | 工具链 | Xcode 27.0 (27A266a) / macOS 27.0.1 / `SWIFT_VERSION=6.0`、`SWIFT_STRICT_CONCURRENCY=Complete` |
 | 依赖 pin | `OrzMC.xcodeproj/.../Package.resolved`：`mcsmanagerapi 0.5.0`、`exarotonapi 0.0.10`、`sparkle 2.10.0`；`orzmckit` / `orzswiftkit` / `mojangapi` / `papermc` 走分支（版本字段为空） |
 | 模拟器 | `OrzMC-UI` = `571ACD8A-64EB-4427-B803-D41836EB2B9F`（iPhone SE 3rd gen，默认目标）；另有 `iPhone 17 Pro` 等大屏对照 |
-| 真机 | iPhone SE3 `00008110-0001712226A0401E`（**当前未连接**；XCUITest 必须插数据线） |
+| 真机 | iPhone SE3 `00008110-0001712226A0401E`（iOS 27.2）。**不需要插数据线**：Wi-Fi（`localNetwork`）下整套用例可跑（2026-11-06 实测）；真正门槛是「设置 → 开发者 → 启用 UI 自动化」+ 解锁亮屏 |
 | AI 的能力边界 | **iOS 侧能自己"看"界面**（XCUITest 截图 → `xcresult` 导出 → 直接读图）；**macOS 侧不能**（无屏幕录制权限）→ macOS 观感只能由维护人眼验收 |
 
 > ⚠️ 不要在父仓库用 `git add -A` / `git add .`（会误暂存 22 个子模块指针）。
@@ -184,14 +184,21 @@ cd /Users/joker/Documents/OrzMC/swift/app
 
 单个用例复跑（省时间）：`UI_ONLY_TESTING=OrzMCUITests/RemotePanelsUITests/testFoo ./scripts/dev/check.sh --ui`
 
-### 6.2 真机（必须插数据线）
+### 6.2 真机（不用插数据线）
 
 ```bash
 ./scripts/dev/run-ios-ui-tests.sh --device 00008110-0001712226A0401E --detach
 ```
 
 - `--detach` 会把活丢进 Terminal.app 并在这里等结果（真机签名要访问钥匙串，SSH/agent 会话拿不到）。
-- 失败时先看末尾日志里的 `error:`；`DTX 握手被拒` / `exit 74` = 没插线或设备锁屏/没开自动化模式。
+- **连接方式不是门槛**：2026-11-06 在 `transportType=localNetwork`（Wi-Fi、没插线）上整套真机 UI 测试
+  `** TEST EXECUTE SUCCEEDED **`；插线只是安装/日志更稳。早期文档写的"必须插数据线"是误判，已校准。
+- 失败时按这个顺序查：
+  1. `Timed out while enabling automation mode` → 设备「设置 → 开发者 → 启用 UI 自动化」没开
+     （**插线时同样会报**，2026-11-06 实测）；
+  2. 设备锁屏/没解锁 → 亮屏后再跑；
+  3. OS 比 Xcode SDK 新（如 27.2 vs 27.0）→ 只提示，通常仍能跑；
+  4. 以上都排除后仍失败，才怀疑连接方式（改成数据线）。
 - 装包给人眼看：`./scripts/dev/install-ios-device.sh`（默认 Debug 构建 + 安装 + 启动）。
 
 ### 6.3 截图巡检（**这是"看得见界面"的唯一正当渠道**）

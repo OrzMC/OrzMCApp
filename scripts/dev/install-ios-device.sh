@@ -90,7 +90,7 @@ PY
   )"
 fi
 
-[[ -n "$DEVICE" ]] || { echo "✗ 没找到已连接的 iPhone；先用数据线连上并在手机上「信任此电脑」" >&2; exit 1; }
+[[ -n "$DEVICE" ]] || { echo "✗ 没找到已连接的 iPhone；先连上设备（数据线或同一 Wi-Fi）并在手机上「信任此电脑」" >&2; exit 1; }
 echo "设备: $DEVICE"
 echo "团队: $TEAM_ID"
 

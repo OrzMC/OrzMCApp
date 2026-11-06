@@ -100,17 +100,22 @@ iOS 27.0.1 真机上 `OrzMCUITests-Runner` 起不来（详见 §5），只能退
 
 ---
 
-## 5. 真机 XCUITest 故障（R3）—— **已解决：是没插数据线**
+## 5. 真机 XCUITest 故障（R3）—— 门槛是「UI 自动化」，**不是数据线**
 
-> ⚠️ 本节早期版本把原因误判为「Xcode 27.0 < 设备 iOS 27.0.1 的版本不匹配」并加了硬阻断预检。
-> 2026-10-26 23:3x 维护者插上**数据线**后复测：**直接通过**。误判已纠正，预检已降级为提醒。
+> ⚠️ 本节前后修过两次判据，以 2026-11-06 的复核为准：
+> ① 最早误判为「Xcode SDK < 设备 iOS」的版本不匹配（加了硬阻断，已撤销）；
+> ② 随后归因为「必须插数据线」——**这个也是误判**：2026-11-06 在
+>    `transportType=localNetwork`（Wi-Fi、没插线）上跑完整套真机 UI 测试，
+>    `** TEST EXECUTE SUCCEEDED **`；同一天插着线反而因自动化模式未开启
+>    `Timed out while enabling automation mode` 失败（19:12 实测）。
+> 结论：连接方式不是判据，插线只是安装/日志更稳。
 
-**真正的两个门槛**
+**真正的门槛**
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| runner 起来 19 秒后 `Connection peer refused channel request for "dtxproxy:XCTestDriverInterface:XCTestManager_IDEInterface"` → `exit 74` | 设备只在 **Wi-Fi** 上连接（`Transport Type: localNetwork`） | **插数据线**（`Transport Type: wired`）→ 错误消失 |
-| 插线后 `Timed out while enabling automation mode`（首次） | 设备需要允许"自动化模式"（授权/首次提示） | 保持设备**解锁亮屏**，重跑一次即通过 |
+| `Timed out while enabling automation mode` | 设备没有允许「UI 自动化」（设置 → 开发者 → 启用 UI 自动化） | 打开该开关 + 保持**解锁亮屏**，重跑即通过（**插线与否都会遇到**） |
+| runner 起来 19 秒后 `Connection peer refused channel request for "dtxproxy:…"` → `exit 74`（2026-10-26 遇到过一次） | 当时设备只在 Wi-Fi 上连接；但 2026-11-06 的 Wi-Fi 是通的 | 先按上一行查自动化模式/锁屏；仍失败再换数据线 |
 
 **实测结果（iPhoneSE3 / iOS 27.0.1 / Xcode 27.0.0）**
 
@@ -123,6 +128,7 @@ Test Suite 'RemotePanelsUITests' passed …  ** TEST EXECUTE SUCCEEDED **
 
 **脚本侧的改进（避免下次再误判）**
 - `run-ios-ui-tests.sh --device` 的预检 **只警告不阻断**：
-  设备版本比 Xcode SDK 新时提一句；**连接方式不是 `wired` 时明确提示"真机 XCUITest 在 Wi-Fi 下会 exit 74，请插数据线"**；
+  设备版本比 Xcode SDK 新时提一句；连接方式只做**信息提示**（2026-11-06 起不再说"必须插线"，
+  Wi-Fi 上也提示先查「启用 UI 自动化」）；
 - `--detach`（O3）：自动进 Terminal.app 跑并等结果，一条命令拿到退出码 + 末尾日志。
 
