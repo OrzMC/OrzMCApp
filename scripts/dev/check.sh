@@ -10,7 +10,8 @@
 #   scripts/dev/check.sh --full     # 默认 + iOS 构建 + 真 socket 协议联调（约 6~10 分钟）
 #   scripts/dev/check.sh --build    # 只构建 macOS（不跑测试）
 #   scripts/dev/check.sh --ios      # 只构建 iOS
-#   scripts/dev/check.sh --ui       # iOS UI 自动化验收（XCUITest，需本机起假服务端，约 1~2 分钟）
+#   scripts/dev/check.sh --ui       # iOS UI 自动化验收（XCUITest，整套约 8.6 分钟）
+#   scripts/dev/check.sh --ui-changed # 只跑"改到的那块 UI"（按 git diff 选，通常 1~2 分钟）
 #   scripts/dev/check.sh --changed  # 按改动范围自动选档（纯文档/纯测试不再跑完整档）
 #
 # 相当于 CI 的哪些 job：
@@ -141,6 +142,9 @@ case "$MODE" in
   --build) build_macos ;;
   --ios)   build_ios ;;
   --ui)    step "iOS UI 自动化验收"; ./scripts/dev/run-ios-ui-tests.sh; ok "UI 验收通过" ;;
+  --ui-changed)
+           step "iOS UI 自动化验收（只跑改动波及的用例）"
+           ./scripts/dev/run-ios-ui-tests.sh --changed; ok "UI 验收通过" ;;
   --full)  static_checks; swift_tests; app_tests; build_macos; build_ios; live_protocol ;;
   tests)   static_checks; swift_tests; app_tests ;;
   default) static_checks; swift_tests; app_tests; build_macos ;;

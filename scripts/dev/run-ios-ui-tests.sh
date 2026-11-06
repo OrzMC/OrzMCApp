@@ -10,6 +10,7 @@
 #   ./scripts/dev/run-ios-ui-tests.sh --simulator "iPhone 17 Pro"
 #   ./scripts/dev/run-ios-ui-tests.sh --device <UDID> --detach   # 自动进 Terminal 跑并等结果
 #   ./scripts/dev/run-ios-ui-tests.sh --real              # 额外跑真实账号/真实服务器用例（+4 分钟）
+#   ./scripts/dev/run-ios-ui-tests.sh --changed           # 只跑"改到的那块 UI"（按 git diff 选，秒级判断）
 #   UI_ONLY_TESTING="OrzMCUITests/X/a OrzMCUITests/X/b" …  # 只跑指定用例（空格分隔多个）
 #
 # 测试用到的 DEBUG 钩子（发布构建里不存在）：ORZMC_DEMO_SEED_PROFILE / ORZMC_DEMO_RCON_PASSWORD /
@@ -38,12 +39,67 @@ DETACH=0
 # 真实账号/真实服务器用例默认**不跑**：它们要联网、单例最慢 150 秒（额度池反复进出），
 # 本地整套会因此多花约 4 分钟，而绝大多数改动跟它们无关。发版/真机验收加 `--real`。
 REAL="${UI_TEST_REAL:-0}"
+CHANGED=0
+
+# ── `--changed`：按 git diff 选"改到的那块 UI" ────────────────────────────────
+# 整套 8.6 分钟，而绝大多数改动只碰一块（MCSM 控制台 / exaroton 列表 / 自建服务器…）。
+# 这里把改动路径映射到用例集合；映射不出来就退回整套（保守），纯文档则直接跳过。
+UI_TESTS_PREFIX="OrzMCUITests/RemotePanelsUITests"
+ui_tests_for_changes() {
+  local base="${CHANGED_BASE:-origin/main}" files f ids="" all=0 src=0
+  # `UI_CHANGED_FILES`（换行分隔）可以直接喂一份改动清单：便于测试映射，也让外部工具能复用。
+  if [[ -n "${UI_CHANGED_FILES:-}" ]]; then
+    files="$(printf '%s\n' "$UI_CHANGED_FILES")"
+  else
+    if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+      echo "ALL"; return
+    fi
+    files="$( { git diff --name-only "$base"...HEAD; git diff --name-only; git diff --cached --name-only; } 2>/dev/null | sort -u | sed '/^$/d')"
+  fi
+  [[ -z "$files" ]] && { echo "NONE"; return; }
+
+  local ADD="testAddFromEmptyPageOpensProviderForms testSingleAddEntryIsAtTopAndOffersBothProviders
+     testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet"
+  local EXA="testCreditPoolServerOpensDetail testRemoteDetailShowsActionButtons
+     testMultipleRemoteAccountsShowInstances testExarotonStoppingProgressContinuesAfterReentering
+     testMemoryRevertRestoresValue testMemoryRowIsSingleLine"
+  local MCSM="testMCSManagerSectionShowsInstancesAndStatus testMCSManagerConsoleSheetShowsOutput
+     testMCSManagerConsoleCanFilterAndChangeDisplay testMCSManagerConsoleScrollsThroughManyLines
+     testMCSManagerInstanceMenuListsActionsAndConsole testPanelMenuEditOpensEditor"
+  local CONSOLE="testConsoleEmptyStateSitsTopLeft testConsoleInputNotCoveredByTabBar
+     testConsoleRendersANSIColorsWithoutEscapeResidue"
+  local SELF="testSelfHostedPageShowsLiveStatus testPlayerActionsFollowSelectedList
+     testServerSettingsSheetAppearsImmediately testServerMenuOpensFromCapsuleBlankArea"
+  local STATUS="testStatusBadgeKeepsSpinningAfterReentering"
+
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    case "$f" in
+      docs/*|*.md|README*|CHANGELOG*) ;;                       # 文档：不影响用例
+      OrzMC/Common/MCSManager/*|OrzMC/Common/MCSManagerUI/*) ids+=" $MCSM $CONSOLE" ;;
+      OrzMC/Common/ExarotonUI/*) ids+=" $EXA $ADD $STATUS" ;;
+      OrzMC/Common/RemoteHosting/*|OrzMC/Common/RemoteHostingUI/*) ids+=" $ADD $EXA" ;;
+      OrzMC/Common/SelfHosted/*) ids+=" $SELF" ;;
+      Sources/OrzMCFoundation/ConsoleText.swift) ids+=" $CONSOLE" ;;
+      OrzMCFoundation/*|OrzMCUITests/*|*.xcstrings) all=1 ;;    # 基础层/测试/本地化：可能牵动任何断言
+      OrzMC/*|Sources/*|Tests/*) all=1 ;;
+      *) src=1 ;;                                               # 工程/脚本等
+    esac
+  done <<< "$files"
+
+  if [[ "$all" -eq 1 || "$src" -eq 1 ]]; then echo "ALL"; return; fi
+  ids="$(printf '%s\n' $ids | sed '/^$/d' | sort -u | tr '\n' ' ')"
+  [[ -z "${ids// /}" ]] && { echo "NONE"; return; }
+  echo "$ids"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="${2:?}"; shift 2 ;;
     --simulator) SIM_NAME="${2:?}"; shift 2 ;;
     --detach) DETACH=1; shift ;;
     --real) REAL=1; shift ;;
+    --changed) CHANGED=1; shift ;;
     -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 2 ;;
   esac
@@ -106,6 +162,24 @@ EOF2
 fi
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
+
+# 应用 `--changed` 的选择结果：结果就是一组用例 id（空格分隔），塞进 UI_ONLY_TESTING 即可
+# —— 后面两个 `ONLY_ARGS` 循环本来就会按空格拆成多个 `-only-testing`。
+if [[ "$CHANGED" -eq 1 ]]; then
+  selection="$(ui_tests_for_changes)"
+  case "$selection" in
+    NONE)
+      printf '\033[32m✓ 改动只涉及文档/本地化之外的空集 → 没有需要跑的 UI 用例\033[0m\n'
+      exit 0 ;;
+    ALL)
+      step "改动可能牵动任意界面 → 跑整套 UI" ;;
+    *)
+      UI_ONLY_TESTING=""
+      for t in $selection; do UI_ONLY_TESTING+="$UI_TESTS_PREFIX/$t "; done
+      step "按改动选了 $(wc -w <<<"$selection" | tr -d ' ') 个用例"
+      echo "  $UI_ONLY_TESTING" ;;
+  esac
+fi
 
 # ── 本地凭据（可选）──────────────────────────────────────────────
 # 真实服务器 / 真实 exaroton 账号的用例需要凭据。凭据只从**未入库**的

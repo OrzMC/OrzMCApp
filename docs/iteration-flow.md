@@ -212,11 +212,28 @@ UI_ONLY_TESTING="OrzMCUITests/RemotePanelsUITests/a OrzMCUITests/RemotePanelsUIT
 
 | 时机 | 命令 | 耗时（2026-11-06 实测） | 覆盖 |
 |---|---|---|---|
-| 每次改动（快） | `UI_ONLY_TESTING="…a …b" ./scripts/dev/run-ios-ui-tests.sh` | 4 个用例 ≈ **110 秒** | 只跑受影响的用例 |
+| **每次改动（推荐）** | `./scripts/dev/check.sh --ui-changed` | **1–3 分钟**（按 diff 选 4–12 个用例） | 改到哪块跑哪块（映射见下） |
+| 每次改动（手选） | `UI_ONLY_TESTING="…a …b" ./scripts/dev/run-ios-ui-tests.sh` | 4 个用例 ≈ **110 秒** | 自己点名的用例 |
 | 每次改动（整套） | `./scripts/dev/check.sh --ui` | **8.6 分钟**（27 用例；旧 22.4 分钟） | 假数据：自建页、设置、添加、远程详情、控制台 |
 | 发版前 | 加 `--real` | **12.4 分钟** | 上述 + 真实 exaroton / 真实自建服务器 |
 | **发版前** | `./scripts/dev/run-ios-ui-tests.sh --device <UDID> --real` | 约 8 分钟 | 签名/安装/权限/手感 + 真实账号控制台 |
 | **发版前（更狠）** | 再加 `POWER_CYCLE=1` 环境 | 约 90 秒/次 | 真实启停 + 控制台日志流 |
+
+**`--ui-changed` 的映射**（`run-ios-ui-tests.sh` 里的 `ui_tests_for_changes`，可用
+`UI_CHANGED_FILES` 直接喂改动清单来试）：
+
+| 改到 | 跑 |
+|---|---|
+| `OrzMC/Common/MCSManager{,UI}/**` | MCSM 分组 + 控制台 + 面板菜单 |
+| `OrzMC/Common/ExarotonUI/**` | exaroton 列表/详情/内存/额度池 + 添加表单 + 状态徽章 |
+| `OrzMC/Common/RemoteHosting{,UI}/**` | 添加表单 + 详情 |
+| `OrzMC/Common/SelfHosted/**` | 自建服务器页/设置/玩家动作 |
+| `Sources/OrzMCFoundation/ConsoleText.swift` | 控制台渲染 3 例 |
+| `OrzMC/*` 其它 / `Sources/*` / `OrzMCUITests/*` / `*.xcstrings` / 工程文件 | 整套（保守） |
+| 只有 `docs/**`、`*.md` | 跳过 UI（秒级退出） |
+
+**并行执行（试过，放弃）**：`-parallel-testing-enabled YES` + 模拟器 clone 在本项目上会让 runner
+挂住（>20 分钟无输出，不是变慢而是不动）—— 没有 test plan、且假服务端/Keychain 共用，先不做。
 
 **CI 侧**：`ui-smoke` 原来用 `-only-testing` 指向一个已被删除的用例 → 跑 0 个用例仍绿灯，
 白花 13–16 分钟（冷构建 9 分钟）。现在改成 4 个真实用例 + 共用 iOS DerivedData 缓存，
