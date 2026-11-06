@@ -22,20 +22,6 @@ struct ExarotonContent: View {
         accounts.accounts.isEmpty && mcsm.panels.isEmpty
     }
 
-    private var pageEmptyState: some View {
-        EmptyContentView(
-            ContentState(
-                title: String(localized: "No remote servers"),
-                message: String(
-                    localized: "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here."
-                ),
-                systemImage: "server.rack"
-            )
-        )
-        .frame(maxWidth: .infinity)
-        .padding(.top, OrzMCTheme.Spacing.xl)
-    }
-
     #if DEBUG
     /// **诊断钩子**（仅 DEBUG）：`ORZMC_DEMO_DIAGNOSE=1` 启动后自动连第一台服务器，把 WS/ready/流/控制台
     /// 状态写成 `Documents/orzmc-diagnose.json`。用于真机排查"在线但控制台连不上"——
@@ -86,38 +72,15 @@ struct ExarotonContent: View {
     #endif
     var body: some View {
         NavigationStack {
-            ScrollView {
-                // 分组顺序 = `ProviderKind.allCases`：**exaroton → MCSManager**，固定不变。
-                // 这是维护者拍板的产品口径（按供应商分组、不做筛选器、不调顺序），
-                // 新增供应商时把新分组接在后面，别插到前面去。
-                //
-                // 一个供应商都没配时不渲染任何分组：只给一个空态说明页 + 页顶唯一的添加入口
-                // （以前是两个空卡片，用户会以为其中一个是坏的）。
-                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
-                    HStack {
-                        Spacer(minLength: 0)
-                        RemoteAddProviderMenu { provider in
-                            addRequest = provider
-                        }
-                    }
-
-                    if isEmpty {
-                        pageEmptyState
-                    } else {
-                        // 只有配置了账号的供应商才出现（对应版块与服务器）。
-                        if !accounts.accounts.isEmpty {
-                            ExarotonAccountsSection(addRequest: $addRequest)
-                                .environment(accounts)
-                        }
-                        if !mcsm.panels.isEmpty {
-                            MCSManagerSection(addRequest: $addRequest)
-                                .environment(mcsm)
-                        }
-                    }
+            // 空态是**整页居中**的说明页（不放进 ScrollView）：macOS 窗口又宽又高时，
+            // 放在滚动视图顶部会贴着上半页，看着"没对齐"（2026-11-06 维护者截图）。
+            // 有账号时才需要滚动（分组可能很多）。
+            Group {
+                if isEmpty {
+                    emptyPage
+                } else {
+                    providerPage
                 }
-                .padding(OrzMCTheme.Spacing.lg)
-                .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
-                .frame(maxWidth: .infinity)
             }
             .navigationTitle(String(localized: "Remote Servers"))
         }
@@ -129,6 +92,71 @@ struct ExarotonContent: View {
         #if DEBUG
         .task { await runDiagnosticsIfRequested() }
         #endif
+    }
+}
+
+// MARK: - 页面
+
+private extension ExarotonContent {
+
+    /// 页顶唯一的添加入口（两家共用一个）。
+    var addMenu: some View {
+        HStack {
+            Spacer(minLength: 0)
+            RemoteAddProviderMenu { provider in
+                addRequest = provider
+            }
+        }
+    }
+
+    /// 一个供应商都没配：页顶入口 + 居中的空态说明。
+    ///
+    /// 上下各放一个 `Spacer` 显式居中（不依赖 `ContentUnavailableView` 自己的布局）：
+    /// macOS 窗口又宽又高、或被拖动改变大小时，说明块都要保持在**可视区正中**。
+    var emptyPage: some View {
+        // 添加入口用 `overlay` 浮在页顶：它**不占布局高度**，所以空态说明是相对**整页**居中，
+        // 而不是被按钮挤到下半页（2026-11-06 维护者两次反馈"视觉上不居中"）。
+        VStack(spacing: 0) {
+            Spacer(minLength: OrzMCTheme.Spacing.xl)
+            EmptyContentView(
+                ContentState(
+                    title: String(localized: "No remote servers"),
+                    message: String(
+                        localized: "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here."
+                    ),
+                    systemImage: "server.rack"
+                )
+            )
+            .frame(maxWidth: .infinity)
+            Spacer(minLength: OrzMCTheme.Spacing.xl)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .top) {
+            addMenu
+                .padding(.horizontal, OrzMCTheme.Spacing.lg)
+                .padding(.top, OrzMCTheme.Spacing.lg)
+        }
+        .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
+    }
+
+    /// 有账号：页顶入口 + 按供应商分组（顺序固定 exaroton → MCSManager，没配的那家整组不出现）。
+    var providerPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
+                addMenu
+                if !accounts.accounts.isEmpty {
+                    ExarotonAccountsSection(addRequest: $addRequest)
+                        .environment(accounts)
+                }
+                if !mcsm.panels.isEmpty {
+                    MCSManagerSection(addRequest: $addRequest)
+                        .environment(mcsm)
+                }
+            }
+            .padding(OrzMCTheme.Spacing.lg)
+            .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
+            .frame(maxWidth: .infinity)
+        }
     }
 }
 
