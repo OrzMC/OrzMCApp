@@ -99,7 +99,7 @@ else
     ./scripts/dev/check.sh --full | tail -3
     step "门禁 2/3：模拟器 UI 验收"
     ./scripts/dev/check.sh --ui | tail -3
-    step "门禁 3/3：真机 UI（可选，需要数据线；没有设备时跳过）"
+    step "门禁 3/3：真机 UI（可选，需要有已连接的设备；Wi-Fi 或数据线都行，没有设备时跳过）"
     device="$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /connected/ {print $3; exit}')"
     if [[ -n "$device" ]]; then
         ./scripts/dev/run-ios-ui-tests.sh --device "$device" --detach | tail -5

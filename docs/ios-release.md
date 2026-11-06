@@ -175,7 +175,7 @@ gh workflow run release-ios.yml --ref main -f export=app-store-connect -f upload
 | `errSecInternalComponent` | 钥匙串锁了 / 不在图形会话里 → Terminal.app + 解锁钥匙串 |
 | 安装失败、设备没在描述文件里 | `-allowProvisioningUpdates` 会自动注册，需要 Xcode 登录 Apple ID |
 | 装上了但打不开 | iPhone「设置 → 通用 → VPN与设备管理」信任开发者证书 |
-| 找不到设备 | 数据线连上、手机上「信任此电脑」；`xcrun devicectl list devices` 确认 |
+| 找不到设备 | 连上设备（数据线，或同一 Wi-Fi 且已配对）、手机上「信任此电脑」；`xcrun devicectl list devices` 确认 |
 
 ## 已知限制
 
