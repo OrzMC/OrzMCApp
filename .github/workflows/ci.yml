@@ -107,6 +107,14 @@ jobs:
             -skipPackagePluginValidation -skipMacroValidation CODE_SIGNING_ALLOWED=NO
 
   ui-smoke:
+    # 只跑**一小撮**代表性用例（不是整套 29 个、22 分钟）：
+    # 远程托管空态 → 页顶添加入口弹表单 → 两家分组渲染 → 控制台渲染。
+    # 2026-11-06 计量：整套模拟器 UI 22 分钟，其中每个用例有 ~12 秒是
+    # `allowSystemPrompts()` 在模拟器上空等 SpringBoard 弹窗（已改掉）。
+    #
+    # 历史坑：这里曾经指向 `testProviderAddButtonsAppearBesideHeaders`，
+    # 该用例在 #139 被删掉 → xcodebuild 跑 0 个用例仍 `exit 0`，**绿灯但什么都没测**，
+    # 还白花 13 分钟（冷构建 9 分钟）。现在由 `run-ios-ui-tests.sh` 断言"实际执行 ≥1 个"。
     runs-on: macos-26
     needs: split
     timeout-minutes: 30
@@ -118,9 +126,23 @@ jobs:
         run: |
           xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/simulators.json")); names=[x["name"] for runtime,devices in d["devices"].items() if "iOS" in runtime for x in devices if x["name"].startswith("iPhone") and x.get("isAvailable")]; assert names, "No available iPhone simulator"; print("SIM_NAME="+names[0])' >> "$GITHUB_ENV"
-      - name: Run remote-hosting UI smoke test
+      # 缓存：和 build(ios) 共用同一份 iOS DerivedData。没有缓存时这一格是纯冷构建 9 分钟。
+      - name: Restore DerivedData cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
+          key: xcode-ios-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
+          restore-keys: |
+            xcode-ios-
+      - name: Run remote-hosting UI smoke tests
         env:
-          UI_ONLY_TESTING: OrzMCUITests/RemotePanelsUITests/testProviderAddButtonsAppearBesideHeaders
+          UI_ONLY_TESTING: >-
+            OrzMCUITests/RemotePanelsUITests/testRemotePageWithoutAccountsShowsEmptyState
+            OrzMCUITests/RemotePanelsUITests/testAddFromEmptyPageOpensProviderForms
+            OrzMCUITests/RemotePanelsUITests/testMCSManagerSectionShowsInstancesAndStatus
+            OrzMCUITests/RemotePanelsUITests/testCreditPoolServerOpensDetail
         run: ./scripts/dev/check.sh --ui
 
   build:

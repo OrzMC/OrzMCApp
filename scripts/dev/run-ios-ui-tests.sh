@@ -9,6 +9,8 @@
 #   ./scripts/dev/run-ios-ui-tests.sh --device <UDID>      # 指定真机（需在 Terminal.app 里跑，开发签名）
 #   ./scripts/dev/run-ios-ui-tests.sh --simulator "iPhone 17 Pro"
 #   ./scripts/dev/run-ios-ui-tests.sh --device <UDID> --detach   # 自动进 Terminal 跑并等结果
+#   ./scripts/dev/run-ios-ui-tests.sh --real              # 额外跑真实账号/真实服务器用例（+4 分钟）
+#   UI_ONLY_TESTING="OrzMCUITests/X/a OrzMCUITests/X/b" …  # 只跑指定用例（空格分隔多个）
 #
 # 测试用到的 DEBUG 钩子（发布构建里不存在）：ORZMC_DEMO_SEED_PROFILE / ORZMC_DEMO_RCON_PASSWORD /
 # ORZMC_DEMO_TAB / ORZMC_DEMO_FAKE_SERVER（见 OrzMCUITests/RemotePanelsUITests.swift）。
@@ -33,11 +35,15 @@ trap cleanup EXIT
 ORIGINAL_ARGS=("$@")
 
 DETACH=0
+# 真实账号/真实服务器用例默认**不跑**：它们要联网、单例最慢 150 秒（额度池反复进出），
+# 本地整套会因此多花约 4 分钟，而绝大多数改动跟它们无关。发版/真机验收加 `--real`。
+REAL="${UI_TEST_REAL:-0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="${2:?}"; shift 2 ;;
     --simulator) SIM_NAME="${2:?}"; shift 2 ;;
     --detach) DETACH=1; shift ;;
+    --real) REAL=1; shift ;;
     -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 2 ;;
   esac
@@ -131,8 +137,10 @@ add_secret ORZMC_UITEST_SELFHOSTED_RCON_PORT     "${ORZMC_UITEST_SELFHOSTED_RCON
 add_secret ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD "${ORZMC_UITEST_SELFHOSTED_RCON_PASSWORD:-}"
 add_secret ORZMC_UITEST_SELFHOSTED_NAME          "${ORZMC_UITEST_SELFHOSTED_NAME:-}"
 add_secret ORZMC_DEMO_TOKEN                      "${ORZMC_UITEST_EXAROTON_TOKEN:-}"
-if [[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]]; then
+if [[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" && "$REAL" == "1" ]]; then
   export TEST_RUNNER_ORZMC_UITEST_REAL_ACCOUNT=1
+elif [[ -n "${ORZMC_UITEST_EXAROTON_TOKEN:-}" ]]; then
+  printf '\033[36mℹ 真实账号用例已跳过（约 4 分钟）；需要时加 --real\033[0m\n' >&2
 fi
 # RCON 用例默认不跑（服务端配置错不该把日常迭代染红），需要时 UI_TEST_RCON=1。
 if [[ "${UI_TEST_RCON:-0}" = "1" ]]; then
@@ -148,6 +156,38 @@ for port in "$SLP_PORT" "$RCON_PORT"; do
   for _ in $(seq 1 50); do nc -z 127.0.0.1 "$port" 2>/dev/null && break; sleep 0.1; done
   nc -z 127.0.0.1 "$port" 2>/dev/null || { echo "✗ 端口 ${port} 没起来" >&2; exit 1; }
 done
+
+# 执行 `test-without-building` 并**核对"确实跑了用例"**。
+#
+# 2026-11-06 发现：CI 的 `ui-smoke` 用 `-only-testing` 指向一个已被删除的用例，
+# xcodebuild 于是跑 0 个用例、**照样退出 0**，绿灯但什么都没测（还白花 13 分钟）。
+# 所以在这里把输出落盘、统计实际执行数，为 0 就直接失败并说明原因。
+run_ui_tests() { # run_ui_tests <xctestrun> [额外 xcodebuild 参数…]
+  local xctestrun="$1"; shift
+  local log
+  log="$(mktemp -t orzmc-uitest)"
+  local rc=0
+  # 直接落盘再过滤：管道里套 `|| true` 会把 PIPESTATUS 冲掉（实测），拿不到 xcodebuild 的真实退出码。
+  set +e
+  xcodebuild test-without-building -xctestrun "$xctestrun" -destination "$DESTINATION" "$@" >"$log" 2>&1
+  rc=$?
+  set -e
+  grep -E "Test Case|Test Suite|\*\* TEST|error:" "$log" | tail -30 || true
+  # 只数"结束"行（`passed` / `skipped`），否则 started+结束会被数成两倍。
+  local executed skipped
+  executed="$(grep -cE "' (passed|skipped) \(" "$log" || true)"
+  skipped="$(grep -cE "' skipped \(" "$log" || true)"
+  printf '\n  实际执行：%s 个（其中跳过 %s）\n' "$executed" "$skipped"
+  rm -f "$log"
+  if [[ "$rc" -ne 0 ]]; then
+    return "$rc"
+  fi
+  if [[ "${executed:-0}" -eq 0 ]]; then
+    printf '\033[31m✗ 一个用例都没跑\033[0m：`-only-testing` 指向的用例可能已被删除或改名（UI_ONLY_TESTING=%s）\n' "${UI_ONLY_TESTING:-<无>}" >&2
+    return 1
+  fi
+  return 0
+}
 
 # 真机预检（**只警告，不阻断**）：
 #
@@ -231,7 +271,7 @@ COMMON=(
 # 可选：`UI_ONLY_TESTING=OrzMCUITests/RemotePanelsUITests/testFoo` 只跑一个用例
 # （排查抖动/复跑单个用例时，省掉整套 6 分钟）。
 if [[ -n "${UI_ONLY_TESTING:-}" ]]; then
-  COMMON+=(-only-testing:"$UI_ONLY_TESTING")
+  for id in $UI_ONLY_TESTING; do COMMON+=(-only-testing:"$id"); done
 fi
 
 # 先单独构建 App：Xcode 在 "Products 里没有 OrzMC.app" 时会报
@@ -271,11 +311,10 @@ if [[ -n "$DEVICE" ]]; then
   # `-only-testing` 在 `test-without-building` 上也生效；用 ${arr[@]+…} 展开成"零个参数"，
   # 否则空数组会变成一个空字符串参数（踩过：`Unknown build action ''`）。
   ONLY_ARGS=()
-  [[ -n "${UI_ONLY_TESTING:-}" ]] && ONLY_ARGS+=(-only-testing:"$UI_ONLY_TESTING")
-  TEST_RUNNER_UITEST_HOST="$LAN_IP" xcodebuild test-without-building \
-    -xctestrun "$XCTESTRUN" -destination "$DESTINATION" ${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"} 2>&1 \
-    | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
-  exit ${PIPESTATUS[0]}
+  for id in ${UI_ONLY_TESTING:-}; do ONLY_ARGS+=(-only-testing:"$id"); done
+  export TEST_RUNNER_UITEST_HOST="$LAN_IP"
+  run_ui_tests "$XCTESTRUN" "${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"}"
+  exit $?
 fi
 
 step "构建测试（build-for-testing）"
@@ -298,7 +337,5 @@ step "执行 UI 测试（模拟器）"
 # 空数组要用 ${arr[@]+"${arr[@]}"} 展开成"零个参数"；写成 "${arr[@]:-}" 会变成一个空字符串参数，
 # xcodebuild 会报 `Unknown build action ''`。
 ONLY_ARGS=()
-[[ -n "${UI_ONLY_TESTING:-}" ]] && ONLY_ARGS+=(-only-testing:"$UI_ONLY_TESTING")
-xcodebuild test-without-building -xctestrun "$SIM_XCTESTRUN" -destination "$DESTINATION" \
-  ${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"} 2>&1 \
-  | grep -E "Test Case|Test Suite|\*\* TEST|error:" | tail -30
+for id in ${UI_ONLY_TESTING:-}; do ONLY_ARGS+=(-only-testing:"$id"); done
+run_ui_tests "$SIM_XCTESTRUN" "${ONLY_ARGS[@]+"${ONLY_ARGS[@]}"}"
