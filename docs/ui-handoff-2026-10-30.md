@@ -122,6 +122,18 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 - 跑完 §6.3 的截图巡检后，把"看着别扭但不确定该怎么改"的点整理成一张表（位置 / 现象 / 两个候选方案）
   交给维护者挑。**这一项不算完成度，只是交材料。**
 
+### UI-8（✅ 2026-11-06）远程托管页：页顶统一添加入口 + 空态说明页
+
+- **维护者反馈**：两个分组各有一个「添加账号」按钮，空页上两段空卡片并列，看不出"先加哪家"。
+- **现在**：页顶只有一个「添加账号」菜单 → 选供应商（exaroton / MCSManager）→ 弹那一家的表单
+  （exaroton：账号 + TOKEN；MCSManager：地址 + API Key）；**一家都没配时只显示空态说明页**，
+  配置了哪家才出现哪家的分组与服务器。
+- 代码：`RemoteAddProviderMenu`（`OrzMC/Common/RemoteHostingUI/RemoteHostingSkeleton.swift`）+
+  `ExarotonContent` 的 `addRequest` 分发；组内不再带添加按钮（`RemoteProviderSection` 去掉 `emptyState`）。
+- 用例：`testSingleAddEntryIsAtTopAndOffersBothProviders`、`testAddEntryOpensMCSManagerForm`、
+  `testRemotePageWithoutAccountsShowsEmptyState`（最后一条会剥掉本地凭据，否则"空页"其实不空）。
+- 截图：[`ui-remote-add-provider-2026-11-06/`](ui-remote-add-provider-2026-11-06/)。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

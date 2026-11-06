@@ -1,4 +1,5 @@
 import OrzMCDesignSystem
+import OrzMCRemoteHosting
 import SwiftUI
 
 /// **exaroton** 分组：图标标题 + 每个账号一张卡（实例 + 额度池）。
@@ -6,6 +7,8 @@ import SwiftUI
 /// 结构走 `RemoteProviderSection` / `RemoteAccountCard` / `RemoteAccountMenu`（与 MCSM 同一套骨架），
 /// 这里只保留 exaroton 特有的部分：账号凭据编辑、实例卡、额度池。
 struct ExarotonAccountsSection: View {
+    /// 页顶「添加账号」选中了 exaroton 时，这里弹出对应的表单（选完即清）。
+    @Binding var addRequest: ProviderKind?
     @Environment(ExarotonAccountsModel.self) private var accounts
     @State private var editing: ExarotonAccount?
     @State private var showingEditor = false
@@ -16,25 +19,13 @@ struct ExarotonAccountsSection: View {
         accounts.models.values.reduce(0) { $0 + $1.servers.count }
     }
 
-    /// 一个账号都没配时给引导；只要有一张账号卡就不再占位置。
-    private var emptyState: ContentState? {
-        guard accounts.accounts.isEmpty else { return nil }
-        return ContentState(
-            title: String(localized: "No accounts yet"),
-            message: String(localized: "Add an exaroton account to see its servers here."),
-            systemImage: "person.badge.key"
-        )
-    }
 
     var body: some View {
         RemoteProviderSection(
             name: "exaroton",
             systemImage: "cloud",
             count: instanceCount,
-            identifier: "exaroton.section",
-            addIdentifier: "exaroton.addAccount",
-            onAdd: beginAdding,
-            emptyState: emptyState
+            identifier: "exaroton.section"
         ) {
             ForEach(accounts.accounts) { account in
                 if let model = accounts.models[account.id] {
@@ -46,6 +37,11 @@ struct ExarotonAccountsSection: View {
             }
         }
         .sheet(isPresented: $showingEditor) { editorSheet }
+        .onChange(of: addRequest) { _, request in
+            guard request == .exaroton else { return }
+            beginAdding()
+            addRequest = nil
+        }
     }
 
     // MARK: - 组件
@@ -80,8 +76,10 @@ struct ExarotonAccountsSection: View {
         ) {
             Section {
                 TextField("Account name", text: $name)
+                    .accessibilityIdentifier("exaroton.nameField")
                 SecureField(editing == nil ? "TOKEN" : "Leave empty to keep the current key", text: $token)
                     .autocorrectionDisabled()
+                    .accessibilityIdentifier("exaroton.tokenField")
                     #if os(iOS)
                     .textInputAutocapitalization(.never)
                     #endif

@@ -6,13 +6,35 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCRemoteHosting
 import SwiftUI
 
 struct ExarotonContent: View {
     @State private var accounts = ExarotonAccountsModel()
     /// MCSManager 面板（P2-7 第 4 步）：与 exaroton **同一页按供应商分组**。
     @State private var mcsm = MCSManagerPanelsModel()
+    /// 页顶添加入口选中的供应商：对应分组的编辑器据此弹表单（选完即清）。
+    @State private var addRequest: ProviderKind?
     @Environment(\.scenePhase) private var scenePhase
+
+    /// 两家供应商一个账号都没配 → 只显示空态说明页。
+    private var isEmpty: Bool {
+        accounts.accounts.isEmpty && mcsm.panels.isEmpty
+    }
+
+    private var pageEmptyState: some View {
+        EmptyContentView(
+            ContentState(
+                title: String(localized: "No remote servers"),
+                message: String(
+                    localized: "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here."
+                ),
+                systemImage: "server.rack"
+            )
+        )
+        .frame(maxWidth: .infinity)
+        .padding(.top, OrzMCTheme.Spacing.xl)
+    }
 
     #if DEBUG
     /// **诊断钩子**（仅 DEBUG）：`ORZMC_DEMO_DIAGNOSE=1` 启动后自动连第一台服务器，把 WS/ready/流/控制台
@@ -68,9 +90,30 @@ struct ExarotonContent: View {
                 // 分组顺序 = `ProviderKind.allCases`：**exaroton → MCSManager**，固定不变。
                 // 这是维护者拍板的产品口径（按供应商分组、不做筛选器、不调顺序），
                 // 新增供应商时把新分组接在后面，别插到前面去。
+                //
+                // 一个供应商都没配时不渲染任何分组：只给一个空态说明页 + 页顶唯一的添加入口
+                // （以前是两个空卡片，用户会以为其中一个是坏的）。
                 VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
-                    ExarotonAccountsSection().environment(accounts)
-                    MCSManagerSection().environment(mcsm)
+                    HStack {
+                        Spacer(minLength: 0)
+                        RemoteAddProviderMenu { provider in
+                            addRequest = provider
+                        }
+                    }
+
+                    if isEmpty {
+                        pageEmptyState
+                    } else {
+                        // 只有配置了账号的供应商才出现（对应版块与服务器）。
+                        if !accounts.accounts.isEmpty {
+                            ExarotonAccountsSection(addRequest: $addRequest)
+                                .environment(accounts)
+                        }
+                        if !mcsm.panels.isEmpty {
+                            MCSManagerSection(addRequest: $addRequest)
+                                .environment(mcsm)
+                        }
+                    }
                 }
                 .padding(OrzMCTheme.Spacing.lg)
                 .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }

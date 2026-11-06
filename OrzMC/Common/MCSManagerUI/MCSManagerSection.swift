@@ -19,6 +19,8 @@ import SwiftUI
 
 struct MCSManagerSection: View {
 
+    /// 页顶「添加账号」选中了 MCSManager 时，这里弹出面板编辑表单（选完即清）。
+    @Binding var addRequest: ProviderKind?
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
     /// 当前要显示的弹窗。
@@ -48,27 +50,13 @@ struct MCSManagerSection: View {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
     }
 
-    /// 一个面板都没配时给引导（与 exaroton 的空态同一套卡片）。
-    private var emptyState: ContentState? {
-        guard mcsm.panels.isEmpty else { return nil }
-        return ContentState(
-            title: String(localized: "No panels yet"),
-            message: String(
-                localized: "Add an MCSManager panel (address + API key) to see its instances here."
-            ),
-            systemImage: "square.stack.3d.up"
-        )
-    }
 
     var body: some View {
         RemoteProviderSection(
             name: "MCSManager",
             systemImage: "square.stack.3d.up",
             count: instanceCount,
-            identifier: "mcsm.section",
-            addIdentifier: "mcsm.addPanel",
-            onAdd: { sheet = .editor(.add) },
-            emptyState: emptyState
+            identifier: "mcsm.section"
         ) {
             ForEach(mcsm.panels) { panel in
                 panelCard(panel)
@@ -137,6 +125,11 @@ struct MCSManagerSection: View {
             if mcsm.panels.isEmpty { return }
             await mcsm.reloadAll()
             mcsm.start()
+        }
+        .onChange(of: addRequest) { _, request in
+            guard request == .mcsmanager else { return }
+            sheet = .editor(.add)
+            addRequest = nil
         }
     }
 

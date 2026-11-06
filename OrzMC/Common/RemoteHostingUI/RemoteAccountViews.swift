@@ -77,15 +77,14 @@ struct RemoteInstanceHeading: View {
 }
 
 struct RemoteProviderHeader: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let name: String
     let systemImage: String
     let count: Int
     let identifier: String
-    let addIdentifier: String
-    let onAdd: () -> Void
 
-    private var title: some View {
+    var body: some View {
+        // 「添加」不再跟在每个供应商标题后面：页顶只有一个添加入口（`RemoteAddProviderMenu`），
+        // 先选供应商再填对应表单。这里只负责"这是哪家、有几个"。
         HStack(spacing: OrzMCTheme.Spacing.xs) {
             Label {
                 Text(verbatim: name).accessibilityIdentifier(identifier)
@@ -97,43 +96,6 @@ struct RemoteProviderHeader: View {
                 Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
         }
-    }
-
-    var body: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            stackedHeader
-        } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: OrzMCTheme.Spacing.sm) {
-                    title.fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: OrzMCTheme.Spacing.xs)
-                    RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
-                }
-                stackedHeader
-            }
-        }
-    }
-
-    private var stackedHeader: some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            title.fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Spacer(minLength: 0)
-                RemoteAddAccountButton(identifier: addIdentifier, action: onAdd)
-            }
-        }
-    }
-}
-
-struct RemoteAddAccountButton: View {
-    let identifier: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label("Add Account", systemImage: "plus.circle").font(.callout)
-        }
-        .buttonStyle(.bordered)
-        .accessibilityIdentifier(identifier)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
