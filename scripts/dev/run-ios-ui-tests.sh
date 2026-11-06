@@ -324,8 +324,10 @@ PY2
   fi
 }
 
+BUILD_DESTINATION=""
 if [[ -n "$DEVICE" ]]; then
   DESTINATION="platform=iOS,id=$DEVICE"
+  BUILD_DESTINATION="$DESTINATION"
   preflight_device "$DEVICE"
   step "目标：真机 ${DEVICE}（需要开发签名与已解锁的钥匙串）"
 else
@@ -340,13 +342,18 @@ else
   # 必须先装一次 App：某些 Xcode 版本在"没装过 App"时跑 UI 测试会报
   # "bundle identifier for OrzMC couldn't be read"（实测）。
   DESTINATION="platform=iOS Simulator,id=$UDID"
+  # **构建**用泛型目标，**运行**才用具体 UDID。
+  # 原因：Xcode 按 destination 记 DerivedData 的构建元数据，`generic/platform=iOS Simulator`
+  # 与 `id=<UDID>` 之间**不会互相复用** —— CI 上 build 那格用泛型构建、缓存好了，
+  # 这里若用 UDID 构建就会整目录重编（实测多花 ~12 分钟/每次 PR）。
+  BUILD_DESTINATION="generic/platform=iOS Simulator"
   step "目标：模拟器 ${SIM_NAME}（${UDID}）"
 fi
 
 COMMON=(
   -project OrzMC.xcodeproj
   -scheme OrzMCUITests
-  -destination "$DESTINATION"
+  -destination "$BUILD_DESTINATION"
   -derivedDataPath "$DERIVED_DATA"
   -onlyUsePackageVersionsFromResolvedFile
   # 不要加 `-skipPackageUpdates`：它等于"完全不许联网取依赖"。CI 上 `ui-smoke` 恢复了
@@ -367,11 +374,11 @@ fi
 # `bundle identifier for OrzMC couldn't be read`（路径少了 .app），这一步保证产物一定在。
 step "构建 App"
 if [[ -n "$DEVICE" ]]; then
-  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
+  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$BUILD_DESTINATION" \
     -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
     -skipPackagePluginValidation -skipMacroValidation 2>&1 | tail -4
 else
-  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
+  xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$BUILD_DESTINATION" \
     -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
     -skipPackagePluginValidation -skipMacroValidation \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' 2>&1 | tail -4
