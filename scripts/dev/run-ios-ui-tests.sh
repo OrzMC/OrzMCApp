@@ -263,7 +263,10 @@ COMMON=(
   -destination "$DESTINATION"
   -derivedDataPath "$DERIVED_DATA"
   -onlyUsePackageVersionsFromResolvedFile
-  -skipPackageUpdates
+  # 不要加 `-skipPackageUpdates`：它等于"完全不许联网取依赖"。CI 上 `ui-smoke` 恢复了
+  # DerivedData 缓存后，若缓存的 `SourcePackages` 与 `Package.resolved` 略有出入，
+  # SwiftPM 会直接 `Couldn't check out revision …` 而**不会补 fetch**（2026-11-06 踩了两次，
+  # 两次失败的 SHA 还不一样）。保留 `-onlyUsePackageVersionsFromResolvedFile` 就已经锁版本了。
   -skipPackagePluginValidation
   -skipMacroValidation
 )
@@ -280,11 +283,11 @@ step "构建 App"
 if [[ -n "$DEVICE" ]]; then
   xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
     -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
-    -skipPackageUpdates -skipPackagePluginValidation -skipMacroValidation 2>&1 | tail -4
+    -skipPackagePluginValidation -skipMacroValidation 2>&1 | tail -4
 else
   xcodebuild build -project OrzMC.xcodeproj -scheme OrzMC -destination "$DESTINATION" \
     -derivedDataPath "$DERIVED_DATA" -onlyUsePackageVersionsFromResolvedFile \
-    -skipPackageUpdates -skipPackagePluginValidation -skipMacroValidation \
+    -skipPackagePluginValidation -skipMacroValidation \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' 2>&1 | tail -4
 fi
 
