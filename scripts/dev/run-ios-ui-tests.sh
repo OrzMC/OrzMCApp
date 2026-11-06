@@ -154,14 +154,17 @@ step "启动假 SLP / RCON 服务端"
 # "✗ 端口 25566 没起来"，完全不知道为什么（2026-11-06 排了一轮）。
 SLP_LOG="$(mktemp -t orzmc-slp)"
 RCON_LOG="$(mktemp -t orzmc-rcon)"
+# 诊断输出一律走 stdout：CI 上这条路径的 stderr 曾经整段没进日志（2026-11-06）。
+echo "  诊断：nc=$(command -v nc || echo 缺失) python3=$(command -v python3 || echo 缺失) 端口=${SLP_PORT}/${RCON_PORT}"
 python3 scripts/test-servers/slp_server.py "$SLP_PORT" >"$SLP_LOG" 2>&1 & PIDS+=("$!")
 python3 scripts/test-servers/rcon_server.py "$RCON_PORT" >"$RCON_LOG" 2>&1 & PIDS+=("$!")
 for port in "$SLP_PORT" "$RCON_PORT"; do
   for _ in $(seq 1 50); do nc -z 127.0.0.1 "$port" 2>/dev/null && break; sleep 0.1; done
   if ! nc -z 127.0.0.1 "$port" 2>/dev/null; then
-    echo "✗ 端口 ${port} 没起来" >&2
-    echo "--- slp_server 输出 ---" >&2; cat "$SLP_LOG" >&2 || true
-    echo "--- rcon_server 输出 ---" >&2; cat "$RCON_LOG" >&2 || true
+    echo "✗ 端口 ${port} 没起来"
+    echo "--- slp_server 输出 ---"; cat "$SLP_LOG" || true
+    echo "--- rcon_server 输出 ---"; cat "$RCON_LOG" || true
+    echo "--- 端口占用 ---"; (lsof -nP -iTCP:"$port" 2>/dev/null || true)
     exit 1
   fi
 done
