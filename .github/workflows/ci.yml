@@ -136,6 +136,19 @@ jobs:
           key: xcode-ios-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
           restore-keys: |
             xcode-ios-
+      # 缓存里的 SwiftPM 裸克隆可能是旧的：`Package.resolved` 换了 pin 之后，
+      # SwiftPM（带 `-onlyUsePackageVersionsFromResolvedFile`）不会自动补 fetch，
+      # 于是报 `Couldn't check out revision …`（本地对应 `refresh-package.sh`）。
+      # 这里显式解析一次（允许联网取 pin），失败再清掉 SwiftPM 缓存重来。
+      - name: Resolve dependencies (repair stale cache)
+        run: |
+          xcodebuild -resolvePackageDependencies -scheme OrzMC \
+            -project OrzMC.xcodeproj -destination 'generic/platform=iOS Simulator' > /dev/null 2>&1 || {
+              echo "::warning::依赖解析失败，清掉 SwiftPM 缓存重试"
+              rm -rf "$HOME/Library/Caches/org.swift.swiftpm"
+              xcodebuild -resolvePackageDependencies -scheme OrzMC \
+                -project OrzMC.xcodeproj -destination 'generic/platform=iOS Simulator'
+            }
       - name: Run remote-hosting UI smoke tests
         env:
           UI_ONLY_TESTING: >-
