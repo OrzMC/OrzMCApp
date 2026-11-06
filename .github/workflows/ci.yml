@@ -138,6 +138,12 @@ jobs:
           key: xcode-ios-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
           restore-keys: |
             xcode-ios-
+      # 缓存里的 clang 模块缓存会"记住"构建时的 SDK mtime。runner 镜像升级 Xcode 后，
+      # 这些 .pcm 立刻失效并升级成硬失败：
+      #   `file '…/AvailabilityVersions.h' has been modified since the module file … was built: mtime changed`
+      # （2026-11-06 真踩到，macOS 那格直接 65 退出）。模块缓存重建只要几十秒，不值得冒这个险。
+      - name: Drop stale clang module cache
+        run: rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
       - name: Run remote-hosting UI smoke tests
         env:
           UI_ONLY_TESTING: >-
@@ -185,6 +191,12 @@ jobs:
           key: xcode-${{ matrix.cache_key }}-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
           restore-keys: |
             xcode-${{ matrix.cache_key }}-
+      # 缓存里的 clang 模块缓存会"记住"构建时的 SDK mtime。runner 镜像升级 Xcode 后，
+      # 这些 .pcm 立刻失效并升级成硬失败：
+      #   `file '…/AvailabilityVersions.h' has been modified since the module file … was built: mtime changed`
+      # （2026-11-06 真踩到，macOS 那格直接 65 退出）。模块缓存重建只要几十秒，不值得冒这个险。
+      - name: Drop stale clang module cache
+        run: rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
 
       - name: Unit tests (SwiftPM + app target)
         # 两套都跑：SwiftPM 包单测（Sources/*）+ 应用层 target `OrzMCTests`
