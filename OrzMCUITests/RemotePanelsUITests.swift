@@ -17,14 +17,20 @@ final class RemotePanelsUITests: XCTestCase {
     /// 关掉系统弹窗：真机首次联网会弹「允许 OrzMC 查找本地网络中的设备?」，
     /// 不点掉它整个界面都不响应（XCUITest 会一直点空）。这类弹窗属于 SpringBoard。
     private func allowSystemPrompts() {
+        // **模拟器上没有这类弹窗**：本地网络授权只出现在真机。以前这里无条件轮询
+        // 4 个标签 × 3 秒 = 每个用例白等最多 12 秒；29 个用例 ≈ 6 分钟（2026-11-06 计量）。
+        #if targetEnvironment(simulator)
+        return
+        #else
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         for label in ["允许", "Allow", "好", "OK"] {
             let button = springboard.buttons[label]
-            if button.waitForExistence(timeout: 3) {
+            if button.waitForExistence(timeout: 1) {
                 button.tap()
                 return
             }
         }
+        #endif
     }
 
     private func makeApp(_ environment: [String: String] = [:]) -> XCUIApplication {

@@ -176,9 +176,12 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 既能跑模拟器也能跑真机，把"手工点 + 截图 + 肉眼判断"变成可重复断言 + 截图附件：
 
 ```bash
-./scripts/dev/run-ios-ui-tests.sh                 # 默认 iPhone SE3 尺寸模拟器，约 1~2 分钟
+./scripts/dev/run-ios-ui-tests.sh                 # 默认 iPhone SE3 尺寸模拟器，实测约 9 分钟（27 个用例）
+./scripts/dev/run-ios-ui-tests.sh --real          # 追加真实账号/真实服务器用例（约 +4 分钟）
 ./scripts/dev/run-ios-ui-tests.sh --device <UDID> # 真机（需在 Terminal.app 里跑，开发签名）
 ./scripts/dev/check.sh --ui                       # 等价入口
+UI_ONLY_TESTING="OrzMCUITests/RemotePanelsUITests/a OrzMCUITests/RemotePanelsUITests/b" \
+  ./scripts/dev/run-ios-ui-tests.sh               # 只跑指定用例（空格分隔多个，实测 4 个约 110 秒）
 ```
 
 脚本会：起假 SLP/RCON 服务端 → 构建 App → `build-for-testing` → 修 xctestrun →（真机额外装 App）→
@@ -201,12 +204,23 @@ iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 
 ### 日常迭代跑模拟器，发版前跑真机
 
-| 时机 | 命令 | 耗时 | 覆盖 |
+> **2026-11-06 复核**：旧表写的"约 1–2 分钟"是 8 个用例时代的数字。用例涨到 42 个
+> （27 个执行 / 15 个按条件跳过）后，整套模拟器 UI 实测 **22.4 分钟**，成为迭代的最大单项。
+> 已修掉两处纯浪费：① `allowSystemPrompts()` 在模拟器上空等 SpringBoard 弹窗（每例最多 12 秒，
+> 共约 6 分钟）；② 真实账号用例默认不再跟随本地凭据自动开启（约 4 分钟，`--real` 才跑）。
+> 现在默认整套 **8.6 分钟**，跑 4 个代表用例 **110 秒**。
+
+| 时机 | 命令 | 耗时（2026-11-06 实测） | 覆盖 |
 |---|---|---|---|
-| 每次改动 | `./scripts/dev/run-ios-ui-tests.sh`（默认模拟器） | 约 1–1.5 分钟 | 假数据：自建页、设置、添加、远程详情 |
-| 每次改动 | `./scripts/dev/check.sh --ui` | 同上 | 同上（等价入口） |
-| **发版前** | `./scripts/dev/run-ios-ui-tests.sh --device <UDID>` | 约 2–3 分钟 | 上述 + 真实账号控制台 |
+| 每次改动（快） | `UI_ONLY_TESTING="…a …b" ./scripts/dev/run-ios-ui-tests.sh` | 4 个用例 ≈ **110 秒** | 只跑受影响的用例 |
+| 每次改动（整套） | `./scripts/dev/check.sh --ui` | **8.6 分钟**（27 用例；旧 22.4 分钟） | 假数据：自建页、设置、添加、远程详情、控制台 |
+| 发版前 | 加 `--real` | **12.4 分钟** | 上述 + 真实 exaroton / 真实自建服务器 |
+| **发版前** | `./scripts/dev/run-ios-ui-tests.sh --device <UDID> --real` | 约 8 分钟 | 签名/安装/权限/手感 + 真实账号控制台 |
 | **发版前（更狠）** | 再加 `POWER_CYCLE=1` 环境 | 约 90 秒/次 | 真实启停 + 控制台日志流 |
+
+**CI 侧**：`ui-smoke` 原来用 `-only-testing` 指向一个已被删除的用例 → 跑 0 个用例仍绿灯，
+白花 13–16 分钟（冷构建 9 分钟）。现在改成 4 个真实用例 + 共用 iOS DerivedData 缓存，
+并由脚本断言"实际执行 ≥1 个"。
 
 **模拟器够用**：它跑在 Mac 上，能直接走真实网络（真实自建服务器、真实 exaroton 账号都能连），
 所以"真实服务器 + 真实账号"这两类**不必上真机**——真机只在发版前验证签名/安装/权限/手感差异。

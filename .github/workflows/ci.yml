@@ -107,6 +107,14 @@ jobs:
             -skipPackagePluginValidation -skipMacroValidation CODE_SIGNING_ALLOWED=NO
 
   ui-smoke:
+    # 只跑**一小撮**代表性用例（不是整套 29 个、22 分钟）：
+    # 远程托管空态 → 页顶添加入口弹表单 → 两家分组渲染 → 控制台渲染。
+    # 2026-11-06 计量：整套模拟器 UI 22 分钟，其中每个用例有 ~12 秒是
+    # `allowSystemPrompts()` 在模拟器上空等 SpringBoard 弹窗（已改掉）。
+    #
+    # 历史坑：这里曾经指向 `testProviderAddButtonsAppearBesideHeaders`，
+    # 该用例在 #139 被删掉 → xcodebuild 跑 0 个用例仍 `exit 0`，**绿灯但什么都没测**，
+    # 还白花 13 分钟（冷构建 9 分钟）。现在由 `run-ios-ui-tests.sh` 断言"实际执行 ≥1 个"。
     runs-on: macos-26
     needs: split
     timeout-minutes: 30
@@ -118,10 +126,28 @@ jobs:
         run: |
           xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
           python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/simulators.json")); names=[x["name"] for runtime,devices in d["devices"].items() if "iOS" in runtime for x in devices if x["name"].startswith("iPhone") and x.get("isAvailable")]; assert names, "No available iPhone simulator"; print("SIM_NAME="+names[0])' >> "$GITHUB_ENV"
-      - name: Run remote-hosting UI smoke test
+      # 缓存**只有在路径一致时才有用**：缓存的是 `~/Library/Developer/Xcode/DerivedData` 整棵，
+      # 而 UI 脚本默认用 `DerivedData/OrzMC-local-ios`。这里让缓存命中的路径就是它
+      # （`build` 的 iOS 格也用同一个目录，见矩阵的 derived_data），才能真的复用已编译产物。
+      - name: Restore DerivedData cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
+          key: xcode-ios-${{ hashFiles('OrzMC.xcodeproj/project.pbxproj', '**/Package.resolved') }}
+          restore-keys: |
+            xcode-ios-
+      - name: Run remote-hosting UI smoke tests
         env:
-          UI_ONLY_TESTING: OrzMCUITests/RemotePanelsUITests/testProviderAddButtonsAppearBesideHeaders
-        run: ./scripts/dev/check.sh --ui
+          UI_ONLY_TESTING: >-
+            OrzMCUITests/RemotePanelsUITests/testRemotePageWithoutAccountsShowsEmptyState
+            OrzMCUITests/RemotePanelsUITests/testAddFromEmptyPageOpensProviderForms
+            OrzMCUITests/RemotePanelsUITests/testMCSManagerSectionShowsInstancesAndStatus
+            OrzMCUITests/RemotePanelsUITests/testCreditPoolServerOpensDetail
+        run: |
+          export DERIVED_DATA_UI="$HOME/Library/Developer/Xcode/DerivedData/OrzMC-local-ios"
+          ./scripts/dev/check.sh --ui
 
   build:
     # 只用标准 GitHub-hosted runner；勿改 `-large`/`-xlarge`（larger runner，即使 public 也计费）。
@@ -134,8 +160,11 @@ jobs:
           # iOS 以前**从没进过 CI**（只构建 macOS）→ iOS 代码路径可以腐烂很久没人知道。
           - destination: "platform=macOS"
             cache_key: macos
+            derived_data: OrzMC-local
           - destination: "generic/platform=iOS Simulator"
             cache_key: ios
+            # 与 `ui-smoke` 共用同一份 DerivedData 目录，缓存才能真的命中。
+            derived_data: OrzMC-local-ios
     steps:
       - uses: actions/checkout@v5
 
@@ -183,6 +212,7 @@ jobs:
           xcodebuild build \
             -scheme OrzMC \
             -destination '${{ matrix.destination }}' \
+            -derivedDataPath "$HOME/Library/Developer/Xcode/DerivedData/${{ matrix.derived_data }}" \
             -onlyUsePackageVersionsFromResolvedFile \
             -skipPackagePluginValidation \
             -skipMacroValidation \
