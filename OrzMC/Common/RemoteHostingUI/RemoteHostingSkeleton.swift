@@ -18,23 +18,20 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCRemoteHosting
 import SwiftUI
 
 // MARK: - 供应商分组
 
 /// 一家供应商的一组（标题行 + 账号卡）。
 ///
-/// 两边只有"标题文案 / 图标 / 计数量 / 添加回调"不同，其余排版一致：
-/// 标题右侧的「添加账号」按钮、组内一个账号都没有时的引导卡片。
+/// 组内不再自带「添加账号」按钮：页顶只有一个入口（`RemoteAddProviderMenu`），
+/// 先选供应商再填对应表单；一个账号都没有的供应商**整组不渲染**（由页面级空态负责引导）。
 struct RemoteProviderSection<Content: View>: View {
     let name: String
     let systemImage: String
     let count: Int
     let identifier: String
-    let addIdentifier: String
-    let onAdd: () -> Void
-    /// 组里**一个账号都没有**时的引导（`nil` = 不显示）。
-    var emptyState: ContentState? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -43,42 +40,48 @@ struct RemoteProviderSection<Content: View>: View {
                 name: name,
                 systemImage: systemImage,
                 count: count,
-                identifier: identifier,
-                addIdentifier: addIdentifier,
-                onAdd: onAdd
+                identifier: identifier
             )
-            if let emptyState {
-                RemoteEmptyCard(state: emptyState)
-            }
             content()
         }
     }
 }
 
-/// 组内没有任何账号时的引导卡片。
+/// 页顶**唯一**的添加入口：先选供应商，再填该供应商的表单。
 ///
-/// 之前 exaroton 是一行灰字、MCSM 是一张卡片 —— 同一页里两种"空"，用户会以为其中一个是坏了。
-struct RemoteEmptyCard: View {
-    let state: ContentState
+/// 以前每个供应商分组各有一个「添加账号」，空页上两个按钮长得一样、用户要先分清自己加的是哪家；
+/// 现在统一成一个菜单：选哪家就弹哪家的表单（exaroton：账号 + TOKEN；MCSManager：地址 + API Key）。
+struct RemoteAddProviderMenu: View {
+    let onSelect: (ProviderKind) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
-            Label {
-                Text(state.title)
-            } icon: {
-                Image(systemName: state.systemImage).accessibilityHidden(true)
+        Menu {
+            Button {
+                onSelect(.exaroton)
+            } label: {
+                Label {
+                    Text(verbatim: "exaroton")
+                } icon: {
+                    Image(systemName: "cloud")
+                }
             }
-            .font(.callout.weight(.medium))
-            if let message = state.message {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("remote.addProvider.exaroton")
+
+            Button {
+                onSelect(.mcsmanager)
+            } label: {
+                Label {
+                    Text(verbatim: "MCSManager")
+                } icon: {
+                    Image(systemName: "square.stack.3d.up")
+                }
             }
+            .accessibilityIdentifier("remote.addProvider.mcsmanager")
+        } label: {
+            Label(String(localized: "Add Account"), systemImage: "plus.circle").font(.callout)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(OrzMCTheme.Spacing.md)
-        .orzMCPanel()
+        .buttonStyle(.bordered)
+        .accessibilityIdentifier("remote.addProvider")
     }
 }
 

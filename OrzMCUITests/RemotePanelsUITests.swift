@@ -55,6 +55,13 @@ final class RemotePanelsUITests: XCTestCase {
         if environment["ORZMC_DEMO_FAKE_SERVER"] == "1" {
             app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_TOKEN")
         }
+        // "一家都没配"的空态用例：本地凭据文件会把这些真实凭据转给 App，
+        // 那样页面就不是空的（踩过：空态用例只在没有凭据时才绿）。
+        if environment["ORZMC_UITEST_NO_CREDENTIALS"] == "1" {
+            for key in ["ORZMC_DEMO_TOKEN", "ORZMC_DEMO_MCSM_PANELS", "ORZMC_DEMO_MCSM_KEYS"] {
+                app.launchEnvironment.removeValue(forKey: key)
+            }
+        }
         return app
     }
 
@@ -718,24 +725,101 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "configured-mcsm-accounts")
     }
 
+    /// **页顶只有一个添加入口**：先选供应商，再填对应表单（不再每个分组各一个按钮）。
     @MainActor
-    func testProviderAddButtonsAppearBesideHeaders() {
+    func testSingleAddEntryIsAtTopAndOffersBothProviders() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
         app.launch()
         allowSystemPrompts()
+
+        let add = app.buttons["remote.addProvider"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20), "页顶应有唯一的添加入口")
         let exaroton = app.staticTexts["exaroton.section"]
-        let exarotonAdd = app.buttons["exaroton.addAccount"]
         XCTAssertTrue(exaroton.waitForExistence(timeout: 20))
-        XCTAssertTrue(exarotonAdd.waitForExistence(timeout: 10))
-        XCTAssertGreaterThan(exarotonAdd.frame.midX, exaroton.frame.midX)
-        XCTAssertLessThan(abs(exarotonAdd.frame.midY - exaroton.frame.midY), 30)
-        app.swipeUp()
-        let mcsm = app.staticTexts["mcsm.section"]
-        let mcsmAdd = app.buttons["mcsm.addPanel"]
-        XCTAssertTrue(mcsm.waitForExistence(timeout: 10))
-        XCTAssertTrue(mcsmAdd.waitForExistence(timeout: 10))
-        XCTAssertGreaterThan(mcsmAdd.frame.midX, mcsm.frame.midX)
-        XCTAssertLessThan(abs(mcsmAdd.frame.midY - mcsm.frame.midY), 30)
+        // "顶部"：按钮在第一个分组标题之上。
+        XCTAssertLessThan(add.frame.midY, exaroton.frame.midY, "添加入口应在分组之上")
+
+        add.tap()
+        XCTAssertTrue(app.buttons["exaroton"].waitForExistence(timeout: 10), "菜单里应有 exaroton")
+        XCTAssertTrue(app.buttons["MCSManager"].exists, "菜单里应有 MCSManager")
+        app.buttons["exaroton"].tap()
+        // 选了哪家就弹哪家的表单：exaroton = 账号名 + TOKEN。
+        XCTAssertTrue(app.textFields["exaroton.nameField"].waitForExistence(timeout: 15),
+                      "选中 exaroton 后应弹出账号表单")
+        XCTAssertTrue(app.secureTextFields["exaroton.tokenField"].exists)
+        app.buttons["取消"].tap()
+    }
+
+    /// 选 MCSManager → 弹面板表单（地址 + API Key），不碰真实网络。
+    @MainActor
+    func testAddEntryOpensMCSManagerForm() {
+        // 用假面板让分组存在（空态时也能添加，但这里顺带验证"已有分组时仍从页顶添加"）。
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let add = app.buttons["remote.addProvider"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20))
+        add.tap()
+        XCTAssertTrue(app.buttons["MCSManager"].waitForExistence(timeout: 10))
+        app.buttons["MCSManager"].tap()
+        XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 10), "应弹出面板表单")
+        XCTAssertTrue(app.secureTextFields["mcsm.apiKeyField"].exists)
+        app.buttons["取消"].tap()
+    }
+
+    /// **空态页也要能加**：先前两版把表单挂在分组里，没账号时分组不渲染 →
+    /// 选完供应商什么也不发生（2026-11-06 维护者实测）。
+    @MainActor
+    func testAddFromEmptyPageOpensProviderForms() {
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let add = app.buttons["remote.addProvider"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20))
+        XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
+
+        add.tap()
+        XCTAssertTrue(app.buttons["exaroton"].waitForExistence(timeout: 10))
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "60-add-menu-from-empty")
+        }
+        app.buttons["exaroton"].tap()
+        XCTAssertTrue(app.textFields["exaroton.nameField"].waitForExistence(timeout: 15),
+                      "空态页选 exaroton 后应弹出账号表单")
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "61-exaroton-form-from-empty")
+        }
+        app.buttons["取消"].tap()
+
+        add.tap()
+        XCTAssertTrue(app.buttons["MCSManager"].waitForExistence(timeout: 10))
+        app.buttons["MCSManager"].tap()
+        XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 15),
+                      "空态页选 MCSManager 后应弹出面板表单")
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "62-mcsm-form-from-empty")
+        }
+        app.buttons["取消"].tap()
+    }
+
+    /// 一家都没配时：只给空态说明页，不渲染任何供应商分组。
+    @MainActor
+    func testRemotePageWithoutAccountsShowsEmptyState() {
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        // 先等页面骨架（页顶添加入口）出现，再看空态文案：新模拟器首次启动时
+        // 直接断言文案会在界面还没切到「远程托管」时超时（实测过一次）。
+        XCTAssertTrue(app.buttons["remote.addProvider"].waitForExistence(timeout: 20), "空态也要有添加入口")
+        XCTAssertTrue(
+            waitForStaticText(app, containing: "没有远程服务器", timeout: 30),
+            "应显示空态说明"
+        )
+        XCTAssertFalse(app.staticTexts["exaroton.section"].exists, "没有账号时不该出现 exaroton 分组")
+        XCTAssertFalse(app.staticTexts["mcsm.section"].exists, "没有面板时不该出现 MCSManager 分组")
     }
 
     func testMultipleRemoteAccountsShowInstances() throws {
@@ -856,14 +940,13 @@ final class RemotePanelsUITests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
 
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
         app.launch()
         allowSystemPrompts()
-        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
-        snap(app, "40-providers-empty-top")
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["mcsm.section"].waitForExistence(timeout: 20))
-        snap(app, "41-providers-empty-mcsm")
+        // 一个供应商都没配：页顶添加入口 + 空态说明页（不再有两个空分组卡片）。
+        XCTAssertTrue(app.buttons["remote.addProvider"].waitForExistence(timeout: 20))
+        XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
+        snap(app, "40-providers-empty")
     }
 
     func testSnapshotTourRemote() throws {
@@ -948,6 +1031,21 @@ final class RemotePanelsUITests: XCTestCase {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
         keep(attachment)
+    }
+
+    /// 轮询"界面上出现过包含某段文字的 staticText"。
+    ///
+    /// 不用 `app.staticTexts["…"].waitForExistence(…)`：新模拟器首次启动时它偶发一直返回 false
+    /// （同一次会话里把 label 列表打出来却明明有这一条），而重取 snapshot 就正常。
+    private func waitForStaticText(_ app: XCUIApplication, containing text: String, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if app.staticTexts.allElementsBoundByIndex.contains(where: { $0.label.contains(text) }) {
+                return true
+            }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        return app.staticTexts.allElementsBoundByIndex.contains(where: { $0.label.contains(text) })
     }
 
     /// 轮询直到条件成立（UI 测试里没有原生的 "wait until"）。
@@ -1271,4 +1369,23 @@ extension RemotePanelsUITests {
         for _ in 0..<8 where !oldest.isHittable { console.swipeDown() }
         XCTAssertTrue(oldest.isHittable, "向上浏览应能回到最早的日志")
     }
+    /// 面板卡片 `⋯` → 「编辑账号」：编辑表单由页面层弹（重构后不能再依赖分组内部）。
+    @MainActor
+    func testPanelMenuEditOpensEditor() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        app.launch()
+        allowSystemPrompts()
+
+        let menu = app.buttons["mcsm.panelMenu"]
+        for _ in 0..<4 where !menu.exists { app.swipeUp() }
+        XCTAssertTrue(menu.waitForExistence(timeout: 20), "面板卡应有 ⋯ 菜单")
+        menu.tap()
+        XCTAssertTrue(app.buttons["编辑账号"].waitForExistence(timeout: 10))
+        app.buttons["编辑账号"].tap()
+        XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 15), "应弹出面板编辑表单")
+        app.buttons["取消"].tap()
+    }
+
+    /// 制造面板 / 控制台 等 MCSM 用例的公共前置
 }
+

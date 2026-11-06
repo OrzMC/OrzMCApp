@@ -261,16 +261,6 @@
         }
       }
     },
-    "Add an MCSManager panel (address + API key) to see its instances here.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加一个 MCSManager 面板（地址 + API Key），这里就会列出它上面的实例。"
-          }
-        }
-      }
-    },
     "Add another server": {
       "localizations": {
         "zh-Hans": {
@@ -2333,17 +2323,6 @@
         }
       }
     },
-    "No accounts yet": {
-      "comment": "Remote hosting empty state (exaroton group title)",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有账号"
-          }
-        }
-      }
-    },
     "No instances": {
       "localizations": {
         "zh-Hans": {
@@ -2370,16 +2349,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "还没有输出"
-          }
-        }
-      }
-    },
-    "No panels yet": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有面板"
           }
         }
       }
@@ -5742,13 +5711,13 @@
         }
       }
     },
-    "Add an exaroton account to see its servers here.": {
-      "comment": "Remote hosting empty state (exaroton group)",
+    "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
+      "comment": "Remote hosting page empty state",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加一个 exaroton 账号，这里就会列出它的服务器。"
+            "value": "添加一个 exaroton 账号，或一个 MCSManager 面板（地址 + API Key），这里就会列出它们的服务器。"
           }
         }
       }

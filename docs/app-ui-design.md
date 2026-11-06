@@ -15,22 +15,25 @@
 ## 远程托管账号层级（2026-10-30，2026-11-05 抽成共享骨架）
 
 按供应商分组，固定 exaroton → MCSManager；每组允许多个账号，每个账号下完整展示实例。
-供应商标题右侧放置统一的带边框「添加账号」按钮；空间不足时按钮移至标题下一行右侧。
-账号和实例操作菜单统一使用系统默认带边框样式。
+**页顶只有一个带边框的「添加账号」菜单**（先选供应商，再填对应表单）；分组标题旁不再放添加按钮，
+一个账号都没有的供应商整组不渲染。账号和实例操作菜单统一使用系统默认带边框样式。
 
 **共享骨架落在** `OrzMC/Common/RemoteHostingUI/`（两家供应商都用，macOS 与 iPhone 同一份）：
 
 | 骨架 | 负责 | 两家各自特化的部分 |
 |---|---|---|
-| `RemoteProviderSection` | 供应商标题行（图标 + 名称 + 实例数 + 「添加账号」）、组内空态卡片 | 标题文案 / 图标 / 计数口径 / 添加动作 |
+| `RemoteProviderSection` | 供应商标题行（图标 + 名称 + 实例数）；**一个账号都没有的供应商整组不渲染** | 标题文案 / 图标 / 计数口径 |
+| `RemoteAddProviderMenu` | **页顶唯一**的添加入口：先选供应商（exaroton / MCSManager），再弹对应表单 | 表单内容（账号+TOKEN / 地址+API Key） |
+| `EmptyContentView`（设计系统） | 一家都没配时的空态说明页 | 文案 |
 | `RemoteAccountCard` | 账号卡（头部 + 面板底 + 内边距） | exaroton：账号凭据；MCSM：面板地址 + API Key |
 | `RemoteAccountMenu` | `⋯` 菜单：刷新 → 编辑 → 删除（顺序固定） | 编辑/删除落到各自模型 |
 | `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台 sheet |
 | `RemoteInlineLoading` / `RemoteInlineEmpty` / `RemoteInlineError` | 账号内的加载 / 空 / 失败（同一套排版，失败带「重试」） | 文案 |
-| `RemoteEmptyCard` | 组内没有任何账号时的引导卡片 | 文案 |
 
 排版规则（改远程托管页必须遵守）：
 
+0. **添加入口只有一个，在页顶**：菜单里选供应商 → 弹该供应商的表单；不在分组标题旁边再放「添加账号」。
+   没有任何账号时不渲染任何分组，只显示空态说明页（同一页不再出现两个"空卡片"）。
 1. **组内不再"面板套面板"**：账号卡是一张面板，实例/额度池是**平铺行**（同一套行骨架），
    行间用 `Spacing.md` 分隔。
 2. **行内字段顺序固定**：名称 + 状态徽标（`RemoteInstanceHeading`，内含 `OrzMCStatusBadge`）→ 明细 → 右侧。
@@ -41,7 +44,8 @@
 5. **不在 SwiftUI 容器上设 `accessibilityIdentifier`**：行的按钮锚点由 `RemoteInstanceRow(tapIdentifier:)`
    交给内部那个按钮；容器的标识会下发给子元素并覆盖它们自己的 identifier。
 
-前后对比截图（2026-11-05 重构）：[`ui-remote-hosting-2026-11-05/`](ui-remote-hosting-2026-11-05/)。
+前后对比截图：骨架重构 [`ui-remote-hosting-2026-11-05/`](ui-remote-hosting-2026-11-05/)、
+统一添加入口 [`ui-remote-add-provider-2026-11-06/`](ui-remote-add-provider-2026-11-06/)。
 
 ## 字段与行布局约定（2026-10-22 视觉复审后固化）
 

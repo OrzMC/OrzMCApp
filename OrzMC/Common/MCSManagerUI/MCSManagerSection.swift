@@ -19,6 +19,8 @@ import SwiftUI
 
 struct MCSManagerSection: View {
 
+    /// 打开面板编辑表单（由页面层弹 sheet —— 空态页没有分组，也只能从那里弹）。
+    let onEditPanel: (MCSManagerPanel) -> Void
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
     /// 当前要显示的弹窗。
@@ -33,12 +35,10 @@ struct MCSManagerSection: View {
     @State private var confirmingKill: MCSManagerConsoleTarget?
 
     enum Sheet: Identifiable {
-        case editor(MCSManagerPanelEditor.Mode)
         case console(MCSManagerConsoleTarget)
 
         var id: String {
             switch self {
-            case .editor(let mode): return "editor-\(mode.id)"
             case .console(let target): return "console-\(target.id)"
             }
         }
@@ -48,27 +48,13 @@ struct MCSManagerSection: View {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
     }
 
-    /// 一个面板都没配时给引导（与 exaroton 的空态同一套卡片）。
-    private var emptyState: ContentState? {
-        guard mcsm.panels.isEmpty else { return nil }
-        return ContentState(
-            title: String(localized: "No panels yet"),
-            message: String(
-                localized: "Add an MCSManager panel (address + API key) to see its instances here."
-            ),
-            systemImage: "square.stack.3d.up"
-        )
-    }
 
     var body: some View {
         RemoteProviderSection(
             name: "MCSManager",
             systemImage: "square.stack.3d.up",
             count: instanceCount,
-            identifier: "mcsm.section",
-            addIdentifier: "mcsm.addPanel",
-            onAdd: { sheet = .editor(.add) },
-            emptyState: emptyState
+            identifier: "mcsm.section"
         ) {
             ForEach(mcsm.panels) { panel in
                 panelCard(panel)
@@ -78,30 +64,6 @@ struct MCSManagerSection: View {
 
         .sheet(item: $sheet) { current in
             switch current {
-            case .editor(let mode):
-                MCSManagerPanelEditor(
-                    mode: mode,
-                    onSave: { label, url, key in
-                        switch mode {
-                        case .add:
-                            guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
-                        case .edit(let panel):
-                            guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
-                                return false
-                            }
-                        }
-                        sheet = nil
-                        Task { await mcsm.reloadAll(); mcsm.start() }
-                        return true
-                    },
-                    onCancel: { sheet = nil }
-                )
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(OrzMCTheme.Radius.lg)
-                .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
-                #if os(iOS)
-                .presentationDetents([.large])
-                #endif
             case .console(let target):
                 MCSManagerConsoleSheet(instance: target.instance, model: target.model)
                     .presentationDragIndicator(.visible)
@@ -156,9 +118,7 @@ struct MCSManagerSection: View {
                 onRefresh: {
                     Task { await model?.reload() }
                 },
-                onEdit: {
-                    sheet = .editor(.edit(panel))
-                },
+                onEdit: { onEditPanel(panel) },
                 onRemove: {
                     mcsm.removePanel(id: panel.id)
                 },
