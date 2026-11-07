@@ -26,6 +26,8 @@ import SwiftUI
 // MARK: - 卡片
 
 struct ServerCard<Actions: View, Footer: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     let name: String
     var statusTitle: String? = nil
     var statusStyle: OrzMCStatusStyle = .idle
@@ -49,26 +51,42 @@ struct ServerCard<Actions: View, Footer: View>: View {
     @ViewBuilder var footer: () -> Footer
 
     var body: some View {
+        // 布局按**宽度等级**决定，不再用 `ViewThatFits` 逐卡自适应（2026-11-07 维护者截图反馈）：
+        // 同屏两张卡里一张把动作挤成一行、另一张折到第二行，看着像"按钮掉到底部"。
+        //   · 紧凑宽度（iPhone 竖屏）：动作**固定**成卡片底部一条操作栏（上分隔线 + 右对齐）；
+        //   · 常规宽度（iPad 横屏 / macOS）：动作与名称同一行（放不下才退化成底栏）。
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            // 宽的时候"名称 + 右侧动作"一行；窄的时候（iPhone 竖屏、SE）动作掉到下一行。
-            // 不这么做的话，名称旁边的状态徽标会被挤到第二行（实测：MCSM 实例卡在 iPhone 上）。
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
-                    primary
-                    Spacer(minLength: OrzMCTheme.Spacing.sm)
-                    actions()
-                    disclosure
-                }
-                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
+            if usesActionBar {
+                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
                     HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
                         primary
                         Spacer(minLength: 0)
                         disclosure
                     }
-                    HStack(spacing: OrzMCTheme.Spacing.sm) {
-                        Spacer(minLength: 0)
+                    actionBar
+                }
+            } else if hasActions {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                        primary
+                        Spacer(minLength: OrzMCTheme.Spacing.sm)
                         actions()
+                        disclosure
                     }
+                    VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
+                        HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                            primary
+                            Spacer(minLength: 0)
+                            disclosure
+                        }
+                        actionBar
+                    }
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: OrzMCTheme.Spacing.sm) {
+                    primary
+                    Spacer(minLength: 0)
+                    disclosure
                 }
             }
             footer()
@@ -76,6 +94,34 @@ struct ServerCard<Actions: View, Footer: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(OrzMCTheme.Spacing.md)
         .orzMCPanel()
+    }
+
+    /// 卡片上到底有没有动作按钮（`Actions == EmptyView` 的卡片不该留一条空的操作栏）。
+    private var hasActions: Bool {
+        (Actions.self as Any.Type) != (EmptyView.self as Any.Type)
+    }
+
+    /// 紧凑宽度下固定用底部操作栏；常规宽度留给 `ViewThatFits` 决定。
+    private var usesActionBar: Bool {
+        guard hasActions else { return false }
+        #if os(iOS)
+        return horizontalSizeClass == .compact
+        #else
+        return false
+        #endif
+    }
+
+    /// 卡片底部操作栏：一条细分隔线 + 右对齐的动作组。
+    @ViewBuilder
+    private var actionBar: some View {
+        VStack(alignment: .trailing, spacing: OrzMCTheme.Spacing.xs) {
+            Divider().opacity(0.5)
+            HStack(spacing: OrzMCTheme.Spacing.sm) {
+                Spacer(minLength: 0)
+                actions()
+            }
+            .frame(minHeight: 28)
+        }
     }
 
     @ViewBuilder
