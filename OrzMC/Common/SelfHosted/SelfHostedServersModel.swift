@@ -62,6 +62,8 @@ final class SelfHostedServersModel {
     private(set) var isFetchingLists = false
     private(set) var listError: [UUID: String] = [:]
     private(set) var isProbing = false
+    /// 列表页把所有服务器一起探一遍时的加载态（与详情页的单台 `isProbing` 分开）。
+    private(set) var isProbingAll = false
     private(set) var isSending = false
     var commandDraft = ""
 
@@ -112,6 +114,20 @@ final class SelfHostedServersModel {
         guard let selected else { return false }
         return selected.rconEnabled && selected.isConfigured
             && !(passwordProvider(selected.id) ?? "").isEmpty
+    }
+
+    // MARK: - 按 id 的访问器（列表页每张卡片都要用）
+
+    func status(for id: UUID) -> MCStatusSummary? { status[id] }
+    func statusErrorText(for id: UUID) -> String? { statusError[id] }
+    func lastUpdated(for id: UUID) -> Date? { lastUpdatedAt[id] }
+
+    func playersText(for id: UUID) -> String? {
+        guard let current = status[id],
+              let online = current.playersOnline,
+              let max = current.playersMax
+        else { return nil }
+        return String(localized: "\(online)/\(max) players")
     }
 
     var currentStatus: MCStatusSummary? { selected.flatMap { status[$0.id] } }
@@ -223,27 +239,78 @@ enum SelfHostedFakeServer {
         guard let profile = selected, profile.isConfigured, !isProbing else { return }
         #if DEBUG
         if SelfHostedFakeServer.isEnabled {
-            status[profile.id] = SelfHostedFakeServer.status
-            statusError[profile.id] = nil
-            lastUpdatedAt[profile.id] = .now
-            notifier.observe(profile, isOnline: true)
+            applyFakeStatus(to: profile)
             return
         }
         #endif
         isProbing = true
         defer { isProbing = false }
+        apply(await probeResult(profile), to: profile)
+    }
+
+    /// 列表页：把**所有**已配置的服务器并行探一遍（每张卡片一个状态）。
+    ///
+    /// 以前只有"当前选中"那台会探测（`refreshStatus`），列表里其它服务器永远是空白 ——
+    /// 改成卡片列表后每张卡都要有自己的状态，所以这里并发探测，互不阻塞。
+    func refreshAllStatuses() async {
+        let targets = profiles.servers.filter(\.isConfigured)
+        guard !targets.isEmpty, !isProbingAll else { return }
+        #if DEBUG
+        if SelfHostedFakeServer.isEnabled {
+            targets.forEach(applyFakeStatus(to:))
+            return
+        }
+        #endif
+        isProbingAll = true
+        defer { isProbingAll = false }
+        let probe = self.probe
+        await withTaskGroup(of: (UUID, Result<MCStatusSummary, Error>).self) { group in
+            for profile in targets {
+                group.addTask {
+                    do {
+                        return (profile.id, .success(try await probe.status(host: profile.host, port: Int32(profile.port))))
+                    } catch {
+                        return (profile.id, .failure(error))
+                    }
+                }
+            }
+            for await (id, result) in group {
+                guard let profile = targets.first(where: { $0.id == id }) else { continue }
+                apply(result, to: profile)
+            }
+        }
+    }
+
+    private func probeResult(_ profile: SelfHostedServerProfile) async -> Result<MCStatusSummary, Error> {
         do {
-            let summary = try await probe.status(host: profile.host, port: Int32(profile.port))
+            return .success(try await probe.status(host: profile.host, port: Int32(profile.port)))
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private func apply(_ result: Result<MCStatusSummary, Error>, to profile: SelfHostedServerProfile) {
+        switch result {
+        case .success(let summary):
             status[profile.id] = summary
             statusError[profile.id] = nil
             lastUpdatedAt[profile.id] = .now
             notifier.observe(profile, isOnline: true)
-        } catch {
+        case .failure(let error):
             statusError[profile.id] = SelfHostedErrorText.describe(error, address: profile.address)
             // 查询失败 = 连不上（离线）。**注意**：第一次查询就失败不弹通知（还没有基准）。
             notifier.observe(profile, isOnline: false)
         }
     }
+
+    #if DEBUG
+    private func applyFakeStatus(to profile: SelfHostedServerProfile) {
+        status[profile.id] = SelfHostedFakeServer.status
+        statusError[profile.id] = nil
+        lastUpdatedAt[profile.id] = .now
+        notifier.observe(profile, isOnline: true)
+    }
+    #endif
 
     // MARK: - 控制台
 

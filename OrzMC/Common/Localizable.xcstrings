@@ -181,6 +181,28 @@
         }
       }
     },
+    "Account actions": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号操作"
+          }
+        }
+      }
+    },
+    "Account name": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号名称"
+          }
+        }
+      }
+    },
     "Actions": {
       "localizations": {
         "zh-Hans": {
@@ -207,6 +229,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "这些操作在 exaroton 一侧执行；停止和重启会断开在线玩家。"
+          }
+        }
+      }
+    },
+    "Add Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加账号"
           }
         }
       }
@@ -257,6 +290,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加服务器…"
+          }
+        }
+      }
+    },
+    "Add a Minecraft server you run yourself (address + port). The app checks it with Server List Ping; turn on RCON to run console commands.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一台你自己运行的服务器（地址 + 端口）。本应用用 Server List Ping 查状态；想发控制台命令就再打开 RCON。"
+          }
+        }
+      }
+    },
+    "Add an account to see its instances.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加账号以查看其下的实例。"
+          }
+        }
+      }
+    },
+    "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
+      "comment": "Remote hosting page empty state",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一个 exaroton 账号，或一个 MCSManager 面板（地址 + API Key），这里就会列出它们的服务器。"
           }
         }
       }
@@ -1031,6 +1097,17 @@
         }
       }
     },
+    "Could not load saved accounts.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取已保存的账号。"
+          }
+        }
+      }
+    },
     "Could not load server memory.": {
       "localizations": {
         "zh-Hans": {
@@ -1047,6 +1124,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法打开这个目录：%@"
+          }
+        }
+      }
+    },
+    "Could not remove account credentials. Please try again.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移除账号凭据，请重试。"
           }
         }
       }
@@ -1077,6 +1165,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法请求停止服务器。"
+          }
+        }
+      }
+    },
+    "Could not save account credentials. Please try again.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存账号凭据，请重试。"
           }
         }
       }
@@ -1197,6 +1296,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "调试"
+          }
+        }
+      }
+    },
+    "Decrease font size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缩小字号"
           }
         }
       }
@@ -1397,6 +1506,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "每个服务端核心有独立的目录、控制台与生命周期。"
+          }
+        }
+      }
+    },
+    "Edit Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑账号"
           }
         }
       }
@@ -1709,6 +1829,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "隐藏令牌"
+          }
+        }
+      }
+    },
+    "Increase font size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放大字号"
           }
         }
       }
@@ -2103,6 +2233,16 @@
         }
       }
     },
+    "Log display": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日志显示"
+          }
+        }
+      }
+    },
     "Log only — the Minecraft client does not accept console commands.": {
       "localizations": {
         "zh-Hans": {
@@ -2343,6 +2483,16 @@
         }
       }
     },
+    "No matching logs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的日志"
+          }
+        }
+      }
+    },
     "No output yet": {
       "localizations": {
         "zh-Hans": {
@@ -2379,6 +2529,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "还没有添加服务器"
+          }
+        }
+      }
+    },
+    "No servers yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有服务器"
           }
         }
       }
@@ -3303,6 +3464,17 @@
         }
       }
     },
+    "Remove Account": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除账号"
+          }
+        }
+      }
+    },
     "Remove Panel": {
       "localizations": {
         "zh-Hans": {
@@ -3743,56 +3915,6 @@
         }
       }
     },
-    "Decrease font size": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "缩小字号"
-          }
-        }
-      }
-    },
-    "Increase font size": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "放大字号"
-          }
-        }
-      }
-    },
-    "Wrap lines": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动换行"
-          }
-        }
-      }
-    },
-    "Log display": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "日志显示"
-          }
-        }
-      }
-    },
-    "No matching logs": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "没有匹配的日志"
-          }
-        }
-      }
-    },
     "Search log": {
       "localizations": {
         "zh-Hans": {
@@ -3839,6 +3961,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择一个版本、输入用户名，并检查内存设置。"
+          }
+        }
+      }
+    },
+    "Self-hosted": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自建"
           }
         }
       }
@@ -4019,6 +4152,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "服务端生命周期"
+          }
+        }
+      }
+    },
+    "Server removed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器已删除"
           }
         }
       }
@@ -4975,12 +5119,34 @@
         }
       }
     },
+    "This account is already added.": {
+      "comment": "Remote hosting account management",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账号已添加。"
+          }
+        }
+      }
+    },
     "This panel is already added.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "这个面板已经添加过了。"
+          }
+        }
+      }
+    },
+    "This server is no longer in your list.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台服务器已不在你的列表里。"
           }
         }
       }
@@ -5435,6 +5601,16 @@
         }
       }
     },
+    "Wrap lines": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动换行"
+          }
+        }
+      }
+    },
     "Yesterday": {
       "localizations": {
         "zh-Hans": {
@@ -5652,127 +5828,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "系统快捷键（⌘Space、⌃↑ 等）和其它 App 注册的全局热键会在系统层先被拦下，本应用收不到——某条快捷键没反应时，先去「系统设置 → 键盘 → 快捷键」查是否被占用。"
-          }
-        }
-      }
-    },
-    "Add Account": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加账号"
-          }
-        }
-      }
-    },
-    "Edit Account": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "编辑账号"
-          }
-        }
-      }
-    },
-    "Remove Account": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "移除账号"
-          }
-        }
-      }
-    },
-    "Account name": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "账号名称"
-          }
-        }
-      }
-    },
-    "Account actions": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "账号操作"
-          }
-        }
-      }
-    },
-    "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
-      "comment": "Remote hosting page empty state",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加一个 exaroton 账号，或一个 MCSManager 面板（地址 + API Key），这里就会列出它们的服务器。"
-          }
-        }
-      }
-    },
-    "Add an account to see its instances.": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加账号以查看其下的实例。"
-          }
-        }
-      }
-    },
-    "Could not load saved accounts.": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法读取已保存的账号。"
-          }
-        }
-      }
-    },
-    "This account is already added.": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此账号已添加。"
-          }
-        }
-      }
-    },
-    "Could not save account credentials. Please try again.": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法保存账号凭据，请重试。"
-          }
-        }
-      }
-    },
-    "Could not remove account credentials. Please try again.": {
-      "comment": "Remote hosting account management",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法移除账号凭据，请重试。"
           }
         }
       }
