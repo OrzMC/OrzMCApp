@@ -18,6 +18,7 @@
 
 import Foundation
 import OrzMCFoundation
+import Security
 
 enum ServerSecretsStore {
 
@@ -31,7 +32,7 @@ enum ServerSecretsStore {
         var recordProvider: String {
             switch self {
             case .selfHostedRCON: return "selfhosted.rcon"
-            case .exarotonToken: return "exaroton.token"
+            case .exarotonToken: return "exaroton.account"
             case .mcsmAPIKey: return "mcsm.panel"
             }
         }
@@ -222,6 +223,70 @@ enum ServerSecretsStore {
         return live
     }
 
+    /// 共享 Keychain 访问组（`iCloud` 档位用它；与应用默认组并存，老数据不受影响）。
+    ///
+    /// 命名约定：`<TeamID>.com.joker.OrzMC.shared` —— entitlements 里写成
+    /// `$(AppIdentifierPrefix)com.joker.OrzMC.shared`，团队前缀由签名注入。
+    static let sharedAccessGroupSuffix = "com.joker.OrzMC.shared"
+
+    /// 从**签名**里拿共享访问组；没开启 Keychain Sharing 时返回 `nil`
+    /// → `iCloud` 档位置灰，而不是"写进去但静默不同步"。
+    static func sharedAccessGroup() -> String? {
+        #if os(macOS)
+        // macOS：直接读进程的 code signing entitlements。
+        guard let task = SecTaskCreateFromSelf(nil),
+              let groups = SecTaskCopyValueForEntitlement(
+                  task, "keychain-access-groups" as CFString, nil
+              ) as? [String]
+        else { return nil }
+        return groups.first { $0.hasSuffix(sharedAccessGroupSuffix) }
+        #else
+        // iOS：entitlements 不暴露给进程，改从**内嵌描述文件**取 TeamID 拼出候选组，
+        // 再用一次"写探针 + 删探针"确认这个组真的能用（没开能力时会 errSecMissingEntitlement）。
+        guard let team = embeddedTeamIdentifier() else { return nil }
+        let candidate = "\(team).\(sharedAccessGroupSuffix)"
+        return probeAccessGroup(candidate) ? candidate : nil
+        #endif
+    }
+
+    #if os(iOS)
+    /// 从 `embedded.mobileprovision`（CMS 签名的 plist）里取第一个 `TeamIdentifier`。
+    private static func embeddedTeamIdentifier() -> String? {
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let data = try? Data(contentsOf: url),
+              let start = data.range(of: Data("<?xml".utf8)),
+              let end = data.range(of: Data("</plist>".utf8)),
+              start.lowerBound < end.upperBound
+        else { return nil }
+        let plist = data.subdata(in: start.lowerBound..<end.upperBound)
+        guard let object = try? PropertyListSerialization.propertyList(from: plist, format: nil),
+              let dict = object as? [String: Any],
+              let teams = dict["TeamIdentifier"] as? [String]
+        else { return nil }
+        return teams.first
+    }
+
+    /// 用一次性探针项确认访问组可用（写完立刻删）。
+    private static func probeAccessGroup(_ group: String) -> Bool {
+        let service = "com.joker.OrzMC.sync.probe"
+        let base: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "probe",
+            kSecAttrAccessGroup as String: group,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        SecItemDelete(base as CFDictionary)
+        var add = base
+        add[kSecValueData as String] = Data("1".utf8)
+        add[kSecAttrSynchronizable as String] = true
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let status = SecItemAdd(add as CFDictionary, nil)
+        SecItemDelete(base as CFDictionary)
+        return status == errSecSuccess
+    }
+    #endif
+
     nonisolated(unsafe) private static let live: Configuration = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("OrzMC/records", isDirectory: true)
@@ -230,11 +295,13 @@ enum ServerSecretsStore {
             service: "com.joker.OrzMC.installation",
             synchronizable: false
         )
+        // 只有签名里真的带共享访问组时才启用同步后端；否则保持"不支持"（界面置灰）。
+        let iCloud: (any ServerRecordBackend)? = sharedAccessGroup().map { group in
+            ServerRecordKeychain(service: "com.joker.OrzMC.sync", synchronizable: true, accessGroup: group)
+        }
         return Configuration(
             installation: ServerRecordInstallation(directory: support, keychain: keyStore),
-            // P4 之前 iCloud 后端一律不可用：没有共享访问组时强行写会静默不同步，
-            // 界面会因此谎报"已同步"。这里先明确"不支持"。
-            iCloud: nil
+            iCloud: iCloud
         )
     }()
 }

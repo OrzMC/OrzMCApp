@@ -16,11 +16,24 @@ struct MCSManagerPanel: Identifiable, Equatable, Codable, Sendable {
     var label: String
     /// 面板根地址（已规范化：有 scheme、无尾部斜杠）。
     var url: URL
+    /// 这条面板（含 API Key）的保存方式；老存档没有该字段 → `.device`。
+    var storageMode: ServerRecordStorageMode = .device
 
-    init(id: UUID = UUID(), label: String, url: URL) {
+    init(id: UUID = UUID(), label: String, url: URL, storageMode: ServerRecordStorageMode = .device) {
         self.id = id
         self.label = label
         self.url = url
+        self.storageMode = storageMode
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, label, url, storageMode }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        label = try c.decode(String.self, forKey: .label)
+        url = try c.decode(URL.self, forKey: .url)
+        storageMode = try c.decodeIfPresent(ServerRecordStorageMode.self, forKey: .storageMode) ?? .device
     }
 
     /// 从用户输入解析面板地址。
@@ -119,7 +132,8 @@ enum MCSManagerCredentials {
             return demo
         }
         #endif
-        guard let key = KeychainStore.get(account: keychainAccountPrefix + id.uuidString) else {
+        let mode = panels().first { $0.id == id }?.storageMode ?? .device
+        guard let key = ServerSecretsStore.secret(id: id, provider: .mcsmAPIKey, mode: mode) else {
             return nil
         }
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -128,14 +142,15 @@ enum MCSManagerCredentials {
 
     static func saveAPIKey(_ apiKey: String, for id: UUID) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mode = panels().first { $0.id == id }?.storageMode ?? .device
         if trimmed.isEmpty {
-            KeychainStore.remove(account: keychainAccountPrefix + id.uuidString)
+            ServerSecretsStore.remove(id: id, provider: .mcsmAPIKey)
         } else {
-            KeychainStore.set(trimmed, account: keychainAccountPrefix + id.uuidString)
+            ServerSecretsStore.save(trimmed, id: id, provider: .mcsmAPIKey, mode: mode)
         }
     }
 
     static func removeAPIKey(for id: UUID) {
-        KeychainStore.remove(account: keychainAccountPrefix + id.uuidString)
+        ServerSecretsStore.remove(id: id, provider: .mcsmAPIKey)
     }
 }

@@ -1,3 +1,4 @@
+import OrzMCFoundation
 import XCTest
 import OrzMCRemoteHosting
 
@@ -125,9 +126,9 @@ final class ExarotonHostingProviderTests: XCTestCase {
 @MainActor
 final class ExarotonAccountsTests: XCTestCase {
     private final class MemoryCredentials {
-        var tokens: [String: String] = [:]
+        var tokens: [UUID: String] = [:]
         var failWrites = false
-        func save(_ token: String, key: String) throws {
+        func save(_ token: String, key: UUID, mode: ServerRecordStorageMode) throws {
             if failWrites { throw NSError(domain: "test", code: 1) }
             tokens[key] = token
         }
@@ -138,14 +139,14 @@ final class ExarotonAccountsTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = MemoryCredentials()
-        store.tokens[ExarotonServerModel.accountTokenPersistentKey] = "legacy-token"
+        defaults.set("legacy-token", forKey: ExarotonServerModel.accountTokenPersistentKey)
         let model = ExarotonAccountsModel(defaults: defaults,
-            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            loadToken: { id, _ in store.tokens[id] }, saveToken: { try store.save($0, key: $1, mode: $2) },
             deleteToken: { store.tokens[$0] = nil })
         XCTAssertEqual(model.accounts.count, 1)
         let first = try XCTUnwrap(model.accounts.first)
         XCTAssertEqual(model.models[first.id]?.token, "legacy-token")
-        XCTAssertNil(store.tokens[ExarotonServerModel.accountTokenPersistentKey])
+        XCTAssertNil(defaults.string(forKey: ExarotonServerModel.accountTokenPersistentKey))
         XCTAssertTrue(model.save(id: nil, label: "Second", token: "second-token"))
         let second = try XCTUnwrap(model.accounts.last)
         XCTAssertFalse(model.save(id: nil, label: "Duplicate", token: "second-token"))
@@ -164,7 +165,7 @@ final class ExarotonAccountsTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = MemoryCredentials()
         let model = ExarotonAccountsModel(defaults: defaults,
-            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            loadToken: { id, _ in store.tokens[id] }, saveToken: { try store.save($0, key: $1, mode: $2) },
             deleteToken: { store.tokens[$0] = nil })
         XCTAssertTrue(model.save(id: nil, label: "", token: "token-a"))
         let id = try XCTUnwrap(model.accounts.first?.id)
@@ -181,7 +182,7 @@ final class ExarotonAccountsTests: XCTestCase {
         await model.resolveDefaultName(for: id, lookup: { _ in "Should not replace" })
         XCTAssertEqual(model.accounts.first?.label, "My label")
         let restored = ExarotonAccountsModel(defaults: defaults,
-            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            loadToken: { id, _ in store.tokens[id] }, saveToken: { try store.save($0, key: $1, mode: $2) },
             deleteToken: { store.tokens[$0] = nil })
         XCTAssertEqual(restored.accounts.first?.label, "My label")
     }
@@ -194,9 +195,9 @@ final class ExarotonAccountsTests: XCTestCase {
         let id = UUID()
         let legacy = "[{\"id\":\"\(id.uuidString)\",\"label\":\"exaroton\"}]"
         defaults.set(Data(legacy.utf8), forKey: ExarotonAccountsModel.accountsKey)
-        store.tokens[ExarotonAccountsModel.tokenKey(id)] = "legacy-token"
+        store.tokens[id] = "legacy-token"
         let model = ExarotonAccountsModel(defaults: defaults,
-            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            loadToken: { id, _ in store.tokens[id] }, saveToken: { try store.save($0, key: $1, mode: $2) },
             deleteToken: { store.tokens[$0] = nil })
         XCTAssertNotEqual(model.accounts.first?.displayName, "exaroton")
         await model.resolveDefaultName(for: id, lookup: { _ in "exaroton" })
@@ -208,14 +209,14 @@ final class ExarotonAccountsTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = MemoryCredentials()
-        store.tokens[ExarotonServerModel.accountTokenPersistentKey] = "legacy-token"
+        defaults.set("legacy-token", forKey: ExarotonServerModel.accountTokenPersistentKey)
         store.failWrites = true
         let model = ExarotonAccountsModel(defaults: defaults,
-            loadToken: { store.tokens[$0] }, saveToken: { try store.save($0, key: $1) },
+            loadToken: { id, _ in store.tokens[id] }, saveToken: { try store.save($0, key: $1, mode: $2) },
             deleteToken: { store.tokens[$0] = nil })
         XCTAssertTrue(model.accounts.isEmpty)
         XCTAssertNotNil(model.errorMessage)
-        XCTAssertEqual(store.tokens[ExarotonServerModel.accountTokenPersistentKey], "legacy-token")
+        XCTAssertEqual(defaults.string(forKey: ExarotonServerModel.accountTokenPersistentKey), "legacy-token")
         XCTAssertNil(defaults.data(forKey: ExarotonAccountsModel.accountsKey))
     }
 }
