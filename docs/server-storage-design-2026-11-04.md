@@ -26,9 +26,9 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **P1 存储核心** | `ServerRecordBackend`（安装内加密文件 / 本机 Keychain / iCloud Keychain）、`ServerRecordMigration`（先写后验再删源）、`ServerRecordStore`（按档位路由 + 迁移 + 如实报错） | ✅ 已完成，10 + 7 条单测 |
-| **P2 接到现有三处** | 自建服务器（RCON 密码）✅ 已接线；Exaroton Token / MCSManager API Key 待接。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
+| **P2 接到现有三处** | ✅ 三处都已接线（自建 RCON 密码 / Exaroton Token / MCSManager API Key）。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
 | **P3 界面** | 每台服务器 / 每个账号的「保存方式」选择（三档 + 说明）、迁移中的进度与失败提示、显式"清除本机资料"入口（macOS 删应用不会清 `Application Support`） | 待做 |
-| **P4 iCloud 真机验证** | 需要同一团队、匹配的 Keychain 访问组与 iCloud 钥匙串能力；用真实签名的 macOS + iOS、同一 Apple 账号验证写入/同步/删除/重装恢复 | 待做（依赖签名配置） |
+| **P4 iCloud 真机验证** | 共享访问组已定名 `com.joker.OrzMC.shared`（entitlements 写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），运行时自动从签名里读；**卡在签名**：本机 Xcode 未登录 Apple 账号、App ID 未开 Keychain Sharing，加 entitlement 后 `xcodebuild` 直接报 `No Accounts / No profiles`。需要在 Xcode 里给两个 target 勾上 Keychain Sharing 能力后再验 | 待做（依赖签名配置） |
 
 ### P1 的接口约定（后续实现别绕开）
 
@@ -65,3 +65,18 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 - 每台服务器 / 每个账号的「保存方式」三档选择（`isAvailable` 为假的档位置灰 + 说明文案）；
 - 切换档位时调用 `move(from:to:)`，失败就地提示且不影响原数据；
 - macOS 需要显式「清除本机资料」入口（把应用拖进废纸篓不会清 `Application Support`）。
+
+### P4 预置：访问组命名与运行时探测（2026-11-08）
+
+- 选定的共享访问组：**`com.joker.OrzMC.shared`**（实际字符串 = `<TeamID>.com.joker.OrzMC.shared`）。
+  entitlements 里写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`，并且**必须同时保留**
+  `$(AppIdentifierPrefix)$(CFBundleIdentifier)` —— 否则升级后老 Keychain 项读不到。
+- `ServerSecretsStore.sharedAccessGroup()` 从**签名里的 entitlements** 读这个组：
+  有 → `.iCloud` 后端启用（`ServerRecordKeychain(service: "com.joker.OrzMC.sync", synchronizable: true, accessGroup: …)`）；
+  没有 → `.iCloud` 不可用（界面置灰）。
+- **本次没有打开 entitlement**：试过在 `project.pbxproj` 里加 `CODE_SIGN_ENTITLEMENTS`，
+  签名立刻失败（`No Accounts: Add a new account in Accounts settings` / `No profiles for 'com.joker.OrzMC'`）。
+  这台机器上 `xcodebuild` 没有 Apple 账号、App ID 也没开 Keychain Sharing。
+  **需要维护者在 Xcode 里**：登录 Apple 账号 → 两个 target（macOS `com.joker.OrzMC`、iOS `com.joker.OrzMC.iOS`）
+  的 Signing & Capabilities 里加 Keychain Sharing，组名填 `com.joker.OrzMC.shared`，
+  然后重新装开发包，此时 `.iCloud` 档位会自动从"置灰"变成"可用"（无需再改代码）。

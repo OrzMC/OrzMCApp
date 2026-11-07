@@ -1,10 +1,30 @@
 import Foundation
+import OrzMCFoundation
 import Observation
 
 struct ExarotonAccount: Identifiable, Codable, Equatable {
     let id: UUID
     var label: String
     var autoName: Bool? = nil
+    /// 这条账号（含 Token）的保存方式；老存档没有该字段 → `.device`（与升级前一致）。
+    var storageMode: ServerRecordStorageMode = .device
+
+    private enum CodingKeys: String, CodingKey { case id, label, autoName, storageMode }
+
+    init(id: UUID, label: String, autoName: Bool? = nil, storageMode: ServerRecordStorageMode = .device) {
+        self.id = id
+        self.label = label
+        self.autoName = autoName
+        self.storageMode = storageMode
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        label = try c.decode(String.self, forKey: .label)
+        autoName = try c.decodeIfPresent(Bool.self, forKey: .autoName)
+        storageMode = try c.decodeIfPresent(ServerRecordStorageMode.self, forKey: .storageMode) ?? .device
+    }
 
     var displayName: String {
         label.isEmpty || (label.lowercased() == "exaroton" && autoName == nil) ? String(localized: "Account") : label
@@ -20,17 +40,26 @@ final class ExarotonAccountsModel {
     var errorMessage: String?
     private var isDemo = false
     private let defaults: UserDefaults
-    private let loadToken: (String) -> String?
-    private let saveToken: (String, String) throws -> Void
-    private let deleteToken: (String) throws -> Void
+    /// Token 读写：`(账号 id, 该账号的保存方式)` → 口令。档位跟着账号自己走。
+    private let loadToken: (UUID, ServerRecordStorageMode) -> String?
+    private let saveToken: (String, UUID, ServerRecordStorageMode) throws -> Void
+    private let deleteToken: (UUID) throws -> Void
     static let accountsKey = "EXAROTON_ACCOUNTS"
     static func tokenKey(_ id: UUID) -> String { "exaroton.account." + id.uuidString }
 
     init(
         defaults: UserDefaults = .standard,
-        loadToken: @escaping (String) -> String? = { KeychainTokenStore.load(key: $0) },
-        saveToken: @escaping (String, String) throws -> Void = { try KeychainTokenStore.save($0, key: $1) },
-        deleteToken: @escaping (String) throws -> Void = { try KeychainTokenStore.delete(key: $0) }
+        loadToken: @escaping (UUID, ServerRecordStorageMode) -> String? = {
+            ServerSecretsStore.secret(id: $0, provider: .exarotonToken, mode: $1)
+        },
+        saveToken: @escaping (String, UUID, ServerRecordStorageMode) throws -> Void = { secret, id, mode in
+            guard ServerSecretsStore.save(secret, id: id, provider: .exarotonToken, mode: mode) else {
+                throw ServerSecretsStore.Failure.writeFailed
+            }
+        },
+        deleteToken: @escaping (UUID) throws -> Void = { id in
+            ServerSecretsStore.remove(id: id, provider: .exarotonToken)
+        }
     ) {
         self.defaults = defaults
         self.loadToken = loadToken
@@ -59,14 +88,15 @@ final class ExarotonAccountsModel {
         } else {
             // Keep the legacy credential until both the new Keychain item and metadata exist.
             let legacyKey = ExarotonServerModel.accountTokenPersistentKey
-            let legacy = loadToken(legacyKey) ?? defaults.string(forKey: legacyKey) ?? ""
+            let legacy = defaults.string(forKey: legacyKey) ?? ""
             if !legacy.isEmpty, save(id: nil, label: "", token: legacy) {
-                try? deleteToken(legacyKey)
                 defaults.removeObject(forKey: legacyKey)
             }
         }
         for account in accounts where models[account.id] == nil {
-            models[account.id] = ExarotonServerModel(accountToken: loadToken(Self.tokenKey(account.id)) ?? "")
+            models[account.id] = ExarotonServerModel(
+                accountToken: loadToken(account.id, account.storageMode) ?? ""
+            )
         }
 
     }
@@ -76,22 +106,26 @@ final class ExarotonAccountsModel {
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         let accountID = id ?? UUID()
         guard id == nil || accounts.contains(where: { $0.id == accountID }) else { return false }
-        let key = Self.tokenKey(accountID)
-        let credential = trimmed.isEmpty && id != nil ? loadToken(key) ?? "" : trimmed
+        let existingMode = accounts.first { $0.id == accountID }?.storageMode ?? .device
+        let credential = trimmed.isEmpty && id != nil ? loadToken(accountID, existingMode) ?? "" : trimmed
         guard !credential.isEmpty else {
             errorMessage = String(localized: "The API key is empty.")
             return false
         }
-        guard !accounts.contains(where: { $0.id != accountID && loadToken(Self.tokenKey($0.id)) == credential }) else {
+        guard !accounts.contains(where: {
+            $0.id != accountID && loadToken($0.id, $0.storageMode) == credential
+        }) else {
             errorMessage = String(localized: "This account is already added.", comment: "Duplicate credential in provider")
             return false
         }
         do {
-            try saveToken(credential, key)
+            try saveToken(credential, accountID, existingMode)
             let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
             let previous = accounts.first(where: { $0.id == accountID })
             let automatic = name.isEmpty || (previous?.autoName == true && previous?.label == name)
-            let account = ExarotonAccount(id: accountID, label: name, autoName: automatic)
+            let account = ExarotonAccount(
+                id: accountID, label: name, autoName: automatic, storageMode: existingMode
+            )
             var updated = accounts
             if let index = updated.firstIndex(where: { $0.id == accountID }) { updated[index] = account }
             else { updated.append(account) }
@@ -143,7 +177,7 @@ final class ExarotonAccountsModel {
 
     func remove(_ id: UUID) {
         do {
-            try deleteToken(Self.tokenKey(id))
+            try deleteToken(id)
             let updated = accounts.filter { $0.id != id }
             defaults.set(try JSONEncoder().encode(updated), forKey: Self.accountsKey)
             models[id]?.stopBackgroundRefresh()
