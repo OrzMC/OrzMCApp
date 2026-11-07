@@ -78,7 +78,7 @@ struct GameView: View {
                 } label: {
                     Label("Servers", systemImage: "server.rack")
                 }
-                .help("Check your own server and manage exaroton servers in a separate window")
+                .help("Check your own server and manage Exaroton servers in a separate window")
             }
         }
     }

@@ -16,7 +16,7 @@ struct ExarotonTradeMarkView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 30, height: 30)
                     .offset(y: 3)
-                Text("exaroton")
+                Text(verbatim: "Exaroton")
                     .font(.title)
                     .bold()
             }

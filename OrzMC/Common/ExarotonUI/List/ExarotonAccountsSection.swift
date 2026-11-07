@@ -18,7 +18,7 @@ struct ExarotonAccountsSection: View {
 
     var body: some View {
         RemoteProviderSection(
-            name: "exaroton",
+            name: "Exaroton",
             systemImage: "cloud",
             count: instanceCount,
             identifier: "exaroton.section"
@@ -94,7 +94,7 @@ struct ExarotonAccountEditorSheet: View {
                 .textInputAutocapitalization(.never)
                 #endif
             } footer: {
-                Text("Stored in the macOS/iOS keychain and only used for exaroton requests.")
+                Text("Stored in the macOS/iOS keychain and only used for Exaroton requests.")
             }
             if let error = accounts.errorMessage {
                 Text(verbatim: error).foregroundStyle(OrzMCTheme.Palette.danger)

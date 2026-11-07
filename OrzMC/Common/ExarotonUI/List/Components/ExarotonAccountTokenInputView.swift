@@ -26,7 +26,7 @@ struct ExarotonAccountTokenInputView: View {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
                 Text("Input Account Token")
                     .font(.headline)
-                Text("Stored in the macOS/iOS keychain and only used for exaroton requests.")
+                Text("Stored in the macOS/iOS keychain and only used for Exaroton requests.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

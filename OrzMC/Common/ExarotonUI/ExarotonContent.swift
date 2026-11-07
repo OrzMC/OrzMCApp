@@ -144,7 +144,7 @@ private extension ExarotonContent {
                 ContentState(
                     title: String(localized: "No remote servers"),
                     message: String(
-                        localized: "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here."
+                        localized: "Add an Exaroton account or an MCSManager panel (address + API Key) to see its servers here."
                     ),
                     systemImage: "server.rack"
                 )

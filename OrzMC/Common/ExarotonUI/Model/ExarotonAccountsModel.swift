@@ -7,7 +7,7 @@ struct ExarotonAccount: Identifiable, Codable, Equatable {
     var autoName: Bool? = nil
 
     var displayName: String {
-        label.isEmpty || (label == "exaroton" && autoName == nil) ? String(localized: "Account") : label
+        label.isEmpty || (label.lowercased() == "exaroton" && autoName == nil) ? String(localized: "Account") : label
     }
 }
 
@@ -43,7 +43,7 @@ final class ExarotonAccountsModel {
             stop()
             let count = env["ORZMC_DEMO_MULTI_ACCOUNT"] == "1" ? 2 : 1
             for index in 1...count {
-                let account = ExarotonAccount(id: UUID(), label: count == 1 ? "" : "exaroton \(index)", autoName: count == 1)
+                let account = ExarotonAccount(id: UUID(), label: count == 1 ? "" : "Exaroton \(index)", autoName: count == 1)
                 accounts.append(account)
                 models[account.id] = ExarotonServerModel(accountToken: env["ORZMC_DEMO_FAKE_SERVER"] == "1" ? "" : env["ORZMC_DEMO_TOKEN"])
             }
@@ -122,12 +122,12 @@ final class ExarotonAccountsModel {
         let env = ProcessInfo.processInfo.environment
         if env["ORZMC_DEMO_FAKE_SERVER"] == "1" { return }
         #endif
-        guard let account = accounts.first(where: { $0.id == id }), (account.autoName ?? (account.label == "exaroton")),
+        guard let account = accounts.first(where: { $0.id == id }), (account.autoName ?? (account.label.lowercased() == "exaroton")),
               let model = models[id], !model.token.isEmpty else { return }
         do {
             guard let name = try await lookup(model)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !name.isEmpty, let index = accounts.firstIndex(where: { $0.id == id }),
-                  (accounts[index].autoName ?? (accounts[index].label == "exaroton")),
+                  (accounts[index].autoName ?? (accounts[index].label.lowercased() == "exaroton")),
                   models[id] === model else { return }
             guard accounts[index].label != name || accounts[index].autoName == nil else { return }
             var updated = accounts

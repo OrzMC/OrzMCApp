@@ -785,12 +785,12 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertLessThan(add.frame.midY, exaroton.frame.midY, "添加入口应在分组之上")
 
         add.tap()
-        XCTAssertTrue(app.buttons["exaroton"].waitForExistence(timeout: 10), "菜单里应有 exaroton")
+        XCTAssertTrue(app.buttons["Exaroton"].waitForExistence(timeout: 10), "菜单里应有 Exaroton")
         XCTAssertTrue(app.buttons["MCSManager"].exists, "菜单里应有 MCSManager")
-        app.buttons["exaroton"].tap()
-        // 选了哪家就弹哪家的表单：exaroton = 账号名 + TOKEN。
+        app.buttons["Exaroton"].tap()
+        // 选了哪家就弹哪家的表单：Exaroton = 账号名 + TOKEN。
         XCTAssertTrue(app.textFields["exaroton.nameField"].waitForExistence(timeout: 15),
-                      "选中 exaroton 后应弹出账号表单")
+                      "选中 Exaroton 后应弹出账号表单")
         XCTAssertTrue(app.secureTextFields["exaroton.tokenField"].exists)
         app.buttons["取消"].tap()
     }
@@ -826,13 +826,13 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
 
         add.tap()
-        XCTAssertTrue(app.buttons["exaroton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Exaroton"].waitForExistence(timeout: 10))
         if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
             snap(app, "60-add-menu-from-empty")
         }
-        app.buttons["exaroton"].tap()
+        app.buttons["Exaroton"].tap()
         XCTAssertTrue(app.textFields["exaroton.nameField"].waitForExistence(timeout: 15),
-                      "空态页选 exaroton 后应弹出账号表单")
+                      "空态页选 Exaroton 后应弹出账号表单")
         if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
             snap(app, "61-exaroton-form-from-empty")
         }
@@ -872,9 +872,9 @@ final class RemotePanelsUITests: XCTestCase {
                            "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
         app.launch()
         allowSystemPrompts()
-        XCTAssertTrue(app.staticTexts["exaroton 1"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Exaroton 1"].waitForExistence(timeout: 20))
         app.swipeUp()
-        XCTAssertTrue(app.staticTexts["exaroton 2"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Exaroton 2"].waitForExistence(timeout: 10))
         snap(app, "accounts-exaroton-multiple")
         app.swipeUp()
         app.swipeUp()
@@ -1250,14 +1250,14 @@ extension RemotePanelsUITests {
             "在线实例应显示「在线」或「启动中…」"
         )
         XCTAssertTrue(app.staticTexts["离线"].exists, "停止的实例应显示「离线」")
-        // 玩家数（在线实例才有）
-        XCTAssertTrue(app.staticTexts["3/20"].exists)
+        // 玩家数（在线实例才有）：统一卡片语言里是「3/20 名玩家」标签
+        XCTAssertTrue(app.staticTexts["3/20 名玩家"].exists)
     }
 
-    /// 实例行的 `⋯` 菜单要有动作（启动 / 停止 / 重启）与控制台入口。
+    /// 实例卡右侧的**内联动作按钮**（2026-11-07 改版：不再是 `⋯` 下拉）。
     ///
-    /// 只验证"能打开、项都在"，不点动作 —— 动作会改实例状态，UI 用例不该有副作用。
-    func testMCSManagerInstanceMenuListsActionsAndConsole() {
+    /// 只验证"按钮都在、可用性与状态一致"，不点动作 —— 动作会改实例状态，UI 用例不该有副作用。
+    func testMCSManagerInstanceActionsAreInline() {
         let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
         app.launch()
         allowSystemPrompts()
@@ -1266,15 +1266,15 @@ extension RemotePanelsUITests {
         XCTAssertTrue(section.waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["演示生存服"].waitForExistence(timeout: 10))
 
-        let menu = app.buttons.matching(identifier: "mcsm.instanceMenu").firstMatch
-        XCTAssertTrue(menu.waitForExistence(timeout: 10), "实例行应有 ⋯ 菜单")
-        menu.tap()
-
-        // 在线实例：「停止」「重启」可用；「启动」对在线实例是灰的。
-        XCTAssertTrue(app.buttons["停止"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["重启"].exists)
-        XCTAssertTrue(app.buttons["启动"].exists)
-        XCTAssertTrue(app.buttons["控制台"].exists)
+        // 在线实例：控制台/停止/重启可用；启动置灰；强杀入口存在。
+        for id in ["mcsm.instanceAction.console", "mcsm.instanceAction.stop", "mcsm.instanceAction.restart"] {
+            XCTAssertTrue(app.buttons.matching(identifier: id).firstMatch.waitForExistence(timeout: 10),
+                          "实例卡应有 \(id) 按钮")
+        }
+        XCTAssertTrue(app.buttons.matching(identifier: "mcsm.instanceAction.start").firstMatch.exists)
+        XCTAssertTrue(app.buttons.matching(identifier: "mcsm.forceStop").firstMatch.exists)
+        XCTAssertFalse(app.buttons.matching(identifier: "mcsm.instanceMenu").firstMatch.exists,
+                       "旧的下拉菜单不应再出现")
     }
 
     /// 控制台显示日志、正确处理终端重绘，并将命令原样送到假面板。
@@ -1429,19 +1429,17 @@ extension RemotePanelsUITests {
         for _ in 0..<8 where !oldest.isHittable { console.swipeDown() }
         XCTAssertTrue(oldest.isHittable, "向上浏览应能回到最早的日志")
     }
-    /// 面板卡片 `⋯` → 「编辑账号」：编辑表单由页面层弹（重构后不能再依赖分组内部）。
+    /// 面板卡片的「编辑」图标按钮：编辑表单由页面层弹（不能再依赖分组内部）。
     @MainActor
     func testPanelMenuEditOpensEditor() {
         let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
         app.launch()
         allowSystemPrompts()
 
-        let menu = app.buttons["mcsm.panelMenu"]
-        for _ in 0..<4 where !menu.exists { app.swipeUp() }
-        XCTAssertTrue(menu.waitForExistence(timeout: 20), "面板卡应有 ⋯ 菜单")
-        menu.tap()
-        XCTAssertTrue(app.buttons["编辑账号"].waitForExistence(timeout: 10))
-        app.buttons["编辑账号"].tap()
+        let edit = app.buttons.matching(identifier: "mcsm.panelAction.edit").firstMatch
+        for _ in 0..<4 where !edit.exists { app.swipeUp() }
+        XCTAssertTrue(edit.waitForExistence(timeout: 20), "面板卡应有「编辑」图标按钮")
+        edit.tap()
         XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 15), "应弹出面板编辑表单")
         app.buttons["取消"].tap()
     }

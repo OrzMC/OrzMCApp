@@ -122,7 +122,7 @@ struct MCSManagerSection: View {
                 onRemove: {
                     mcsm.removePanel(id: panel.id)
                 },
-                identifier: "mcsm.panelMenu"
+                identifier: "mcsm.panel"
             )
         } content: {
             // 失败要能就地重试：面板抽风（令牌过期 / 网络抖动）时不必杀进程重开。
@@ -147,28 +147,28 @@ struct MCSManagerSection: View {
         }
     }
 
-    /// 一条实例行：点名字/地址 = 打开控制台；生命周期动作留在 `⋯` 里（有副作用，多一步确认）。
+    /// 一条实例：**与自建/exaroton 同一张 `ServerCard`**（信息槽、标签、动作样式都一致）。
+    ///
+    /// 点名字/地址 = 打开控制台；生命周期动作在右侧图标按钮里（强杀仍需二次确认）。
+    /// 以前这里是"玩家数 + `⋯ ⌄` 下拉胶囊"，和其它两处观感都不一样（维护者 2026-11-07 反馈）。
     private func row(_ instance: MCSManagerInstance, model: MCSManagerModel?) -> some View {
         let state = model?.state(of: instance) ?? instance.status.remoteState
 
-        return RemoteInstanceRow(
+        return ServerCard(
             name: instance.nickname,
             statusTitle: state.localizedTitle,
             statusStyle: state.statusStyle,
+            address: instance.address,
+            tags: playerTags(instance, state: state),
             onTap: {
                 guard let model else { return }
                 sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
             },
             tapIdentifier: "mcsm.instanceRow",
-            details: {
-                if let address = instance.address {
-                    Text(address)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+            actions: {
+                if let model {
+                    instanceActions(instance, model: model, state: state)
                 }
-            },
-            trailing: {
-                instanceAccessories(instance, model: model, state: state)
             },
             footer: {
                 if let model, state == .stopping, let progress = model.stopProgress(for: instance) {
@@ -184,25 +184,83 @@ struct MCSManagerSection: View {
         )
     }
 
-    /// 右侧：玩家数 → 请求中转圈 → `⋯` 动作菜单（顺序固定，窄屏也不换位置）。
+    /// 实例标签：玩家数（在线才有）+ 请求中转圈。
+    ///
+    /// 玩家数以前是右侧一个裸 `0/0`，现在按统一卡片语言放进标签行（"0/0 名玩家"）。
+    private func playerTags(_ instance: MCSManagerInstance, state: RemoteServerState) -> [String] {
+        guard let players = instance.players,
+              let current = players.current, let max = players.max,
+              state == .online
+        else { return [] }
+        return [String(localized: "\(current)/\(max) players")]
+    }
+
+    /// 右侧动作：**图标按钮组**（与主窗口实例卡头同一套：图标 + 组间细分隔线）。
+    ///
+    /// 顺序固定：控制台 → 生命周期（启动/重启/停止）→ 强杀。
+    /// 用 `[ServerActionDivider]` 分成三组，视觉上就是"看 / 控制 / 危险"。
     @ViewBuilder
-    private func instanceAccessories(
+    private func instanceActions(
         _ instance: MCSManagerInstance,
-        model: MCSManagerModel?,
+        model: MCSManagerModel,
         state: RemoteServerState
     ) -> some View {
-        if let players = instance.players,
-           let current = players.current, let max = players.max,
-           state == .online {
-            Text("\(current)/\(max)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-        }
-        if model?.isBusy(instance) == true && state != .starting && state != .stopping && state != .restarting {
-            ProgressView().controlSize(.mini)
-        }
-        if let model {
-            actionsMenu(instance, model: model, state: state)
+        ServerActionGroup {
+            if model.isBusy(instance) == true,
+               state != .starting, state != .stopping, state != .restarting {
+                ProgressView().controlSize(.mini)
+            }
+            ServerIconButton(
+                title: "Console",
+                systemImage: "terminal",
+                help: "Open this server's console",
+                identifier: "mcsm.instanceAction.console"
+            ) {
+                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+            }
+
+            ServerActionDivider()
+
+            ServerIconButton(
+                title: "Start",
+                systemImage: "play.circle",
+                help: "Start this server",
+                isEnabled: model.canPerform(.start, on: instance),
+                identifier: "mcsm.instanceAction.start"
+            ) {
+                Task { await model.perform(.start, on: instance) }
+            }
+            ServerIconButton(
+                title: "Restart",
+                systemImage: "arrow.clockwise.circle",
+                help: "Restart = stop, then start again",
+                isEnabled: model.canPerform(.restart, on: instance),
+                identifier: "mcsm.instanceAction.restart"
+            ) {
+                Task { await model.perform(.restart, on: instance) }
+            }
+            ServerIconButton(
+                title: "Stop",
+                systemImage: "stop.circle",
+                help: "Send `stop` so the server saves and exits normally",
+                isEnabled: model.canPerform(.stop, on: instance),
+                identifier: "mcsm.instanceAction.stop"
+            ) {
+                Task { await model.perform(.stop, on: instance) }
+            }
+
+            ServerActionDivider()
+
+            ServerIconButton(
+                title: "Force Stop",
+                systemImage: "xmark.octagon",
+                tint: OrzMCTheme.Palette.danger,
+                help: "Terminate the process (may lose unsaved progress)",
+                isEnabled: model.canPerform(.kill, on: instance),
+                identifier: "mcsm.forceStop"
+            ) {
+                confirmingKill = MCSManagerConsoleTarget(instance: instance, model: model)
+            }
         }
     }
 
@@ -246,43 +304,6 @@ struct MCSManagerSection: View {
         }
     }
 
-    /// 实例动作 + 控制台。动作按状态可用性置灰（过渡态一律不允许），
-    /// 与 exaroton 走同一套判据（`RemoteServerListPolicy.canPerform`）。
-    private func actionsMenu(
-        _ instance: MCSManagerInstance,
-        model: MCSManagerModel,
-        state: RemoteServerState
-    ) -> some View {
-        Menu {
-            ForEach([RemoteServerAction.start, .stop, .restart], id: \.self) { action in
-                Button {
-                    Task { await model.perform(action, on: instance) }
-                } label: {
-                    Label(action.localizedTitle, systemImage: action.systemImage)
-                }
-                .disabled(!model.canPerform(action, on: instance))
-            }
-            Divider()
-            Button(role: .destructive) {
-                confirmingKill = MCSManagerConsoleTarget(instance: instance, model: model)
-            } label: {
-                Label(RemoteServerAction.kill.localizedTitle, systemImage: RemoteServerAction.kill.systemImage)
-            }
-            .disabled(!model.canPerform(.kill, on: instance))
-            .accessibilityIdentifier("mcsm.forceStop")
-            Divider()
-            Button {
-                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
-            } label: {
-                Label(String(localized: "Console"), systemImage: "terminal")
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityIdentifier("mcsm.instanceMenu")
-        .accessibilityLabel(String(localized: "Server actions"))
-    }
 }
 
 /// 控制台 sheet 的目标（实例 + 它所属面板的模型）。

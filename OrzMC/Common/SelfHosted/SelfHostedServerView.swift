@@ -156,11 +156,10 @@ private extension SelfHostedServerView {
 
 // MARK: - 卡片
 
-/// 一台自建服务器的**信息卡片**（列表用）。
+/// 一台自建服务器的**信息卡片**。
 ///
-/// 走 `RemoteInstanceRow`（与 exaroton / MCSM 的实例行同一套骨架），外面再包一层
-/// `orzMCPanel()` —— 远程那边的面板底由"账号卡"提供，这里没有账号这一层，所以卡片自己带底。
-/// 字段顺序与远程实例卡一致：`名称 + 状态徽标` → `地址` → `标签` → `MOTD` → `更新时间`。
+/// 走统一的 `ServerCard`（自建 / exaroton / MCSManager 三处同一套排布与动作样式），
+/// 字段顺序：`名称 + 状态徽标` → `地址` → `版本/玩家/延迟` 标签 → `MOTD` → 更新时间。
 struct SelfHostedServerCard: View {
     let profile: SelfHostedServerProfile
     let status: MCStatusSummary?
@@ -180,68 +179,39 @@ struct SelfHostedServerCard: View {
         return status != nil ? .running : .idle
     }
 
+    private var tags: [String] {
+        var tags: [String] = []
+        if let version = status?.versionName { tags.append(version) }
+        if let playersText { tags.append(playersText) }
+        if let latency = status?.latencyMilliseconds, latency > 0 {
+            tags.append(String(localized: "\(latency) ms"))
+        }
+        return tags
+    }
+
     var body: some View {
-        RemoteInstanceRow(
+        ServerCard(
             name: profile.displayName,
             statusTitle: statusTitle,
             statusStyle: statusStyle,
-            showsDisclosure: true,
-            details: {
-                Text(profile.address)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                tags
-                motd
-            },
-            trailing: {
-                EmptyView()
-            },
-            footer: {
-                if let statusError {
-                    Text(verbatim: statusError)
-                        .font(.caption)
-                        .foregroundStyle(OrzMCTheme.Palette.danger)
-                        .lineLimit(2)
-                }
-                // 这一行始终存在（没有更新时间就占位），否则首次加载完成后卡片会突然长高一行。
-                Text(lastUpdated.map {
-                    String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
-                } ?? " ")
+            address: profile.address,
+            tags: tags,
+            message: status?.motd,
+            showsDisclosure: true
+        ) {
+            if let statusError {
+                Text(verbatim: statusError)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .frame(height: 14, alignment: .leading)
+                    .foregroundStyle(OrzMCTheme.Palette.danger)
+                    .lineLimit(2)
             }
-        )
-        .padding(OrzMCTheme.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .orzMCPanel()
-    }
-
-    private var tags: some View {
-        HStack(spacing: OrzMCTheme.Spacing.xs) {
-            if let version = status?.versionName {
-                OrzMCTag(version)
-            }
-            if let playersText {
-                OrzMCTag(playersText)
-            }
-            if let latency = status?.latencyMilliseconds, latency > 0 {
-                OrzMCTag(String(localized: "\(latency) ms"))
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    @ViewBuilder
-    private var motd: some View {
-        if let text = status?.motd, !text.isEmpty {
-            Text(verbatim: text)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+            // 这一行始终存在（没有更新时间就占位），否则首次加载完成后卡片会突然长高一行。
+            Text(lastUpdated.map {
+                String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
+            } ?? " ")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(height: 14, alignment: .leading)
         }
     }
 }
