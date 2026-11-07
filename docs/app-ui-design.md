@@ -526,3 +526,41 @@ exaroton 是账号卡里的平铺行、MCSM 是"玩家数 + 菜单"）。现在�
 **验证**：`testMCSManagerInstanceActionsAreInline`（内联按钮在、旧 `⋯` 菜单不再出现）、
 `testPanelMenuEditOpensEditor`、`testMCSManagerSectionShowsInstancesAndStatus`（`3/20 名玩家` 标签）、
 `testMultipleRemoteAccountsShowInstances`（账号名 `Exaroton 1/2`）。
+
+## 12. 2026-11-07 侧边栏「收起后再展开」卡顿：真因是 `.prominentDetail`
+
+维护者反馈：主窗口左侧边栏点按钮关掉、再打开时有明显卡顿。
+
+**量出来的结果**（`--test-sidebar measure`，Debug 构建，三轮往返；探针每 8ms 打点，报主线程最长停顿）：
+
+| | `.prominentDetail`（原来） | `.balanced`（现在） |
+|---|---|---|
+| **展开**（收起 → 显示） | **92–192 ms**（每轮 3–5 次 >33ms） | **11–12 ms**（0 次 >16ms） |
+| 收起（显示 → 隐藏） | 19–34 ms | 15–17 ms |
+
+**真因**：`.prominentDetail` 是"侧边栏浮在详情上"的 overlay 样式，每次展开都要重排 overlay 那一层，
+主线程一次性阻塞上百毫秒；`.balanced` 是常规分栏（详情让位），展开只是宽度动画，开销降到个位数毫秒。
+功能与观感没有可见差异（`docs/ui-sidebar-perf-2026-11-07/after-sidebar-*.png` 对照）。
+
+**排查过程中被证伪的猜想**（都实测过，别再走一遍）：
+
+| 猜想 | 实测 |
+|---|---|
+| `catalog.filtered` 每次 body 重算 | 全生命周期只调用 8–13 次、合计 2–4 ms |
+| 行内 `.help()` 提示 | 去掉后无变化 |
+| `VersionListScrollProbe` 的背景视图树遍历 | 去掉后无变化 |
+| 行高不统一导致反复测量 | 固定行高无变化 |
+| 行数太多（上千个版本） | 只剩 1 行时仍有 ~85 ms 固定开销 |
+| 侧边栏内容被销毁重建 | `GameView.onAppear` 全程只 1 次（不重建） |
+| 折叠动画本身 | 关掉动画无变化 |
+
+**复测方法**（任何改动后都能重跑）：
+
+```bash
+# 构建 Debug 后：三轮"收起 → 展开 → 收起"，打印每轮主线程最长停顿
+open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
+```
+
+⚠️ 踩过的坑：早先用 `NSApp.postEvent` 投递 ⌃⌘S 再做测量，**根本没生效**（应用不是前台时按键进不了菜单），
+量到的全是噪音。现在探针用 `NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)))`，
+并打印 `handled=` 与侧边栏的 `isHidden`，确认真的切了才算数。
