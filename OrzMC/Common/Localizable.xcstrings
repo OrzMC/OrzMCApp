@@ -397,6 +397,17 @@
         }
       }
     },
+    "Another copy of this item already exists in the target storage.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标保存方式里已存在同一条记录，未覆盖。"
+          }
+        }
+      }
+    },
     "Appearance": {
       "localizations": {
         "zh-Hans": {
@@ -1186,6 +1197,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法保存服务器内存，请重试。"
+          }
+        }
+      }
+    },
+    "Could not save to the selected storage option.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存到所选方式失败。"
           }
         }
       }
@@ -4889,6 +4911,28 @@
         }
       }
     },
+    "The item could not be verified after saving.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入后校验失败，原记录已保留。"
+          }
+        }
+      }
+    },
+    "The item was not found in its current storage.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这条记录不在它当前的保存位置里。"
+          }
+        }
+      }
+    },
     "The panel address is not valid.": {
       "localizations": {
         "zh-Hans": {
@@ -5167,6 +5211,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "这个服务端返回的状态数据本应用无法识别。"
+          }
+        }
+      }
+    },
+    "This storage option is not available on this device.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台设备暂不支持这个保存方式。"
           }
         }
       }

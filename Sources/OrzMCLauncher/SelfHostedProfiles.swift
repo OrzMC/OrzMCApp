@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import OrzMCFoundation
 
 /// 一台**自建**（自己用 `orzmc` / docker 起的）服务器的连接信息。
 ///
@@ -18,6 +19,9 @@ public struct SelfHostedServerProfile: Codable, Equatable, Sendable, Identifiabl
     /// RCON 端口；`rconEnabled == false` 时不使用。
     public var rconPort: Int
     public var rconEnabled: Bool
+    /// 这条资料（含 RCON 密码）的保存方式，见 `docs/server-storage-design-2026-11-04.md`。
+    /// 老数据没有这个字段 → 默认 `.device`（保留在本机），与升级前行为一致。
+    public var storageMode: ServerRecordStorageMode = .device
 
     public init(
         id: UUID = UUID(),
@@ -25,7 +29,8 @@ public struct SelfHostedServerProfile: Codable, Equatable, Sendable, Identifiabl
         host: String = "",
         port: Int = 25565,
         rconPort: Int = 25575,
-        rconEnabled: Bool = false
+        rconEnabled: Bool = false,
+        storageMode: ServerRecordStorageMode = .device
     ) {
         self.id = id
         self.name = name
@@ -33,6 +38,23 @@ public struct SelfHostedServerProfile: Codable, Equatable, Sendable, Identifiabl
         self.port = port
         self.rconPort = rconPort
         self.rconEnabled = rconEnabled
+        self.storageMode = storageMode
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, host, port, rconPort, rconEnabled, storageMode
+    }
+
+    /// 老存档里没有 `storageMode`：解码时按 `.device` 兜底，避免整份档案解不出来。
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        host = try container.decode(String.self, forKey: .host)
+        port = try container.decode(Int.self, forKey: .port)
+        rconPort = try container.decode(Int.self, forKey: .rconPort)
+        rconEnabled = try container.decode(Bool.self, forKey: .rconEnabled)
+        storageMode = try container.decodeIfPresent(ServerRecordStorageMode.self, forKey: .storageMode) ?? .device
     }
 
     public var isConfigured: Bool {
