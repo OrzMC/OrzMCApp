@@ -61,6 +61,12 @@ enum WindowSnapshot {
             }
             return true
         }
+        if let raw = value(after: "--test-sidebar", in: args) {
+            // `--test-sidebar hide|show|cycle[,delay]`：侧边栏切换的性能探针。
+            // 只做一件事：到点向本应用投递 ⌃⌘S（与菜单「显示/隐藏侧边栏」同一条命令），
+            // 方便配合 `sample` / Instruments 抓那一段的主线程与帧。
+            SidebarProbe.run(mode: raw)
+        }
         if args.contains("--test-keys") || args.contains("--test-keys-top") || args.contains("--test-keys-sidebar") {
             postArrowKeys()
         }
@@ -420,6 +426,187 @@ enum WindowSnapshot {
         return written
     }
 
+}
+
+// MARK: - 侧边栏切换探针
+
+/// 侧边栏「显示/隐藏」的性能探针（仅 DEBUG）。
+///
+/// 为什么单独写：`NavigationSplitView` 的收起/展开是 AppKit 侧动画 + 整窗布局，
+/// 只能靠"真的投一次 ⌃⌘S"来复现；配合 `sample <pid>` / Instruments 就能看清是哪一段贵。
+enum SidebarProbe {
+    static func log(_ text: String) {
+        FileHandle.standardError.write(Data("sidebar-probe: \(text)\n".utf8))
+    }
+    /// `hide` / `show` / `cycle`，可带延迟秒数：`--test-sidebar cycle,8`。
+    static func run(mode raw: String) {
+        let parts = raw.split(separator: ",").map(String.init)
+        let mode = parts.first ?? "cycle"
+        let delay = parts.count > 1 ? (Double(parts[1]) ?? 6) : 6
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows.first { $0.title.contains("Minecraft") }?.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .milliseconds(600))
+
+            @MainActor
+            func toggle(_ label: String) {
+                let handled = SidebarProbe.postToggleSidebar()
+                log("\(label) toggleSidebar handled=\(handled) @ \(String(format: "%.3f", Date().timeIntervalSince1970))")
+            }
+
+            let window = NSApp.windows.first { $0.title.contains("Minecraft") }
+
+            /// 视图树里所有 `NSSplitView` 的第一栏宽度（用来确认侧边栏真的收起了）。
+            @MainActor
+            func splitWidths() -> [String] {
+                var result: [String] = []
+                func walk(_ view: NSView) {
+                    if let split = view as? NSSplitView {
+                        let widths = split.arrangedSubviews.prefix(3).map {
+                            String(format: "%.0f", $0.frame.width)
+                        }
+                        let first = split.arrangedSubviews.first
+                        result.append(String(
+                            format: "split%@ first=%@[%@] hidden=%@ vertical=%@",
+                            NSStringFromRect(split.frame),
+                            first.map { NSStringFromRect($0.frame) } ?? "-",
+                            widths.joined(separator: "/"),
+                            first?.isHidden == true ? "y" : "n",
+                            split.isVertical ? "y" : "n"
+                        ))
+                    }
+                    for sub in view.subviews { walk(sub) }
+                }
+                if let content = window?.contentView { walk(content) }
+                return result
+            }
+
+            /// 给窗口拍一张图并打印摘要：**两次摘要一样就说明侧边栏根本没动**（之前踩过这个假象）。
+            @MainActor
+            func logState(_ tag: String) {
+                log("状态[\(tag)] split=\(splitWidths().joined(separator: " | "))")
+                if let number = window?.windowNumber,
+                   let image = CGWindowListCreateImage(
+                       .null, .optionIncludingWindow, CGWindowID(number), [.boundsIgnoreFraming]
+                   ) {
+                    let digest = CFHash(image)
+                    log("状态[\(tag)] 窗口摘要=\(digest)")
+                }
+            }
+
+            let probe = FrameProbe()
+            if let content = window?.contentView { probe.start(on: content) }
+
+            /// 侧边栏当前是否隐藏（`prominentDetail` 下是 overlay：收起 = isHidden，宽度不变）。
+            @MainActor
+            func isSidebarHidden() -> Bool? {
+                guard let content = window?.contentView else { return nil }
+                func find(_ view: NSView) -> NSSplitView? {
+                    if let split = view as? NSSplitView, split.arrangedSubviews.count >= 2 { return split }
+                    for sub in view.subviews { if let found = find(sub) { return found } }
+                    return nil
+                }
+                return find(content)?.arrangedSubviews.first?.isHidden
+            }
+
+            /// 主线程卡顿探针：8ms 一次打点，报"最大间隔"（= 主线程被占住的最长一段）。
+            @MainActor
+            func hitch(label: String) async {
+                var gaps: [Double] = []
+                var last = Date()
+                let deadline = Date().addingTimeInterval(1.0)
+                while Date() < deadline {
+                    try? await Task.sleep(for: .milliseconds(8))
+                    let now = Date()
+                    gaps.append(now.timeIntervalSince(last) * 1000)
+                    last = now
+                }
+                let maxGap = gaps.max() ?? 0
+                log(String(
+                    format: "卡顿[%@]：最大 %.0f ms，>33ms %d 次，>16ms %d 次（%d 采样）",
+                    label, maxGap, gaps.filter { $0 > 33 }.count,
+                    gaps.filter { $0 > 16 }.count, gaps.count
+                ))
+            }
+
+            switch mode {
+            case "measure":
+                // 真正的"收起 → 展开"往返：每轮都从已知状态出发，避免状态叠加导致的假数据。
+                for round in 1...3 {
+                    if isSidebarHidden() == false {
+                        _ = SidebarProbe.postToggleSidebar()
+                        try? await Task.sleep(for: .milliseconds(800))
+                    }
+                    log("round \(round)：从**收起**状态开始，hidden=\(isSidebarHidden().map { "\($0)" } ?? "?")")
+                    _ = SidebarProbe.postToggleSidebar()          // 收起 → 展开
+                    await hitch(label: "展开-\(round)")
+                    try? await Task.sleep(for: .milliseconds(500))
+
+                    _ = SidebarProbe.postToggleSidebar()          // 展开 → 收起
+                    await hitch(label: "收起-\(round)")
+                    try? await Task.sleep(for: .milliseconds(500))
+                }
+            case "hide", "show":
+                toggle(mode)
+            default:
+                toggle("toggle")
+            }
+            log("完成")
+        }
+    }
+
+    /// 帧间隔探针：`.displayLink` 每帧回调一次，把间隔记录下来。
+    ///
+    /// 这是**用户感知**的那个指标：主线程没卡住、但连续几帧掉到 20–40ms，看就是"一顿"。
+    @MainActor
+    final class FrameProbe: NSObject {
+        private var link: CADisplayLink?
+        private var last: CFTimeInterval = 0
+        private(set) var intervals: [Double] = []
+
+        func start(on view: NSView) {
+            let link = view.displayLink(target: self, selector: #selector(tick))
+            link.add(to: .main, forMode: .common)
+            self.link = link
+        }
+
+        func stop() {
+            link?.invalidate()
+            link = nil
+        }
+
+        @objc private func tick(_ link: CADisplayLink) {
+            let now = link.timestamp
+            if last > 0 { intervals.append((now - last) * 1000) }
+            last = now
+        }
+
+        /// 超过 ~1.5 帧（16.7ms）就算掉帧；超过 33ms（2 帧）算明显卡顿。
+        var summary: String {
+            let maxGap = intervals.max() ?? 0
+            let dropped = intervals.filter { $0 > 25 }.count
+            let severe = intervals.filter { $0 > 33 }.count
+            return String(
+                format: "帧数 %d，最大间隔 %.0f ms，>25ms %d 次，>33ms %d 次",
+                intervals.count, maxGap, dropped, severe
+            )
+        }
+    }
+
+    /// 与菜单「显示/隐藏侧边栏」（⌃⌘S）完全同一条路径：向本应用投递按键事件。
+    /// 直接走系统菜单的那条命令（`View ▸ Show/Hide Sidebar` 就是 `toggleSidebar:`）。
+    ///
+    /// 之前用 `NSApp.postEvent` 投递 ⌃⌘S 不生效（应用不是前台 app 时按键不进菜单），
+    /// 于是"测了半天其实什么都没发生"——这里直接用 action，并把返回值打出来确认。
+    @MainActor
+    fileprivate static func postToggleSidebar() -> Bool {
+        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+    }
+}
+
+extension WindowSnapshot {
     // MARK: - 参数
 
     private static func log(_ message: String) {

@@ -19,7 +19,10 @@ struct LauncherUI: View {
         } detail: {
             GameInfoView()
         }
-        .navigationSplitViewStyle(.prominentDetail)
+        // **不要改回 `.prominentDetail`**（2026-11-07 实测，维护者反馈"关掉侧边栏再打开明显卡顿"）：
+        // 那种"侧边栏浮在详情上"的样式，每次**展开**都要重排 overlay 那一层，主线程停 92–192 ms；
+        // `.balanced` 同样操作 10 ms 内（`--test-sidebar measure` 三轮、0 次 >16ms）。
+        .navigationSplitViewStyle(.balanced)
         .alert(
             "Operation Failed",
             isPresented: Binding(
