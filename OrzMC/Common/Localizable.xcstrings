@@ -213,22 +213,22 @@
         }
       }
     },
-    "Actions run on exaroton's side. Players connected to the server are disconnected by Stop/Restart.": {
+    "Actions run on Exaroton's side. Players connected to the server are disconnected by Stop/Restart.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "操作在 exaroton 侧执行。停止/重启会断开已连接玩家。"
+            "value": "操作在 Exaroton 侧执行。停止/重启会断开已连接玩家。"
           }
         }
       }
     },
-    "Actions run on exaroton's side; Stop and Restart disconnect connected players.": {
+    "Actions run on Exaroton's side; Stop and Restart disconnect connected players.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这些操作在 exaroton 一侧执行；停止和重启会断开在线玩家。"
+            "value": "这些操作在 Exaroton 一侧执行；停止和重启会断开在线玩家。"
           }
         }
       }
@@ -305,6 +305,17 @@
         }
       }
     },
+    "Add an Exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
+      "comment": "Remote hosting page empty state",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一个 Exaroton 账号，或一个 MCSManager 面板（地址 + API Key），这里就会列出它们的服务器。"
+          }
+        }
+      }
+    },
     "Add an account to see its instances.": {
       "comment": "Remote hosting account management",
       "localizations": {
@@ -312,17 +323,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加账号以查看其下的实例。"
-          }
-        }
-      }
-    },
-    "Add an exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
-      "comment": "Remote hosting page empty state",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加一个 exaroton 账号，或一个 MCSManager 面板（地址 + API Key），这里就会列出它们的服务器。"
           }
         }
       }
@@ -587,12 +587,12 @@
         }
       }
     },
-    "Change exaroton account token": {
+    "Change Exaroton account token": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "更换 exaroton 账户 Token"
+            "value": "更换 Exaroton 账户 Token"
           }
         }
       }
@@ -637,12 +637,12 @@
         }
       }
     },
-    "Check your own server and manage exaroton servers in a separate window": {
+    "Check your own server and manage Exaroton servers in a separate window": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在独立窗口里查看自己的服务器，或管理 exaroton 远程服务器"
+            "value": "在独立窗口里查看自己的服务器，或管理 Exaroton 远程服务器"
           }
         }
       }
@@ -1601,6 +1601,16 @@
         }
       }
     },
+    "Exaroton": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exaroton"
+          }
+        }
+      }
+    },
     "Exaroton server URL is invalid.": {
       "localizations": {
         "zh-Hans": {
@@ -2273,12 +2283,12 @@
         }
       }
     },
-    "Manage exaroton remote servers in a separate window": {
+    "Manage Exaroton remote servers in a separate window": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在独立窗口中管理 exaroton 远程服务器"
+            "value": "在独立窗口中管理 Exaroton 远程服务器"
           }
         }
       }
@@ -4357,12 +4367,12 @@
         }
       }
     },
-    "Sign in with your exaroton account token to manage remote servers here.": {
+    "Sign in with your Exaroton account token to manage remote servers here.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用 exaroton 账户 Token 登录后即可在这里管理远程服务器。"
+            "value": "使用 Exaroton 账户 Token 登录后即可在这里管理远程服务器。"
           }
         }
       }
@@ -4669,12 +4679,12 @@
         }
       }
     },
-    "Stored in the macOS/iOS keychain and only used for exaroton requests.": {
+    "Stored in the macOS/iOS keychain and only used for Exaroton requests.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "存储在 macOS/iOS 钥匙串中，仅用于 exaroton 请求。"
+            "value": "存储在 macOS/iOS 钥匙串中，仅用于 Exaroton 请求。"
           }
         }
       }
@@ -5621,7 +5631,7 @@
         }
       }
     },
-    "Your exaroton token is no longer valid. Please sign in again.": {
+    "Your Exaroton token is no longer valid. Please sign in again.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -5687,16 +5697,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "额度"
-          }
-        }
-      }
-    },
-    "exaroton": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "exaroton"
           }
         }
       }

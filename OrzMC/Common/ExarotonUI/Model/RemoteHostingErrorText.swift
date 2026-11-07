@@ -58,7 +58,7 @@ enum RemoteHostingErrorText {
         case .offline:
             return String(localized: "Can't reach the remote service. Check your connection and try again.")
         case .unauthorized:
-            return String(localized: "Your exaroton token is no longer valid. Please sign in again.")
+            return String(localized: "Your Exaroton token is no longer valid. Please sign in again.")
         case .server(let status):
             return String(localized: "The remote service is temporarily unavailable (HTTP \(status)). Try again later.")
         case .unknown:

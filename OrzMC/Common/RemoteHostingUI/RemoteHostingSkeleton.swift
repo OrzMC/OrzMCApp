@@ -60,7 +60,7 @@ struct RemoteAddProviderMenu: View {
                 onSelect(.exaroton)
             } label: {
                 Label {
-                    Text(verbatim: "exaroton")
+                    Text(verbatim: "Exaroton")
                 } icon: {
                     Image(systemName: "cloud")
                 }
@@ -109,51 +109,56 @@ struct RemoteAccountCard<Actions: View, Content: View>: View {
     }
 }
 
-/// 账号 / 面板的操作菜单：两家供应商**同一套动作与顺序**（刷新 → 编辑 → 删除）。
+/// 账号 / 面板的操作按钮组：两家供应商**同一套动作与顺序**（刷新 → 编辑 → 删除）。
 ///
-/// 以前 MCSM 没有「刷新」、exaroton 没有分隔线，用户在两段之间要重新学一遍菜单。
+/// 2026-11-07 改版（维护者要求对齐主窗口实例卡头的按钮风格）：
+/// 以前是 `⋯ ⌄` 下拉胶囊 —— 既不像按钮、又要点两级；现在直接给**图标 + 组间细分隔线**
+/// （`ServerIconButton` / `ServerActionDivider`，与 `FormSectionHeader` 同一套观感）。
+/// 危险动作（删除）单独成组并用 `danger` 着色，避免和"刷新"混在一起。
 struct RemoteAccountMenu: View {
     /// 拉一次最新数据（两家都支持；`nil` = 这家没有手动刷新）。
     var onRefresh: (() -> Void)? = nil
     let onEdit: () -> Void
     let onRemove: () -> Void
-    /// 用例/自动化锚点（**只给必要的那一家**：MCSM 面板菜单有 `mcsm.panelMenu`）。
+    /// 自动化锚点前缀（例如 MCSM 的 `mcsm.panel`）：实际锚点是 `<前缀>.refresh/.edit/.remove`。
     var identifier: String? = nil
 
     var body: some View {
-        if let identifier {
-            menu.accessibilityIdentifier(identifier)
-        } else {
-            menu
+        ServerActionGroup {
+            if let onRefresh {
+                icon("Refresh", "arrow.clockwise", key: .refresh, help: "Reload this account's servers") {
+                    onRefresh()
+                }
+                ServerActionDivider()
+            }
+            icon("Edit Account", "slider.horizontal.3", key: .edit, help: "Edit this account") {
+                onEdit()
+            }
+            ServerActionDivider()
+            icon("Remove Account", "trash", key: .remove, help: "Remove this account", tint: OrzMCTheme.Palette.danger) {
+                onRemove()
+            }
         }
     }
 
-    private var menu: some View {
-        Menu {
-            if let onRefresh {
-                Button {
-                    onRefresh()
-                } label: {
-                    Label(String(localized: "Refresh"), systemImage: "arrow.clockwise")
-                }
-                Divider()
-            }
-            Button {
-                onEdit()
-            } label: {
-                Label(String(localized: "Edit Account"), systemImage: "slider.horizontal.3")
-            }
-            Divider()
-            Button(role: .destructive) {
-                onRemove()
-            } label: {
-                Label(String(localized: "Remove Account"), systemImage: "trash")
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityLabel(Text("Account actions", comment: "Account menu accessibility label"))
+    private enum Part: String { case refresh, edit, remove }
+
+    private func icon(
+        _ title: LocalizedStringKey,
+        _ systemImage: String,
+        key: Part,
+        help: LocalizedStringKey,
+        tint: Color = OrzMCTheme.Palette.idle,
+        action: @escaping () -> Void
+    ) -> some View {
+        ServerIconButton(
+            title: title,
+            systemImage: systemImage,
+            tint: tint,
+            help: help,
+            identifier: identifier.map { "\($0)Action.\(key.rawValue)" },
+            action: action
+        )
     }
 }
 

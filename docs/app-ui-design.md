@@ -498,3 +498,31 @@ RCON 相关内容与"有哪些服务器"混在一屏。
 **验证**：新增 `testSelfHostedListShowsCardsAndOpensDetail`、`testSelfHostedEmptyStateShowsAddHint`；
 原有 6 条自建用例改为"先点卡片进详情"。顺带修了 `check-localization.py` 的盲区：
 跨行写的 `String(\n localized: "…"\n)` 匹配不到，导致一句空态说明漏了中文（中文界面里冒英文）。
+
+## 11. 2026-11-07 服务器卡片统一 + 品牌名与按钮风格
+
+维护者三点要求：**①「exaroton」改成「Exaroton」；②服务器相关按钮用主窗口实例卡头的图标按钮风格；
+③MCSManager 的服务器信息也对齐同一套卡片，别为三处各维护一套 UI。**
+
+**改前**（`docs/ui-server-cards-2026-11-07/before-lowercase-and-menus.png`）：品牌名是小写 `exaroton`；
+账号卡与实例卡右侧是 `⋯ ⌄` 下拉胶囊；MCSM 实例行是"名称 + 状态 + 地址 + 裸 `0/0`"，展平在账号卡里，
+和自建/exaroton 的卡片不是一回事。
+
+**改后**（`after-remote-macos.jpg`、`after-remote-iphone-*.png`）：
+
+| 项 | 现在 |
+|---|---|
+| 品牌名 | 界面上一律 `Exaroton`（域名 `exaroton.me`、Token key、`exaroton.*` 标识符**不动**；账号名与 `label` 比较改成大小写无关） |
+| 卡片 | 新增 `Common/RemoteHostingUI/ServerCard.swift`：**自建 / exaroton / MCSManager 三处同一个组件** ——
+`名称 + 状态徽标` → `地址` → `版本/玩家/延迟` 标签 → 备注（MOTD）→ `footer`（更新时间/停止进度/错误） |
+| 动作 | `ServerIconButton` + `ServerActionDivider`：**图标 + 组间细分隔线**（与主窗口实例卡头 `FormSectionHeader`
+同一套观感）。账号卡：`刷新 │ 编辑 │ 删除`；MCSM 实例卡：`控制台 │ 启动 重启 停止 │ 强杀`
+（删除/强杀用 `danger` 着色）。放不下时 `ServerCard` 用 `ViewThatFits` 把动作折到第二行（iPhone SE 实测会折） |
+| MCSM 信息 | 玩家数从裸 `0/0` 变成统一标签 `0/0 名玩家`；地址、状态、动作位置与另两处一致 |
+
+**为什么这么做**：同一套卡片语言写三遍，改一处就要改三处（本轮之前自建卡片是渐变面板、
+exaroton 是账号卡里的平铺行、MCSM 是"玩家数 + 菜单"）。现在信息槽和动作样式各只有一份实现。
+
+**验证**：`testMCSManagerInstanceActionsAreInline`（内联按钮在、旧 `⋯` 菜单不再出现）、
+`testPanelMenuEditOpensEditor`、`testMCSManagerSectionShowsInstancesAndStatus`（`3/20 名玩家` 标签）、
+`testMultipleRemoteAccountsShowInstances`（账号名 `Exaroton 1/2`）。
