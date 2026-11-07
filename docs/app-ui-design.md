@@ -564,3 +564,17 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 ⚠️ 踩过的坑：早先用 `NSApp.postEvent` 投递 ⌃⌘S 再做测量，**根本没生效**（应用不是前台时按键进不了菜单），
 量到的全是噪音。现在探针用 `NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)))`，
 并打印 `handled=` 与侧边栏的 `isHidden`，确认真的切了才算数。
+
+### 11.1 补充：窄屏下实例卡的动作改成"固定底栏"（2026-11-07 维护者截图反馈）
+
+问题（`docs/ui-server-cards-2026-11-07/before-actions-wrapped-iphone.png`）：同一屏两张 MCSM 实例卡里，
+一张把动作挤在名称行、另一张被 `ViewThatFits` 折到第二行，看起来像"按钮掉到卡片底部"，观感不一致。
+
+现在（`after-actions-bar-iphone.png`）：
+
+| 宽度 | 动作区 |
+|---|---|
+| **紧凑**（iPhone 竖屏：`horizontalSizeClass == .compact`） | **固定**成卡片底部操作栏：一条细分隔线 + 右对齐的动作组，所有卡片一致 |
+| 常规（iPad 横屏 / macOS） | 与名称同一行；真放不下才退化成底栏（`ViewThatFits`） |
+
+顺带：`Actions == EmptyView` 的卡片（例如「我的服务器」）不再预留操作栏，避免多出一条空白分隔线。
