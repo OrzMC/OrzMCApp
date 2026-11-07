@@ -110,7 +110,7 @@ struct ExarotonServerActionSection: View {
             feedback
 
             OrzMCBanner(
-                "Actions run on exaroton's side. Players connected to the server are disconnected by Stop/Restart.",
+                "Actions run on Exaroton's side. Players connected to the server are disconnected by Stop/Restart.",
                 role: .info
             )
         }

@@ -55,7 +55,7 @@ final class RemoteHostingErrorTextTests: XCTestCase {
         XCTAssertEqual(RemoteHostingErrorText.kind(of: error), .unauthorized)
         XCTAssertEqual(
             RemoteHostingErrorText.describe(error),
-            String(localized: "Your exaroton token is no longer valid. Please sign in again.")
+            String(localized: "Your Exaroton token is no longer valid. Please sign in again.")
         )
     }
 
