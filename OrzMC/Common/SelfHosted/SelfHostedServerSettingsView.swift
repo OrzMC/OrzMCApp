@@ -200,7 +200,7 @@ struct SelfHostedServerSettingsView: View {
 #endif
         .task {
             // 密码在后台读，避免阻塞 sheet 首帧。
-            let stored = SelfHostedCredentials.password(for: profile.id) ?? ""
+            let stored = SelfHostedCredentials.password(for: profile.id, mode: profile.storageMode) ?? ""
             if rconPassword.isEmpty { rconPassword = stored }
             #if DEBUG
             // 验收钩子：`ORZMC_DEMO_RUN_TEST=1` 打开设置后自动跑一次「测试连接」。

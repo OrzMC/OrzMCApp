@@ -1,6 +1,6 @@
 # 服务器资料保存与同步方案
 
-> 状态：**Phase 1 已落地**（存储核心 + 单测，2026-11-08）｜最后更新：2026-11-08
+> 状态：**P1 已落地、P2 自建服务器已接线**（2026-11-08）｜最后更新：2026-11-08
 > 范围：自建服务器、exaroton 账号、MCSManager 面板；不包含日志和运行状态。
 
 ## 用户选择
@@ -26,7 +26,7 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **P1 存储核心** | `ServerRecordBackend`（安装内加密文件 / 本机 Keychain / iCloud Keychain）、`ServerRecordMigration`（先写后验再删源）、`ServerRecordStore`（按档位路由 + 迁移 + 如实报错） | ✅ 已完成，10 + 7 条单测 |
-| **P2 接到现有三处** | 自建服务器（RCON 密码）、Exaroton（Token）、MCSManager（API Key）统一走 `ServerRecordStore`；每条记录记住自己的档位（非敏感元数据放 UserDefaults）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 待做 |
+| **P2 接到现有三处** | 自建服务器（RCON 密码）✅ 已接线；Exaroton Token / MCSManager API Key 待接。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
 | **P3 界面** | 每台服务器 / 每个账号的「保存方式」选择（三档 + 说明）、迁移中的进度与失败提示、显式"清除本机资料"入口（macOS 删应用不会清 `Application Support`） | 待做 |
 | **P4 iCloud 真机验证** | 需要同一团队、匹配的 Keychain 访问组与 iCloud 钥匙串能力；用真实签名的 macOS + iOS、同一 Apple 账号验证写入/同步/删除/重装恢复 | 待做（依赖签名配置） |
 
@@ -45,3 +45,23 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 2. 档位元数据放哪：`SelfHostedProfiles` / `ExarotonAccount` / MCSManager 面板模型里各加一个字段（推荐，
    跟着记录一起编解码），还是单独一张 `[UUID: mode]` 表。
 3. iCloud 档位在**不可用**时（没开钥匙串 / macOS 端没配访问组）界面怎么表达：不可选 + 说明，还是可选但报错。
+
+### P2 已实施细节（2026-11-08）
+
+- `OrzMC/Common/Storage/ServerSecretsStore.swift`：凭据（RCON 密码 / Token / API Key）按档位读写；
+  `.device` **沿用旧 Keychain 的 service/account 命名**（`selfhosted.rcon.<uuid>`、`exaroton.account.<uuid>`、
+  `mcsm.panel.<uuid>`），老数据零迁移；`.installation` 用加密记录；`.iCloud` 暂不可用（见下）。
+- 读路径带兜底：档位不是 `.device` 但目标里还没有记录时，回退读老 Keychain ——
+  避免"刚切档位就看不到密码"。
+- `move(from:to:)`：写目标 → 回读校验 → 删来源；失败保留来源并抛错。
+- `SelfHostedServerProfile` 增加 `storageMode`（默认 `.device`，自定义 `init(from:)` 兼容老存档），
+  `SelfHostedCredentials` / `SelfHostedServersModel` / 设置页都已按档案的档位读写。
+- **`.iCloud` 后端刻意配成 `nil`**：没有 Keychain 共享访问组时强行写会"静默不同步"，
+  界面会因此谎报已同步。`ServerSecretsStore.isAvailable(.iCloud) == false`，
+  P3 的界面据此**置灰 + 说明**（采纳维护者意见）。
+
+### P3 界面（下一步）
+
+- 每台服务器 / 每个账号的「保存方式」三档选择（`isAvailable` 为假的档位置灰 + 说明文案）；
+- 切换档位时调用 `move(from:to:)`，失败就地提示且不影响原数据；
+- macOS 需要显式「清除本机资料」入口（把应用拖进废纸篓不会清 `Application Support`）。

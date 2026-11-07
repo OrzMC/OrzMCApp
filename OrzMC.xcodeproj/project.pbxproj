@@ -90,6 +90,7 @@
 		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
 		CE2026110700000000006A02 /* SelfHostedServerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110700000000006A01 /* SelfHostedServerDetailView.swift */; };
 		CE2026110700000000006B02 /* ServerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110700000000006B01 /* ServerCard.swift */; };
+		CE2026110800000000006C02 /* ServerSecretsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000006C01 /* ServerSecretsStore.swift */; };
 		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
 		CE2026102300000000007001 /* ServersWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006001 /* ServersWindowContent.swift */; };
 		CE202610230000000000E200 /* ServerStatusNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000E100 /* ServerStatusNotifications.swift */; };
@@ -235,6 +236,7 @@
 		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
 		CE2026110700000000006A01 /* SelfHostedServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerDetailView.swift; sourceTree = "<group>"; };
 		CE2026110700000000006B01 /* ServerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCard.swift; sourceTree = "<group>"; };
+		CE2026110800000000006C01 /* ServerSecretsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSecretsStore.swift; sourceTree = "<group>"; };
 		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
 		CE2026102300000000006001 /* ServersWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServersWindowContent.swift"; sourceTree = "<group>"; };
 		CE202610230000000000E100 /* ServerStatusNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerStatusNotifications.swift"; sourceTree = "<group>"; };
@@ -365,6 +367,7 @@
 			children = (
 				2B62C97E2BF73E0D00387498 /* ExarotonUI */,
 				CD2026110500000000000001 /* RemoteHostingUI */,
+				CE2026110800000000006D01 /* Storage */,
 				CE2026102300000000003000 /* SelfHosted */,
 				CD20261026D0000000000007 /* MCSManager */,
 				CD2026102700000000000013 /* RemoteHosting */,
@@ -570,6 +573,14 @@
 				CE202610230000000000A000 /* SelfHostedServersModel.swift */,
 			);
 			path = SelfHosted;
+			sourceTree = "<group>";
+		};
+		CE2026110800000000006D01 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				CE2026110800000000006C01 /* ServerSecretsStore.swift */,
+			);
+			path = Storage;
 			sourceTree = "<group>";
 		};
 		CD2026102700000000000013 /* RemoteHosting */ = {
@@ -1027,6 +1038,7 @@
 				CD20261105B0000000000001 /* RemoteHostingSkeleton.swift in Sources */,
 				CD20261105B0000000000002 /* RemoteInstanceRow.swift in Sources */,
 				CE2026110700000000006B02 /* ServerCard.swift in Sources */,
+				CE2026110800000000006C02 /* ServerSecretsStore.swift in Sources */,
 				CD20261030B0000000000001 /* ExarotonAccountsSection.swift in Sources */,
 				CD20261030B0000000000000 /* ExarotonAccountsModel.swift in Sources */,
 				2BD301EF29000B2C00993823 /* LauncherUI.swift in Sources */,

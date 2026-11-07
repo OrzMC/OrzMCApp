@@ -92,7 +92,7 @@ final class SelfHostedServersModelTests: XCTestCase {
         let model = SelfHostedServersModel(
             probe: probe,
             defaults: defaults,
-            passwordProvider: { _ in password }
+            passwordProvider: { _, _ in password }
         )
         return (model, defaults)
     }

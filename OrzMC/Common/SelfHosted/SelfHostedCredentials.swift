@@ -20,7 +20,16 @@ enum SelfHostedCredentials {
         "selfhosted.rcon.\(id.uuidString)"
     }
 
+    /// 这条档案选择的保存方式（默认 `.device` = 保留在本机，与升级前一致）。
+    static func mode(for profile: SelfHostedServerProfile) -> ServerRecordStorageMode {
+        profile.storageMode
+    }
+
     static func password(for id: UUID) -> String? {
+        password(for: id, mode: .device)
+    }
+
+    static func password(for id: UUID, mode: ServerRecordStorageMode) -> String? {
         #if DEBUG
         // **仅调试构建**的验收通道：本地联调时用假 SLP/RCON 服务端（`scripts/test-servers/`），
         // 真机上的 Keychain 在无 GUI 会话里写不进去，于是允许用环境变量临时提供密码。
@@ -29,15 +38,15 @@ enum SelfHostedCredentials {
             return demo
         }
         #endif
-        return KeychainStore.get(account: account(for: id))
+        return ServerSecretsStore.secret(id: id, provider: .selfHostedRCON, mode: mode)
     }
 
-    static func save(_ password: String, for id: UUID) {
-        KeychainStore.set(password, account: account(for: id))
+    static func save(_ password: String, for id: UUID, mode: ServerRecordStorageMode = .device) {
+        ServerSecretsStore.save(password, id: id, provider: .selfHostedRCON, mode: mode)
     }
 
     static func remove(for id: UUID) {
-        KeychainStore.remove(account: account(for: id))
+        ServerSecretsStore.remove(id: id, provider: .selfHostedRCON)
     }
 
     /// 把旧版本的单一密码迁到第一台档案上（迁移只做一次：旧账户随后删除）。

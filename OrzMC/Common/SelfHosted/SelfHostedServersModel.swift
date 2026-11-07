@@ -73,12 +73,14 @@ final class SelfHostedServersModel {
     let notifier = ServerStatusNotifier()
     /// RCON 密码来源（默认读 Keychain）。做成可注入是为了**单测**能跑完整流程
     /// （Keychain 在测试环境不可用，也不该被测试写入）。
-    private let passwordProvider: (UUID) -> String?
+    private let passwordProvider: (UUID, ServerRecordStorageMode) -> String?
 
     init(
         probe: MCServerProbe = MCServerProbe(),
         defaults: UserDefaults = .standard,
-        passwordProvider: @escaping (UUID) -> String? = { SelfHostedCredentials.password(for: $0) }
+        passwordProvider: @escaping (UUID, ServerRecordStorageMode) -> String? = {
+            SelfHostedCredentials.password(for: $0, mode: $1)
+        }
     ) {
         self.probe = probe
         self.defaults = defaults
@@ -113,7 +115,7 @@ final class SelfHostedServersModel {
     var canRunCommands: Bool {
         guard let selected else { return false }
         return selected.rconEnabled && selected.isConfigured
-            && !(passwordProvider(selected.id) ?? "").isEmpty
+            && !(password(for: selected.id) ?? "").isEmpty
     }
 
     // MARK: - 按 id 的访问器（列表页每张卡片都要用）
@@ -168,7 +170,7 @@ final class SelfHostedServersModel {
         profiles.upsert(profile)
         save()
         if let rconPassword {
-            SelfHostedCredentials.save(rconPassword, for: profile.id)
+            SelfHostedCredentials.save(rconPassword, for: profile.id, mode: profile.storageMode)
         }
     }
 
@@ -183,6 +185,12 @@ final class SelfHostedServersModel {
         playerLists[id] = nil
         listError[id] = nil
         notifier.forget(id)
+    }
+
+    /// 取这台服务器的凭据：保存方式跟着**档案自己的** `storageMode` 走。
+    private func password(for id: UUID) -> String? {
+        let mode = profiles.servers.first { $0.id == id }?.storageMode ?? .device
+        return passwordProvider(id, mode)
     }
 
     private func save() {
@@ -328,7 +336,7 @@ enum SelfHostedFakeServer {
             return true
         }
         #endif
-        guard let password = passwordProvider(profile.id), !password.isEmpty else {
+        guard let password = password(for: profile.id), !password.isEmpty else {
             append(.init(kind: .error, text: String(localized: "RCON password is missing. Add it in Settings.")), to: profile.id)
             return false
         }
@@ -390,7 +398,7 @@ enum SelfHostedFakeServer {
 
     /// 执行一条命令并返回原始回复（不写控制台记录——名单查询是后台动作）。
     private func runCommand(_ command: String, profile: SelfHostedServerProfile) async throws -> String {
-        guard let password = passwordProvider(profile.id), !password.isEmpty else {
+        guard let password = password(for: profile.id), !password.isEmpty else {
             throw MCRCONError.authFailed
         }
         return try await probe.runRCON(
