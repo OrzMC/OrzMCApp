@@ -468,3 +468,33 @@ SwiftUI 的 `List`（侧边栏）只在合成图里出现，而窗口被遮挡�
 - Exaroton 日志改为稳定 ID 的有界缓冲，清空只清当前显示缓冲，新输出不会带回旧行。连接等待显示中性进度，断线显示重连入口。
 - 切换版本会退出旧实例的内嵌控制台，独立控制台仍由固定 `ConsoleTarget` 窗口展示。Settings 最小窗口保持可滚动，并允许增大。
 - 当前工作树 macOS / iOS 构建与测试待本轮最终验证；父仓库组合校验通过。真实服务器动作与有日志控制台 Follow 尚未通过受控测试验证；960/1200pt 布局、深浅色与焦点环仍需要维护者桌面视觉检查，本轮未生成或要求截图。
+
+## 10. 2026-11-07 「我的服务器」改为卡片列表 + 详情页
+
+维护者要求：**「我的服务器」的结构要和「远程托管」一致** —— 服务器信息卡片列表、统一的添加按钮、
+点卡片进详情页后才显示 RCON 相关内容，并统一卡片样式。
+
+**改前**（`docs/ui-selfhosted-list-2026-11-07/before-inline-rcon.png`）：页顶是「服务器选择胶囊 +
+刷新/添加/设置」四个控件，下面依次平铺 状态卡 → 玩家卡 → 控制台卡。换服务器靠胶囊，整页内容重排；
+RCON 相关内容与"有哪些服务器"混在一屏。
+
+**改后**（同目录 `after-*.png`）：
+
+| 位置 | 结构 |
+|---|---|
+| 页顶 | 只有**唯一**添加入口（`添加服务器`，`plus.circle` + `.bordered`，右上）——与远程托管页的「添加账号」同一个位置与样式 |
+| 分组 | `RemoteProviderSection(name: "自建", systemImage: "server.rack", count: n)` ——与 `exaroton` / `MCSManager` 分组同一套标题行 |
+| 卡片 | `SelfHostedServerCard`：里面就是远程实例卡的 `RemoteInstanceRow`（名称 + `OrzMCStatusBadge` → 地址 → 版本/玩家/延迟标签 → MOTD → 更新时间），外面包一层 `orzMCPanel()`，右侧 `chevron` 表示"可进下一页" |
+| 空态 | 一台都没有时：`EmptyContentView` 整页居中 + 页顶浮动的添加入口（与远程托管空态完全同一套） |
+| 详情页 | 点卡片进入：状态卡 / 玩家（在线·白名单·封禁）/ 控制台（RCON）；工具栏是刷新 + 设置；返回按钮回到列表 |
+
+**模型**：新增 `refreshAllStatuses()`（列表页把所有已配置服务器**并发**探一遍，每张卡片各有状态）
+与按 id 的访问器（`status(for:)` / `statusErrorText(for:)` / `lastUpdated(for:)` / `playersText(for:)`）。
+以前只有"当前选中"那台会探测，列表里其它服务器永远是空白。
+
+**移除**：服务器选择胶囊（`selfHosted.serverPicker`）—— 卡片列表本身就是选择器；
+页顶的刷新/添加/设置三连按钮（刷新与设置移到详情页工具栏，添加留在页顶）。
+
+**验证**：新增 `testSelfHostedListShowsCardsAndOpensDetail`、`testSelfHostedEmptyStateShowsAddHint`；
+原有 6 条自建用例改为"先点卡片进详情"。顺带修了 `check-localization.py` 的盲区：
+跨行写的 `String(\n localized: "…"\n)` 匹配不到，导致一句空态说明漏了中文（中文界面里冒英文）。

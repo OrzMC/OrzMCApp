@@ -44,11 +44,19 @@ PATTERNS = [
     r'String\(localized: "([^"]{3,})"\)',
     r'Picker\("([^"]{3,})"',
     r'Menu\("([^"]{3,})"',
+    # 跨行写法（`String(\n  localized: "…"\n)`）：上面的模式要求 `")` 紧邻，匹配不到 ——
+    # 2026-11-07 就靠这个缺口漏掉了一句空态说明（中文界面里冒出英文）。这里允许引号前有空白。
+    r'String\(\s*localized:\s*"([^"]{3,})"',
+    r'Text\(\s*"([^"]{3,})"',
+    r'Label\(\s*"([^"]{3,})"',
+    r'Button\(\s*"([^"]{3,})"',
 ]
 
 # 明确不翻译的（专有名词 / 与语言无关）。精确匹配。
 ALLOWLIST = {
     "OrzMC",
+    # 只在 `#Preview` 里出现的占位文案，不是界面的一部分。
+    "Content To Be Copied!",
     "Java",
     "Paper",
     "Vanilla",

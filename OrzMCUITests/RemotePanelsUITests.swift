@@ -188,29 +188,59 @@ final class RemotePanelsUITests: XCTestCase {
         keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
     }
 
-    /// **「我的服务器」菜单**（P1-4）：点胶囊**空白处**也能打开；菜单里只剩服务器列表
-    /// （不再有「编辑…」/「删除…」，那两个在设置里）。
-    func testServerMenuOpensFromCapsuleBlankArea() {
+    /// **列表页结构**（2026-11-07）：页顶一个添加入口 + 服务器卡片列表；
+    /// 卡片不展开 RCON 内容，点进去才到详情页（与远程托管页同一套结构）。
+    func testSelfHostedListShowsCardsAndOpensDetail() {
         let app = makeApp()
         app.launch()
         allowSystemPrompts()
 
-        let picker = app.buttons["selfHosted.serverPicker"]
-        XCTAssertTrue(picker.waitForExistence(timeout: 20), "应有服务器选择胶囊")
+        // 列表：卡片 + 名称 + 状态 + 添加入口
+        let card = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到服务器卡片")
+        XCTAssertTrue(app.staticTexts["演示服"].exists, "卡片应显示服务器名")
+        XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "卡片应显示状态徽标")
+        XCTAssertTrue(app.buttons["selfHosted.addServer"].exists, "页顶应有添加按钮")
 
-        // 点在胶囊右侧空白处（文字之后）：旧实现的热区只覆盖文字，这里点不开。
-        picker.coordinate(withNormalizedOffset: CGVector(dx: 0.72, dy: 0.5)).tap()
+        // 列表**不该**直接铺开 RCON 内容（这正是这次重构要去掉的东西）
+        XCTAssertFalse(app.textFields["selfHosted.consoleInput"].exists, "控制台不应出现在列表页")
+        XCTAssertFalse(app.staticTexts["玩家"].exists, "玩家卡不应出现在列表页")
 
-        // 服务器卡标题是 staticText，胶囊是无障碍标签「服务器」的按钮 ——
-        // 能匹配到这个**按钮**就说明菜单真的弹出来了。
-        let item = app.buttons.matching(NSPredicate(format: "label CONTAINS '演示服'")).firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "点胶囊空白处应弹出服务器菜单")
-        XCTAssertFalse(app.buttons["编辑…"].exists, "菜单里不该再有「编辑…」")
-        XCTAssertFalse(app.buttons["删除…"].exists, "菜单里不该再有「删除…」")
         keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "71-selfhosted-list")
+        }
 
-        item.tap()   // 选中同一台 → 菜单关闭
-        XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 5))
+        // 点卡片 → 详情页
+        card.tap()
+        XCTAssertTrue(app.staticTexts["玩家"].waitForExistence(timeout: 20), "详情页应有玩家卡")
+        XCTAssertTrue(app.staticTexts["控制台（RCON）"].waitForExistence(timeout: 20), "详情页应有控制台")
+        keep(XCTAttachment(screenshot: app.screenshot(), quality: .original))
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "72-selfhosted-detail")
+        }
+
+        // 返回列表
+        let back = app.navigationBars.buttons.firstMatch
+        if back.exists { back.tap() }
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "应回到列表页")
+    }
+
+    /// **空白态**：一台服务器都没加时，页顶只有一个添加入口 + 居中说明（与远程托管空态同一套）。
+    @MainActor
+    func testSelfHostedEmptyStateShowsAddHint() {
+        // 不注入 seed profile → 真实是空的（测试容器里本来就干净）。
+        let app = makeApp()
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.staticTexts["还没有服务器"].waitForExistence(timeout: 20), "应显示空态标题")
+        XCTAssertTrue(app.buttons["selfHosted.addServer"].exists, "空态页也要有添加入口")
+        XCTAssertFalse(app.buttons["selfHosted.serverCard"].exists, "空态不该有卡片")
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "70-selfhosted-empty")
+        }
     }
 
     /// 自建服务器页：状态卡、玩家卡、控制台是否都出来（假服务端在线）。
@@ -221,6 +251,7 @@ final class RemotePanelsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 20), "服务器名应显示")
         XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "假服务器在线，状态应为「在线」")
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
         XCTAssertTrue(app.staticTexts["26.3"].exists, "版本标签来自 SLP")
         XCTAssertTrue(app.staticTexts["玩家"].exists, "玩家卡应始终显示")
 
@@ -244,6 +275,7 @@ final class RemotePanelsUITests: XCTestCase {
         app.launch()
         allowSystemPrompts()
 
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
         XCTAssertTrue(app.staticTexts["alice"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.buttons["踢出"].exists)
         selectPlayerTab(app, matching: "白名单")
@@ -261,6 +293,7 @@ final class RemotePanelsUITests: XCTestCase {
         app.launch()
         allowSystemPrompts()
 
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页（设置按钮在详情页工具栏）")
         let settings = app.buttons["selfHosted.settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 20))
         settings.tap()
@@ -456,6 +489,7 @@ final class RemotePanelsUITests: XCTestCase {
         app.launch()
         allowSystemPrompts()
 
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页（控制台在详情页）")
         let input = app.textFields["selfHosted.consoleInput"]
         for _ in 0..<8 where !input.exists { app.swipeUp() }
         XCTAssertTrue(input.waitForExistence(timeout: 15), "应能看到控制台输入框")
@@ -662,14 +696,16 @@ final class RemotePanelsUITests: XCTestCase {
         app.launch()
         allowSystemPrompts()
         _ = app.staticTexts["演示服"].waitForExistence(timeout: 20)
-        snap(app, "01-selfhosted-top")
+        snap(app, "01-selfhosted-list")
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
+        snap(app, "02-selfhosted-detail-top")
 
         // 玩家卡三个页签
         for (index, name) in ["白名单", "封禁"].enumerated() {
             let tab = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
             if tab.exists {
                 tab.tap()
-                snap(app, "02-players-\(index)")
+                snap(app, "03-players-\(index)")
             }
         }
 
@@ -677,29 +713,32 @@ final class RemotePanelsUITests: XCTestCase {
         let input = app.textFields["selfHosted.consoleInput"]
         for _ in 0..<6 where !input.exists { app.swipeUp() }
         if input.waitForExistence(timeout: 10) {
-            snap(app, "03-console-empty")
+            snap(app, "04-console-empty")
             input.tap()
             if !app.keyboards.firstMatch.waitForExistence(timeout: 5) { input.tap() }
             input.typeText("list")
             app.buttons["selfHosted.consoleSend"].tap()
             _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'players online'")).firstMatch
                 .waitForExistence(timeout: 10)
-            snap(app, "04-console-reply")
+            snap(app, "05-console-reply")
             app.swipeDown()
         }
 
         // 设置 sheet（首屏 + 底部）
         app.buttons["selfHosted.settings"].tap()
         _ = app.buttons["保存"].waitForExistence(timeout: 10)
-        snap(app, "05-settings-top")
+        snap(app, "06-settings-top")
         app.swipeUp()
-        snap(app, "06-settings-bottom")
+        snap(app, "07-settings-bottom")
         app.buttons["取消"].tap()
 
-        // 添加服务器
+        // 返回列表 → 添加服务器
+        let back = app.navigationBars.buttons.firstMatch
+        if back.exists { back.tap() }
+        _ = app.buttons["selfHosted.addServer"].waitForExistence(timeout: 15)
         app.buttons["selfHosted.addServer"].tap()
         _ = app.buttons["保存"].waitForExistence(timeout: 10)
-        snap(app, "07-add-server")
+        snap(app, "08-add-server")
         app.buttons["取消"].tap()
     }
 
@@ -976,6 +1015,19 @@ final class RemotePanelsUITests: XCTestCase {
 
     /// 点玩家卡的名单页签。分段控件的 tap 偶尔会落在控件本身而不是分段上，
     /// 所以重试到 `isSelected` 为真再继续（否则后续断言会在"没切过去"的旧列表上失败）。
+    /// 进入「我的服务器」列表里第一台服务器的**详情页**。
+    ///
+    /// 2026-11-07 结构重构后：列表只放卡片（名称 + 状态 + 地址 + 标签），
+    /// 玩家 / 控制台 / 设置 全部在详情页，所以凡是要碰这些的用例都得先点卡片进来。
+    @discardableResult
+    private func openFirstSelfHostedServer(_ app: XCUIApplication, timeout: TimeInterval = 25) -> Bool {
+        let card = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        guard card.waitForExistence(timeout: timeout) else { return false }
+        card.tap()
+        // 详情页的标志：状态卡里的地址行（列表卡片里也有地址，所以再用"控制台/玩家"判一次）。
+        return app.staticTexts["玩家"].waitForExistence(timeout: timeout)
+    }
+
     private func selectPlayerTab(_ app: XCUIApplication, matching prefix: String) {
         // 必须限定在**分段控件内部**找：玩家行的操作按钮里也有「封禁」「踢出」这种同名文字，
         // 全局 firstMatch 会点到一个完全不同的按钮上（实测「封禁」页签永远选不中）。
@@ -1079,6 +1131,7 @@ final class RemotePanelsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts[config.name].waitForExistence(timeout: 20), "服务器名应显示")
         XCTAssertTrue(waitUntil(timeout: 40) { app.staticTexts["在线"].exists }, "真实服务器应探测为在线")
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
         XCTAssertFalse(
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS '连不上'")).firstMatch.exists,
             "不应出现连接失败提示"
@@ -1104,6 +1157,7 @@ final class RemotePanelsUITests: XCTestCase {
         app.launch()
         allowSystemPrompts()
 
+        XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
         let input = app.textFields["selfHosted.consoleInput"]
         for _ in 0..<6 where !input.exists { app.swipeUp() }
         guard input.waitForExistence(timeout: 15) else {
