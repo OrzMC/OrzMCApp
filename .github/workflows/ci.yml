@@ -143,7 +143,12 @@ jobs:
       #   `file '…/AvailabilityVersions.h' has been modified since the module file … was built: mtime changed`
       # （2026-11-06 真踩到，macOS 那格直接 65 退出）。模块缓存重建只要几十秒，不值得冒这个险。
       - name: Drop stale clang module cache
-        run: rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
+        # 两处都要删：Xcode 既会写 `DerivedData/ModuleCache.noindex`（顶层），
+        # 也会写 `DerivedData/<工程>/ModuleCache.noindex`（按 derivedDataPath 时）。
+        # 只删后者漏掉顶层 —— 2026-11-06 main 上又红了一次，就是这个。
+        run: |
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData/ModuleCache.noindex"
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
       - name: Run remote-hosting UI smoke tests
         env:
           UI_ONLY_TESTING: >-
@@ -196,7 +201,12 @@ jobs:
       #   `file '…/AvailabilityVersions.h' has been modified since the module file … was built: mtime changed`
       # （2026-11-06 真踩到，macOS 那格直接 65 退出）。模块缓存重建只要几十秒，不值得冒这个险。
       - name: Drop stale clang module cache
-        run: rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
+        # 两处都要删：Xcode 既会写 `DerivedData/ModuleCache.noindex`（顶层），
+        # 也会写 `DerivedData/<工程>/ModuleCache.noindex`（按 derivedDataPath 时）。
+        # 只删后者漏掉顶层 —— 2026-11-06 main 上又红了一次，就是这个。
+        run: |
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData/ModuleCache.noindex"
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*/ModuleCache.noindex
 
       - name: Unit tests (SwiftPM + app target)
         # 两套都跑：SwiftPM 包单测（Sources/*）+ 应用层 target `OrzMCTests`
