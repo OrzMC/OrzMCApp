@@ -159,15 +159,15 @@ private extension ServersContentView {
         }
     }
 
-    /// 列表页的页顶一行：左「全部折叠 / 全部展开」，右「添加服务器」。
+    /// 列表页的页顶一行：**左「添加服务器」、右「全部折叠 / 全部展开」**。
     ///
-    /// 折叠控件与主窗口详情页的「实例栏」同一套观感（两个图标按钮 + `subtleFill` 底），
-    /// 位置也贴着内容（列表上方），不是塞进窗口工具栏。
+    /// 2026-11-08 维护者要求对调：添加是"创建"类主操作，放左边（阅读起点）；
+    /// 折叠/展开是视图模式，放右边（与主窗口详情页的分组控件同一套 `OrzMCDisplayModeControls`）。
     var topBar: some View {
         HStack(spacing: OrzMCTheme.Spacing.sm) {
-            sectionDisplayControls
-            Spacer(minLength: 0)
             addMenu
+            Spacer(minLength: 0)
+            sectionDisplayControls
         }
     }
 
@@ -187,77 +187,16 @@ private extension ServersContentView {
         expansionOverrides = [:]
     }
 
-    /// **全部折叠 / 全部展开**：两个动作按钮，点一下把所有分组设成同一状态。
-    ///
-    /// 不用 `Picker` 绑 `allExpanded`：单组折叠后全局值没变，再点"已选中的那一档"不会触发
-    /// `onChange`，看起来就是按钮没用（主窗口 2026-10-22 实测踩过，这里沿用同一结论）。
+    /// **全部折叠 / 全部展开**：与主窗口实例详情同一份组件（中性选中底，不借用强调色）。
     var sectionDisplayControls: some View {
-        HStack(spacing: 2) {
-            modeButton(
-                systemImage: "rectangle.compress.vertical",
-                label: "Collapse All",
-                isActive: !allExpanded && expansionOverrides.isEmpty,
-                identifier: "servers.collapseAll"
-            ) {
-                setAllExpanded(false)
-            }
-            modeButton(
-                systemImage: "rectangle.expand.vertical",
-                label: "Expand All",
-                isActive: allExpanded && expansionOverrides.isEmpty,
-                identifier: "servers.expandAll"
-            ) {
-                setAllExpanded(true)
-            }
-        }
-        .padding(3)
-        .background(OrzMCTheme.Palette.controlFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
-        .help("Collapse or expand every server group")
-    }
-
-    private static var modeButtonWidth: CGFloat {
-        #if os(iOS)
-        return 34
-        #else
-        return 30
-        #endif
-    }
-
-    private static var modeButtonHeight: CGFloat {
-        #if os(iOS)
-        return 30
-        #else
-        return 22
-        #endif
-    }
-
-    /// 单个模式按钮：图标态，选中档有底色；存在单组覆盖时两档都不高亮（= 混合状态）。
-    private func modeButton(
-        systemImage: String,
-        label: LocalizedStringKey,
-        isActive: Bool,
-        identifier: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(label, systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .font(.system(size: 13))
-                // 触控（iOS）给更大的命中区；指针（macOS）保持紧凑。
-                .frame(width: Self.modeButtonWidth, height: Self.modeButtonHeight)
-                .foregroundStyle(isActive ? Color.primary : Color.secondary)
-                .background {
-                    if isActive {
-                        RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm)
-                            .fill(OrzMCTheme.Palette.selectionNeutral)
-                    }
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.borderless)
-        .help(label)
-        .accessibilityLabel(label)
-        .accessibilityIdentifier(identifier)
+        OrzMCDisplayModeControls(
+            isCollapsed: !allExpanded,
+            isMixed: !expansionOverrides.isEmpty,
+            collapseIdentifier: "servers.collapseAll",
+            expandIdentifier: "servers.expandAll",
+            onCollapse: { setAllExpanded(false) },
+            onExpand: { setAllExpanded(true) }
+        )
     }
 
     /// 一条都没有：页顶入口 + 居中的空态说明。
@@ -280,7 +219,8 @@ private extension ServersContentView {
             Spacer(minLength: OrzMCTheme.Spacing.xl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(alignment: .top) {
+        .overlay(alignment: .topLeading) {
+            // 与列表页同一位置：添加入口在左边。
             addMenu
                 .padding(.horizontal, OrzMCTheme.Spacing.lg)
                 .padding(.top, OrzMCTheme.Spacing.lg)
@@ -288,7 +228,7 @@ private extension ServersContentView {
         .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
     }
 
-    /// 有内容：页顶入口 + 按来源分组（自建 → Exaroton → MCSManager；空的那组不出现）。
+    /// 有内容：页顶一行（添加 + 折叠控件）+ 按来源分组（自建 → Exaroton → MCSManager；空的那组不出现）。
     var listPage: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {

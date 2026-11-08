@@ -367,55 +367,21 @@ struct BasicInfo: View {
 
     /// 展示模式：**两个动作按钮**（图标），点一下就把所有卡片设成同一状态。
     ///
-    /// 这里不能用 `Picker` 绑定 `allExpanded`：单栏折叠/展开后 `allExpanded` 没变，
-    /// 再点"已经选中的那一档"不会触发 `onChange`，看起来就是"按钮不起作用"（2026-10-22 实测复现）。
-    /// 动作按钮每次都显式设置全局值并清空单栏覆盖，任何状态下都有效。
+    /// 控件本身在设计系统里（`OrzMCDisplayModeControls`）：服务器窗口用的是同一份，
+    /// 两个窗口的"全部折叠/展开"观感必须一致（2026-11-08 维护者反馈）。
     private var displayModeControls: some View {
-        HStack(spacing: 2) {
-            modeButton(
-                systemImage: "rectangle.compress.vertical",
-                label: "Collapse All",
-                isActive: !allExpanded && expansionOverrides.isEmpty
-            ) {
+        OrzMCDisplayModeControls(
+            isCollapsed: !allExpanded,
+            isMixed: !expansionOverrides.isEmpty,
+            onCollapse: {
                 allExpanded = false
                 expansionOverrides = [:]
-            }
-            modeButton(
-                systemImage: "rectangle.expand.vertical",
-                label: "Expand All",
-                isActive: allExpanded && expansionOverrides.isEmpty
-            ) {
+            },
+            onExpand: {
                 allExpanded = true
                 expansionOverrides = [:]
             }
-        }
-        .padding(3)
-        .background(OrzMCTheme.Palette.subtleFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
-        .help("Collapse or expand every instance card")
-    }
-
-    /// 单个模式按钮：图标态，选中档位有底色；单栏覆盖存在时两档都不高亮（= 混合状态）。
-    private func modeButton(
-        systemImage: String,
-        label: LocalizedStringKey,
-        isActive: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(label, systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .frame(width: 30, height: 22)
-                .background {
-                    if isActive {
-                        RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm)
-                            .fill(OrzMCTheme.Palette.selectionFill)
-                    }
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.borderless)
-        .help(label)
-        .accessibilityLabel(label)
+        )
     }
 
     /// 一组实例（客户端组 / 服务端组）：组标题 + 一句说明 + 各实例面板。

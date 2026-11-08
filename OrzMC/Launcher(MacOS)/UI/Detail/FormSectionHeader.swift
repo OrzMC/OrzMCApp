@@ -160,7 +160,7 @@ struct FormSectionHeader: View {
                 iconButton(
                     "Console",
                     systemImage: consoleIsLive ? "terminal.fill" : "terminal",
-                    color: consoleIsLive ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.idle,
+                    tint: consoleIsLive ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.control,
                     help: consoleIsLive ? "Open console (running)" : "Open console",
                     action: consoleBtnAction
                 )
@@ -169,7 +169,7 @@ struct FormSectionHeader: View {
                 iconButton(
                     "Plugins",
                     systemImage: "puzzlepiece.extension",
-                    color: OrzMCTheme.Palette.idle,
+                    tint: OrzMCTheme.Palette.control,
                     help: "Manage plugins for this instance",
                     action: pluginsBtnAction
                 )
@@ -179,51 +179,51 @@ struct FormSectionHeader: View {
                 iconButton(
                     "Start",
                     systemImage: "play.circle",
-                    color: OrzMCTheme.Palette.idle,
+                    tint: OrzMCTheme.Palette.control,
                     help: "Start this server",
+                    isEnabled: availability?.canStart ?? true,
                     action: startBtnAction
                 )
-                .disabled(!(availability?.canStart ?? true))
             }
             if let restartBtnAction {
                 iconButton(
                     "Restart",
                     systemImage: "arrow.clockwise.circle",
-                    color: OrzMCTheme.Palette.idle,
+                    tint: OrzMCTheme.Palette.control,
                     help: "Restart = graceful stop, then start again",
+                    isEnabled: availability?.canRestart ?? true,
                     action: restartBtnAction
                 )
-                .disabled(!(availability?.canRestart ?? true))
             }
             if let stopBtnAction {
                 iconButton(
                     "Stop",
                     systemImage: "stop.circle",
-                    color: OrzMCTheme.Palette.idle,
+                    tint: OrzMCTheme.Palette.control,
                     help: "Send `stop` so the server saves and exits normally",
+                    isEnabled: availability?.canStop ?? true,
                     action: stopBtnAction
                 )
-                .disabled(!(availability?.canStop ?? true))
             }
         case .danger:
             if let terminateBtnAction {
-                Button(role: .destructive, action: terminateBtnAction) {
-                    Label("Terminate…", systemImage: "xmark.octagon")
-                        .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(OrzMCTheme.Palette.idle)
-                .help("Terminate the process (may lose unsaved progress)")
-                .disabled(!(availability?.canTerminate ?? true))
+                iconButton(
+                    "Terminate…",
+                    systemImage: "xmark.octagon",
+                    tint: OrzMCTheme.Palette.control,
+                    help: "Terminate the process (may lose unsaved progress)",
+                    isEnabled: availability?.canTerminate ?? true,
+                    action: terminateBtnAction
+                )
             }
-            Button(role: .destructive, action: deleteBtnAction) {
-                Label("Delete…", systemImage: "trash")
-                    .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(OrzMCTheme.Palette.idle)
-            .help("Delete this instance's folder (asks for confirmation)")
-            .disabled(!(availability?.canDelete ?? true))
+            iconButton(
+                "Delete…",
+                systemImage: "trash",
+                tint: OrzMCTheme.Palette.control,
+                help: "Delete this instance's folder (asks for confirmation)",
+                isEnabled: availability?.canDelete ?? true,
+                action: deleteBtnAction
+            )
         }
     }
 
@@ -277,7 +277,7 @@ struct FormSectionHeader: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
-        .foregroundStyle(OrzMCTheme.Palette.idle)
+        .foregroundStyle(OrzMCTheme.Palette.control)
         .help("More actions (do not fit in this window width)")
     }
 
@@ -290,22 +290,28 @@ struct FormSectionHeader: View {
     /// `help` 用 `LocalizedStringKey`：以前是 `String` 插值（`"Open \(helpTitle) console"`），
     /// 既不会被 Xcode 提取成 key，运行时也匹配不到任何 `%@` 条目，中文界面永远是英文提示。
     /// 实例名交给 `accessibilityValue`，VoiceOver 会读成「Open console，1.21.5 Paper」。
+    /// 表头上的一个图标动作：走设计系统的 `OrzMCActionButton`（与服务器窗口同一套：
+    /// 可用 = `Palette.control`、不可用 = 变暗到 35%、悬停有底色、命中区 22×22）。
+    ///
+    /// 以前这里把 `.foregroundStyle(Palette.idle)` 写死在按钮上：`.disabled` 之后颜色不变，
+    /// 一排启动/重启/停止/删除全是同一个灰，"能不能点"完全看不出来（2026-11-08 维护者反馈）。
     private func iconButton(
         _ label: LocalizedStringKey,
         systemImage: String,
-        color: Color,
+        tint: Color,
         help: LocalizedStringKey,
+        isEnabled: Bool = true,
         action: @escaping ButtonAction
     ) -> some View {
-        Button(action: action) {
-            Label(label, systemImage: systemImage)
-                .labelStyle(.iconOnly)
-        }
-        // `.borderless` 保留系统 hover/按下反馈；`.plain` 在 macOS 上几乎没有可点击感。
-        .buttonStyle(.borderless)
-        .foregroundStyle(color)
-        .help(help)
-        .accessibilityValue(Text(verbatim: helpTitle))
+        OrzMCActionButton(
+            title: label,
+            systemImage: systemImage,
+            tint: tint,
+            help: help,
+            isEnabled: isEnabled,
+            accessibilityValue: helpTitle,
+            action: action
+        )
     }
 }
 

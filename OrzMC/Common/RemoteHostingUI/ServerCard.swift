@@ -304,9 +304,8 @@ struct ServerActionDivider: View {
 
 /// 服务器卡片上的一个图标动作。
 ///
-/// `.borderless` 保留按下反馈；**hover 底色自己画**（卡片面板是玻璃/半透明，系统不给边界反馈时
-/// 图标看着像"静态装饰"）。命中区统一 22×22，符号 13pt：11–12pt 的旧尺寸在 macOS 上偏小，
-/// 也和主窗口图标按钮不一致（2026-11-08 视觉评审）。
+/// 规则（命中区 / 悬停底色 / disabled 变暗）都在设计系统的 `OrzMCActionButton` 里，
+/// 主窗口实例卡头用的是同一个组件 —— 两个窗口的图标按钮不再各长一套。
 struct ServerIconButton: View {
     let title: LocalizedStringKey
     let systemImage: String
@@ -316,52 +315,16 @@ struct ServerIconButton: View {
     var identifier: String? = nil
     let action: () -> Void
 
-    @State private var isHovering = false
-
     var body: some View {
-        button
-            .buttonStyle(.borderless)
-            .foregroundStyle(tint)
-            // `.foregroundStyle` 会盖掉系统对 disabled 的调暗，自己补上：
-            // 否则"离线实例的重启/停止/强杀"看起来和可用的一模一样。
-            .opacity(isEnabled ? 1 : 0.35)
-            .disabled(!isEnabled)
-            .modifier(OptionalHelp(help: help))
-    }
-
-    @ViewBuilder
-    private var button: some View {
-        if let identifier {
-            base.accessibilityIdentifier(identifier)
-        } else {
-            base
-        }
-    }
-
-    /// 图标命中区：iOS 按触控给到 32×32（HIG 建议 ≥44，但卡片里 5 个图标一排会把名字挤没；
-    /// 32 + 6pt 间距已明显好过原来的 ~13pt 字形）；macOS 指针用 22×22。
-    private var hitSize: CGFloat {
-        #if os(iOS)
-        return 32
-        #else
-        return 22
-        #endif
-    }
-
-    private var base: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .font(.system(size: hitSize > 22 ? 15 : 13))
-                .frame(width: hitSize, height: hitSize)
-                .background {
-                    RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm, style: .continuous)
-                        .fill(OrzMCTheme.Palette.subtleFill.opacity(isHovering && isEnabled ? 0.9 : 0))
-                }
-                .contentShape(Rectangle())
-        }
-        .accessibilityLabel(Text(title))
-        .onHover { isHovering = $0 }
+        OrzMCActionButton(
+            title: title,
+            systemImage: systemImage,
+            tint: tint,
+            help: help,
+            isEnabled: isEnabled,
+            identifier: identifier,
+            action: action
+        )
     }
 }
 
@@ -381,19 +344,6 @@ private struct ServerCardSurfaceModifier: ViewModifier {
         case .plain:
             content
                 .padding(.vertical, OrzMCTheme.Spacing.sm)
-        }
-    }
-}
-
-/// `help` 只在有值时才挂（`.help("")` 会留下一个空气泡）。
-private struct OptionalHelp: ViewModifier {
-    let help: LocalizedStringKey?
-
-    func body(content: Content) -> some View {
-        if let help {
-            content.help(help)
-        } else {
-            content
         }
     }
 }

@@ -871,6 +871,17 @@
         }
       }
     },
+    "Collapse or expand every card": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有卡片"
+          }
+        }
+      }
+    },
     "Collapse or expand every instance card": {
       "localizations": {
         "zh-Hans": {

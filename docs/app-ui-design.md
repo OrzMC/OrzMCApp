@@ -680,3 +680,37 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
   iOS 浅色已在模拟器上截图检查（分组箭头不再是强调色、卡片操作栏顺序正确）。
 
 **验证**：`check.sh --fast/--build/--ios` 绿；iOS UI 套件 45 通过 / 15 按需跳过。
+
+## 14. 2026-11-08 两个窗口的按钮/图标统一（维护者反馈）
+
+**① 主窗口的实例动作按钮"全是灰的"**
+
+原因：`FormSectionHeader` 自己写了一套图标按钮，把 `.foregroundStyle(Palette.idle)` 写在按钮上；
+`.disabled` 只会写进环境，被显式前景色盖掉 → 启动/重启/停止/终止/删除全是一个灰，看不出能不能点。
+服务器窗口后来补了 hover / 大命中区 / disabled 透明度，于是两边**同一件事两种观感**。
+
+现在收进设计系统（`Sources/OrzMCDesignSystem/ActionButton.swift`）：
+
+| 规则 | 值 |
+|---|---|
+| 可用 | `Palette.control`（primary 0.72，深色面板上约 6:1） |
+| 不可用 | `opacity 0.35`（`.foregroundStyle` 会盖掉系统调暗，必须自己补） |
+| 悬停 | `Palette.subtleFill` 圆角底；按下由 `.borderless` 提供 |
+| 命中区 | macOS 22×22 / iOS 32×32（卡片里一排 5 个图标也不能把名字挤没） |
+| 对外 | `OrzMCActionButton`（主窗口 + `ServerIconButton` 都走它） |
+
+`FormSectionHeader.iconButton` 改成调用它，并把可用性**作为参数**传进去（不再依赖外部 `.disabled`）；
+`Console` 在运行中仍用 `success` 绿色（表达"有实时流"，不是"可用"）。
+
+**② 主窗口目录行的"打开"图标**
+
+`arrow.up.forward.app` 是"在别的 App 里打开"，看起来像"打开链接"；改成 **`folder`**（Finder 语义）。
+文案与 `help("Open … in Finder")` 不变。
+
+**③ 服务器窗口页顶：添加在左、折叠/展开在右**
+
+- `topBar`：`添加服务器`（创建类主操作，阅读起点）在左，`全部折叠/展开`（视图模式）在右。
+- 空态页的添加入口也改到左上（`.overlay(alignment: .topLeading)`），与列表页同一位置。
+- 「全部折叠/展开」控件抽成 `OrzMCDisplayModeControls`（设计系统），**主窗口与服务器窗口共用同一份**：
+  容器 `controlFill`、选中档 `selectionNeutral`（不再借用强调色）、未选中图标 `secondary`，
+  macOS 30×22 / iOS 34×30；服务器页仍保留 `servers.collapseAll|expandAll` 锚点。
