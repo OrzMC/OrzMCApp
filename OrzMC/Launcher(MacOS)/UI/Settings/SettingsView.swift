@@ -101,6 +101,9 @@ private struct GeneralSettingsView: View {
 
     @State private var draftRootDir = ""
     @State private var pathError: String?
+    /// 「清除本机资料」的确认与结果（macOS 拖进废纸篓不会清 Application Support，必须给显式出口）。
+    @State private var confirmingClearLocalData = false
+    @State private var clearLocalDataMessage: String?
 
     private func commitRootDir() {
         let path = draftRootDir.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -184,8 +187,36 @@ private struct GeneralSettingsView: View {
             } header: {
                 Text("Java")
             }
+
+            Section {
+                LabeledContent("Saved locally") {
+                    Button("Clear Local Data…", role: .destructive) {
+                        confirmingClearLocalData = true
+                    }
+                    .accessibilityIdentifier("settings.clearLocalData")
+                }
+                if let clearLocalDataMessage {
+                    Text(verbatim: clearLocalDataMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Local Data")
+            } footer: {
+                Text("Deletes installation-only records and credentials saved on this Mac: RCON passwords, API tokens and the encryption key. iCloud copies are **not** touched (they belong to your other devices) — change a server's storage option or delete the account to remove those.")
+            }
         }
         .formStyle(.grouped)
+        .confirmationDialog(
+            Text("Delete Local Data?"),
+            isPresented: $confirmingClearLocalData,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Now", role: .destructive) { clearLocalData() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Credentials saved as “Keep on this device” or “This install only” will be deleted from this Mac. iCloud copies stay on your other devices.")
+        }
         .labeledContentStyle(.orzMCFieldRow)
         .focusSection()
         .onAppear {
@@ -208,6 +239,20 @@ private struct GeneralSettingsView: View {
 
     private var javaDir: URL {
         URL(fileURLWithPath: GamePlan.layout(root: rootDir, version: "").javaDir)
+    }
+
+    /// 清除本机资料，并把结果如实回显（删了多少条记录 / 多少条钥匙串项 / 哪些没删掉）。
+    private func clearLocalData() {
+        let report = StorageMaintenance.clearLocalData()
+        var parts = [
+            String(localized: "Removed \(report.removedRecords) record(s) and \(report.removedKeychainItems) keychain item(s) from this Mac."),
+        ]
+        if !report.failed.isEmpty {
+            parts.append(
+                String(localized: "\(report.failed.count) item(s) could not be removed: \(report.failed.joined(separator: ", "))")
+            )
+        }
+        clearLocalDataMessage = parts.joined(separator: " ")
     }
 
     private func revealInFinder(_ url: URL) {

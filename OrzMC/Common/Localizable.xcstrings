@@ -61,6 +61,17 @@
         }
       }
     },
+    "%lld item(s) could not be removed: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %lld 项没能删除：%@"
+          }
+        }
+      }
+    },
     "%lld lines": {
       "localizations": {
         "zh-Hans": {
@@ -738,6 +749,17 @@
         }
       }
     },
+    "Clear Local Data…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除本机资料…"
+          }
+        }
+      }
+    },
     "Clear search": {
       "localizations": {
         "zh-Hans": {
@@ -1273,6 +1295,17 @@
         }
       }
     },
+    "Credentials saved as “Keep on this device” or “This install only” will be deleted from this Mac. iCloud copies stay on your other devices.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以「保留在本机」或「仅本次安装」保存的凭据会从这台 Mac 上删除；iCloud 同步的那一份仍留在你的其它设备上。"
+          }
+        }
+      }
+    },
     "Credit Pool Detail": {
       "localizations": {
         "zh-Hans": {
@@ -1393,6 +1426,28 @@
         }
       }
     },
+    "Delete Local Data?": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除本机资料？"
+          }
+        }
+      }
+    },
+    "Delete Now": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即删除"
+          }
+        }
+      }
+    },
     "Delete This Server": {
       "localizations": {
         "zh-Hans": {
@@ -1439,6 +1494,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "删除这个实例的目录（会先确认）"
+          }
+        }
+      }
+    },
+    "Deletes installation-only records and credentials saved on this Mac: RCON passwords, API tokens and the encryption key. iCloud copies are **not** touched (they belong to your other devices) — change a server's storage option or delete the account to remove those.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除只存在这台 Mac 上的记录与凭据：RCON 密码、API Token，以及安装内加密用的密钥。**不会**动 iCloud 同步的那一份（它属于你的其它设备）——要删那部分，请改掉那条记录的保存方式或直接删除该账号。"
           }
         }
       }
@@ -2294,6 +2360,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "加载中…"
+          }
+        }
+      }
+    },
+    "Local Data": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机资料"
           }
         }
       }
@@ -3571,6 +3648,17 @@
         }
       }
     },
+    "Removed %lld record(s) and %lld keychain item(s) from this Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已从这台 Mac 删除 %lld 条记录、%lld 条钥匙串项。"
+          }
+        }
+      }
+    },
     "Removes the address, the saved RCON password and the console history on this device.": {
       "localizations": {
         "zh-Hans": {
@@ -3927,6 +4015,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存世界"
+          }
+        }
+      }
+    },
+    "Saved locally": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机保存的内容"
           }
         }
       }

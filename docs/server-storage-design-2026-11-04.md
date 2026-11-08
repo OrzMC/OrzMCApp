@@ -27,7 +27,7 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 |---|---|---|
 | **P1 存储核心** | `ServerRecordBackend`（安装内加密文件 / 本机 Keychain / iCloud Keychain）、`ServerRecordMigration`（先写后验再删源）、`ServerRecordStore`（按档位路由 + 迁移 + 如实报错） | ✅ 已完成，10 + 7 条单测 |
 | **P2 接到现有三处** | ✅ 三处都已接线（自建 RCON 密码 / Exaroton Token / MCSManager API Key）。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
-| **P3 界面** | ✅ 三处表单都有「保存方式」三档选择（不可用档位置灰 + 说明）；保存时用 `move` 迁移，失败就地提示并保留原数据。截图见 `docs/ui-storage-mode-2026-11-08/`。剩余：macOS「清除本机资料」入口 | 基本完成 |
+| **P3 界面** | ✅ 三处表单都有「保存方式」三档选择；保存时用 `move` 迁移，失败就地提示并保留原数据；✅ macOS 设置 → 通用 →「清除本机资料…」（删除本机记录 + 本机 Keychain 凭据 + 安装密钥，**不动 iCloud 副本**，并如实回显删了多少） | 已完成 |
 | **P4 iCloud 真机验证** | ✅ **签名已打通**（2026-11-08）：两端 entitlements 都带 `2N62934Y28.com.joker.OrzMC.shared`，macOS 与 iPhone 运行时都探测到 `iCloud=available`。共享访问组 `com.joker.OrzMC.shared`（entitlements 写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），运行时自动从签名里读；✅ 2026-11-08 真机验收通过：macOS 写 → iPhone 读、iPhone 写 → macOS 读（约 1–2 分钟传播）、macOS 删 → iPhone 读为「无」 | 已完成 |
 
 ### P1 的接口约定（后续实现别绕开）
@@ -112,3 +112,12 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 
 已知：iCloud 钥匙串传播有延迟（本次实测 1–2 分钟），所以界面上"另一台设备立刻看到"不应作为验收判据；
 文档与提交信息里都按"分钟级"描述，不要写成"实时"。
+
+### P3 补充：macOS「清除本机资料」入口（2026-11-08）
+
+- `OrzMC/Common/Storage/StorageMaintenance.swift`：删 `~/Library/Application Support/OrzMC/records` 下的加密记录
+  + 三个 Keychain service（自建/MCSM 用 `com.joker.OrzMC.credentials`、Exaroton 用 bundle id、安装密钥用
+  `com.joker.OrzMC.installation`）+ DEBUG 探针 service；返回 `Report(removedRecords, removedKeychainItems, failed)`。
+- 界面：设置 → 通用 → 「本机资料」区 → **清除本机资料…**（破坏性按钮 + 二次确认）。
+  footer 与确认弹窗都明确写：**不动 iCloud 副本**（那属于其它设备），要删就改保存方式或删账号。
+- 执行后回显：「已从这台 Mac 删除 N 条记录、M 条钥匙串项」，失败项也会列出来（不吞错）。
