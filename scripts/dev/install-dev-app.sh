@@ -91,6 +91,7 @@ if [[ "$DO_BUILD" == "1" ]]; then
     -destination 'platform=macOS' \
     -derivedDataPath "$DERIVED_DATA" \
     -allowProvisioningUpdates \
+    -allowProvisioningDeviceRegistration \
     -onlyUsePackageVersionsFromResolvedFile \
     -skipPackageUpdates \
     -skipPackagePluginValidation \

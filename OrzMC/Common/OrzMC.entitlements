@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<!-- 默认组必须保留：升级后老 Keychain 项（RCON 密码 / Token / API Key）靠它读。 -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
+		<!-- 跨端共享组（macOS + iOS 同名），iCloud 档位写这里。 -->
+		<string>$(AppIdentifierPrefix)com.joker.OrzMC.shared</string>
+	</array>
+</dict>
 </plist>

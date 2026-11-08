@@ -296,7 +296,14 @@ enum ServerSecretsStore {
             synchronizable: false
         )
         // 只有签名里真的带共享访问组时才启用同步后端；否则保持"不支持"（界面置灰）。
-        let iCloud: (any ServerRecordBackend)? = sharedAccessGroup().map { group in
+        let group = sharedAccessGroup()
+        #if DEBUG
+        // 验收用：确认签名里到底有没有共享组（不含任何凭据信息）。
+        FileHandle.standardError.write(Data(
+            "storage: sharedAccessGroup=\(group ?? "nil") iCloud=\(group == nil ? "unavailable" : "available")\n".utf8
+        ))
+        #endif
+        let iCloud: (any ServerRecordBackend)? = group.map { group in
             ServerRecordKeychain(service: "com.joker.OrzMC.sync", synchronizable: true, accessGroup: group)
         }
         return Configuration(

@@ -1285,6 +1285,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				CODE_SIGN_ENTITLEMENTS = OrzMC/Common/OrzMC.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMC;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.joker.OrzMC.iOS;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphonesimulator*]" = com.joker.OrzMC.iOS;
@@ -1327,6 +1328,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				CODE_SIGN_ENTITLEMENTS = OrzMC/Common/OrzMC.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.joker.OrzMC;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.joker.OrzMC.iOS;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphonesimulator*]" = com.joker.OrzMC.iOS;
