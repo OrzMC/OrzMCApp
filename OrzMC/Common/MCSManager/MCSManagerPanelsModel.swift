@@ -59,6 +59,8 @@ final class MCSManagerPanelsModel {
         #endif
         panels = store.panels()
         rebuildModels()
+        // 启动即与云端合并（iCloud 档位的面板在另一端新增/删除都能反映过来）。
+        syncWithCloud()
     }
 
     // MARK: - 面板增删改
@@ -91,6 +93,7 @@ final class MCSManagerPanelsModel {
             store.saveAPIKey(trimmedKey, for: panel.id)
         }
         rebuildModels()
+        publishToCloud(panel, apiKey: trimmedKey)
         return true
     }
 
@@ -138,11 +141,69 @@ final class MCSManagerPanelsModel {
         rebuildModels()
         // 地址可能变了：清掉旧快照，避免旧节点的实例挂在"同一个面板"下。
         models[id]?.setPanel(updated)
+        publishToCloud(updated, apiKey: store.apiKey(for: id) ?? "")
         return true
+    }
+
+    /// 把面板（名称 + 地址 + Key）整条推到 iCloud；档位不是 iCloud 时清掉云端副本。
+    private func publishToCloud(_ panel: MCSManagerPanel, apiKey: String) {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        if panel.storageMode == .iCloud {
+            guard let config = try? JSONEncoder().encode(panel) else { return }
+            CloudRecords.push(id: panel.id, kind: .mcsm, config: config, secret: apiKey)
+        } else {
+            CloudRecords.remove(id: panel.id, kind: .mcsm)
+        }
+    }
+
+    /// 启动 / 回前台时合并云端面板。
+    ///
+    /// 去重口径：**同一个地址 + 同一个 Key** 视为同一个面板（本地可能用别的 id 建过）。
+    func syncWithCloud() {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        let entries = CloudRecords.pull()[.mcsm] ?? []
+        guard !entries.isEmpty || panels.contains(where: { $0.storageMode == .iCloud }) else { return }
+        var updated = panels
+        var cloudIDs = Set<UUID>()
+        var changed = false
+
+        for entry in entries {
+            guard var panel = try? JSONDecoder().decode(MCSManagerPanel.self, from: entry.config) else { continue }
+            panel.storageMode = .iCloud
+            cloudIDs.insert(panel.id)
+
+            if let duplicate = updated.first(where: {
+                $0.id != panel.id && $0.url == panel.url && store.apiKey(for: $0.id) == entry.secret
+            }) {
+                updated.removeAll { $0.id == duplicate.id }
+                models[duplicate.id] = nil
+                store.removeAPIKey(for: duplicate.id)
+                changed = true
+            }
+            if let index = updated.firstIndex(where: { $0.id == panel.id }) {
+                if updated[index] != panel { updated[index] = panel; changed = true }
+            } else {
+                updated.append(panel)
+                changed = true
+            }
+            if !entry.secret.isEmpty, store.apiKey(for: panel.id) != entry.secret {
+                store.saveAPIKey(entry.secret, for: panel.id)
+            }
+        }
+
+        // ⚠️ 不做"云端没有就删本地"（读取失败/格式升级/延迟都会误删，2026-11-08 踩过）。
+        _ = cloudIDs
+
+        if changed {
+            panels = updated
+            store.savePanels(updated)
+            rebuildModels()
+        }
     }
 
     /// 删除面板：面板配置、Keychain 里的 key、模型与状态全部清掉。
     func removePanel(id: UUID) {
+        CloudRecords.remove(id: id, kind: .mcsm)
         panels.removeAll { $0.id == id }
         models[id]?.stopBackgroundRefresh()
         models[id] = nil

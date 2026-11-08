@@ -104,6 +104,11 @@ struct ExarotonContent: View {
         .onChange(of: scenePhase) { _, phase in
             accounts.setActive(phase == .active)
             mcsm.isSceneActive = phase == .active
+            // 回到前台时再与云端对一次（另一台设备的改动可能刚同步过来）。
+            if phase == .active {
+                accounts.syncWithCloud()
+                mcsm.syncWithCloud()
+            }
         }
         .sheet(item: $editorSheet) { current in
             editor(for: current)

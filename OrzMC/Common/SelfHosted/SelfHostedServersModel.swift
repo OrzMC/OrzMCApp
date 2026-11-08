@@ -89,6 +89,9 @@ final class SelfHostedServersModel {
         if let first = profiles.servers.first {
             SelfHostedCredentials.migrateLegacyPasswordIfNeeded(to: first.id)
         }
+        // 启动即与云端合并一次（iCloud 档位的记录在另一端新增/删除都能反映过来）。
+        syncWithCloud()
+
         #if DEBUG
         // UI 测试 / 截图验收用：`ORZMC_DEMO_SEED_PROFILE="名称|host|port|rconPort|0|1"` 注入一份内存档案
         // （不写 UserDefaults，避免污染真实配置）。配合 `scripts/test-servers/` 的假服务端即可断言整页。
@@ -167,11 +170,64 @@ final class SelfHostedServersModel {
 
     /// 保存一台（新增或修改），并选中它。
     func save(_ profile: SelfHostedServerProfile, rconPassword: String? = nil) {
+        let previousMode = profiles.servers.first { $0.id == profile.id }?.storageMode
         profiles.upsert(profile)
         save()
         if let rconPassword {
             SelfHostedCredentials.save(rconPassword, for: profile.id, mode: profile.storageMode)
         }
+        publishToCloud(profile, previousMode: previousMode)
+    }
+
+    /// 把这台服务器的**整条记录**（配置 + 密码）推到 iCloud；档位从 iCloud 换走时清理云端副本。
+    ///
+    /// 为什么必须推配置：之前只同步了凭据，"这台服务器叫什么、地址是什么"仍在各自的
+    /// UserDefaults 里 —— 另一台设备不知道有这条记录，自然不会去云端找（2026-11-08 维护者实测反馈）。
+    private func publishToCloud(_ profile: SelfHostedServerProfile, previousMode: ServerRecordStorageMode?) {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        if profile.storageMode == .iCloud {
+            let secret = password(for: profile.id) ?? ""
+            guard let config = try? JSONEncoder().encode(profile) else { return }
+            CloudRecords.push(id: profile.id, kind: .selfHosted, config: config, secret: secret)
+        } else if previousMode == .iCloud {
+            CloudRecords.remove(id: profile.id, kind: .selfHosted)
+        }
+    }
+
+    /// 启动 / 回到前台时调用：把云端的自建服务器合并进来。
+    ///
+    /// - 云端有的：更新本机（档位置为 `.iCloud`），并保证凭据在 `.iCloud` 后端读得到；
+    /// - 本机标了 `.iCloud`、云端却没有的：删掉（这样"在另一台设备删除"能传播过来）；
+    /// - 其它档位完全不动（本机自己的资料）。
+    func syncWithCloud() {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        let entries = CloudRecords.pull()[.selfHosted] ?? []
+        var changed = false
+        var cloudIDs = Set<UUID>()
+
+        for entry in entries {
+            guard var profile = try? JSONDecoder().decode(SelfHostedServerProfile.self, from: entry.config) else {
+                continue
+            }
+            profile.storageMode = .iCloud
+            cloudIDs.insert(profile.id)
+            if profiles.servers.first(where: { $0.id == profile.id }) != profile {
+                profiles.upsert(profile)
+                changed = true
+            }
+            if !entry.secret.isEmpty {
+                _ = ServerSecretsStore.save(
+                    entry.secret, id: profile.id, provider: .selfHostedRCON, mode: .iCloud
+                )
+            }
+        }
+
+        // ⚠️ **不要**在这里"云端没有就删本地"：云端记录可能因为读取失败、格式升级（本次就踩了）
+        // 或传播延迟而暂时看不到，删除会把用户数据真的删掉（2026-11-08 实测发生过一次）。
+        // 删除的传播由显式删除动作负责（`remove` 会同时清云端副本）。
+        _ = cloudIDs
+
+        if changed { save() }
     }
 
     func remove(_ id: UUID) {

@@ -27,7 +27,10 @@ enum StorageDiagnose {
 
     static var isRequested: Bool {
         let value = ProcessInfo.processInfo.environment[environmentKey]
-        return ["write", "read", "delete", "report", "moveprobe"].contains(value ?? "")
+        return [
+            "write", "read", "delete", "report", "moveprobe",
+            "cloudprobe", "cloudread", "cloudclean", "cloudpushall", "keychainscan",
+        ].contains(value ?? "")
     }
 
     static func runIfRequested() async {
@@ -41,6 +44,79 @@ enum StorageDiagnose {
         ]
 
         switch action {
+        case "cloudpushall":
+            // **恢复用**：把本机现存的自建/Exaroton/MCSM 记录整条推到云端（会覆盖同 id 的云端副本）。
+            var pushed: [String] = []
+            let selfHosted = SelfHostedServersModel()
+            for profile in selfHosted.profiles.servers {
+                guard let config = try? JSONEncoder().encode(profile) else { continue }
+                let secret = ServerSecretsStore.secret(
+                    id: profile.id, provider: .selfHostedRCON, mode: profile.storageMode
+                ) ?? ""
+                if CloudRecords.push(id: profile.id, kind: .selfHosted, config: config, secret: secret) {
+                    pushed.append("selfHosted:\(profile.displayName)")
+                }
+            }
+            let accounts = ExarotonAccountsModel()
+            for account in accounts.accounts {
+                guard let config = try? JSONEncoder().encode(account) else { continue }
+                let token = ServerSecretsStore.secret(
+                    id: account.id, provider: .exarotonToken, mode: account.storageMode
+                ) ?? ""
+                if CloudRecords.push(id: account.id, kind: .exaroton, config: config, secret: token) {
+                    pushed.append("exaroton:\(account.displayName)")
+                }
+            }
+            let mcsm = MCSManagerPanelsModel()
+            for panel in mcsm.panels {
+                guard let config = try? JSONEncoder().encode(panel) else { continue }
+                let key = ServerSecretsStore.secret(
+                    id: panel.id, provider: .mcsmAPIKey, mode: panel.storageMode
+                ) ?? ""
+                if CloudRecords.push(id: panel.id, kind: .mcsm, config: config, secret: key) {
+                    pushed.append("mcsm:\(panel.label)")
+                }
+            }
+            report["pushed"] = pushed.joined(separator: " ; ")
+            report["cloudRecords"] = String(ServerSecretsStore.cloudRecords().count)
+        case "keychainscan":
+            // 恢复用：列出本机 Keychain 里**还有哪些业务键**（只列账户名，不读内容）。
+            report["accounts"] = ServerSecretsStore.debugKeychainAccounts().joined(separator: " ; ")
+        case "cloudprobe", "cloudread", "cloudclean":
+            // 整条记录（配置 + 凭据）的云端同步自检：**合成**一台服务器，走与界面相同的 `save` 路径。
+            let syntheticID = UUID(uuidString: "00000000-0000-0000-0000-00000000B22D")!
+            let model = SelfHostedServersModel()
+            switch action {
+            case "cloudprobe":
+                var profile = SelfHostedServerProfile(
+                    id: syntheticID,
+                    name: "云同步测试",
+                    host: "cloud-sync.invalid",
+                    port: 25565,
+                    rconPort: 25575,
+                    rconEnabled: true
+                )
+                profile.storageMode = .iCloud
+                model.save(profile, rconPassword: "probe-password")
+            case "cloudread":
+                model.syncWithCloud()
+            default:
+                model.remove(syntheticID)
+                CloudRecords.remove(id: syntheticID, kind: .selfHosted)
+            }
+            let local = model.profiles.servers.first { $0.id == syntheticID }
+            report["localFound"] = local == nil ? "no" : "yes"
+            report["localMode"] = local?.storageMode.rawValue ?? "-"
+            report["localName"] = local?.name ?? "-"
+            report["localSecret"] = (ServerSecretsStore.secret(
+                id: syntheticID, provider: .selfHostedRCON, mode: .iCloud
+            )?.isEmpty == false) ? "yes" : "no"
+            let cloud = ServerSecretsStore.cloudRecords()
+            report["cloudRecords"] = String(cloud.count)
+            report["cloudDetail"] = cloud
+                .map { "\($0.provider):\($0.id.uuidString.prefix(8))" }
+                .sorted()
+                .joined(separator: " ")
         case "report":
             // **只读自检**：把两端现存的记录逐条过一遍，看凭据还能不能读到（不打印任何凭据内容）。
             var entries: [[String: String]] = []
