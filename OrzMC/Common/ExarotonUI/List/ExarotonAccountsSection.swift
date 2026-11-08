@@ -1,4 +1,5 @@
 import OrzMCDesignSystem
+import OrzMCFoundation
 import OrzMCRemoteHosting
 import SwiftUI
 
@@ -65,11 +66,13 @@ struct ExarotonAccountEditorSheet: View {
 
     @State private var name: String
     @State private var token = ""
+    @State private var storageMode: ServerRecordStorageMode
 
     init(existing: ExarotonAccount?, onClose: @escaping () -> Void) {
         self.existing = existing
         self.onClose = onClose
         _name = State(initialValue: existing?.label ?? "")
+        _storageMode = State(initialValue: existing?.storageMode ?? .device)
     }
 
     var body: some View {
@@ -77,7 +80,9 @@ struct ExarotonAccountEditorSheet: View {
             title: existing == nil ? String(localized: "Add Account") : String(localized: "Edit Account"),
             canSave: existing != nil || !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             onSave: {
-                if accounts.save(id: existing?.id, label: name, token: token) { onClose() }
+                if accounts.save(
+                    id: existing?.id, label: name, token: token, storageMode: storageMode
+                ) { onClose() }
             },
             onCancel: onClose
         ) {
@@ -95,6 +100,13 @@ struct ExarotonAccountEditorSheet: View {
                 #endif
             } footer: {
                 Text("Stored in the macOS/iOS keychain and only used for Exaroton requests.")
+            }
+            Section {
+                StorageModePicker(mode: $storageMode, identifierPrefix: "exaroton")
+            } header: {
+                Text("Storage")
+            } footer: {
+                Text("Where the TOKEN is kept. Changing it moves the saved token.")
             }
             if let error = accounts.errorMessage {
                 Text(verbatim: error).foregroundStyle(OrzMCTheme.Palette.danger)

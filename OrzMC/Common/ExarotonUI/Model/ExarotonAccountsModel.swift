@@ -102,11 +102,31 @@ final class ExarotonAccountsModel {
     }
 
     @discardableResult
-    func save(id: UUID?, label: String, token: String) -> Bool {
+    func save(
+        id: UUID?,
+        label: String,
+        token: String,
+        storageMode: ServerRecordStorageMode? = nil
+    ) -> Bool {
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         let accountID = id ?? UUID()
         guard id == nil || accounts.contains(where: { $0.id == accountID }) else { return false }
-        let existingMode = accounts.first { $0.id == accountID }?.storageMode ?? .device
+        let previousAccount = accounts.first { $0.id == accountID }
+        let existingMode = storageMode ?? previousAccount?.storageMode ?? .device
+        // 保存方式变了：先把已存的 Token 搬到新后端（失败就保留原数据并报错）。
+        if let previousAccount, previousAccount.storageMode != existingMode {
+            do {
+                try StorageModeMigration.apply(
+                    id: accountID,
+                    provider: .exarotonToken,
+                    from: previousAccount.storageMode,
+                    to: existingMode
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+                return false
+            }
+        }
         let credential = trimmed.isEmpty && id != nil ? loadToken(accountID, existingMode) ?? "" : trimmed
         guard !credential.isEmpty else {
             errorMessage = String(localized: "The API key is empty.")

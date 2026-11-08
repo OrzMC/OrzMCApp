@@ -13,6 +13,7 @@
 //
 
 import OrzMCDesignSystem
+import OrzMCFoundation
 import SwiftUI
 
 struct MCSManagerPanelEditor: View {
@@ -32,7 +33,7 @@ struct MCSManagerPanelEditor: View {
 
     let mode: Mode
     /// 返回 true = 保存成功（调用方据此关闭表单）。
-    let onSave: (_ label: String, _ url: String, _ apiKey: String) -> Bool
+    let onSave: (_ label: String, _ url: String, _ apiKey: String, _ mode: ServerRecordStorageMode) -> Bool
     let onCancel: () -> Void
 
     @Environment(MCSManagerPanelsModel.self) private var mcsm
@@ -40,6 +41,7 @@ struct MCSManagerPanelEditor: View {
     @State private var label: String
     @State private var url: String
     @State private var apiKey: String = ""
+    @State private var storageMode: ServerRecordStorageMode
     @State private var isTesting = false
     @State private var testResult: TestResult?
 
@@ -52,10 +54,14 @@ struct MCSManagerPanelEditor: View {
 
     init(
         mode: Mode,
-        onSave: @escaping (String, String, String) -> Bool,
+        onSave: @escaping (String, String, String, ServerRecordStorageMode) -> Bool,
         onCancel: @escaping () -> Void
     ) {
         self.mode = mode
+        _storageMode = State(initialValue: {
+            if case .edit(let panel) = mode { return panel.storageMode }
+            return .device
+        }())
         self.onSave = onSave
         self.onCancel = onCancel
         switch mode {
@@ -90,7 +96,7 @@ struct MCSManagerPanelEditor: View {
         RemoteAccountEditor(
             title: isEditing ? String(localized: "Edit Account") : String(localized: "Add Account"),
             canSave: canSave,
-            onSave: { if onSave(label, url, apiKey) { testResult = nil } },
+            onSave: { if onSave(label, url, apiKey, storageMode) { testResult = nil } },
             onCancel: onCancel
         ) {
                 Section {
@@ -140,6 +146,14 @@ struct MCSManagerPanelEditor: View {
                         )
                     )
                     .font(.caption)
+                }
+
+                Section {
+                    StorageModePicker(mode: $storageMode, identifierPrefix: "mcsm")
+                } header: {
+                    Text("Storage")
+                } footer: {
+                    Text("Where the API key is kept. Changing it moves the saved key.")
                 }
 
                 Section {

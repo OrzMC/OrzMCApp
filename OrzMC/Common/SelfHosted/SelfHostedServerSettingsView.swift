@@ -153,6 +153,14 @@ struct SelfHostedServerSettingsView: View {
                     Text("Ports and the password come from `server.properties` (`rcon.port`, `rcon.password`, `enable-rcon=true`). The password is stored in the system keychain.")
                 }
 
+                Section {
+                    StorageModePicker(mode: $draft.storageMode, identifierPrefix: "selfHosted")
+                } header: {
+                    Text("Storage")
+                } footer: {
+                    Text("Where the RCON password is kept. Changing it moves the saved password; the server itself is never touched.")
+                }
+
                 if let errorMessage {
                     Section {
                         OrzMCBanner(verbatim: errorMessage, role: .error)
@@ -304,6 +312,21 @@ struct SelfHostedServerSettingsView: View {
             }
             updated.rconPort = rconPort
             password = rconPassword
+        }
+
+        // 换了保存方式：先把已存的密码搬到新后端（失败就留在原处并提示，不写这条改动）。
+        if updated.storageMode != profile.storageMode {
+            do {
+                try StorageModeMigration.apply(
+                    id: profile.id,
+                    provider: .selfHostedRCON,
+                    from: profile.storageMode,
+                    to: updated.storageMode
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+                return
+            }
         }
 
         onDone(updated, password, false)

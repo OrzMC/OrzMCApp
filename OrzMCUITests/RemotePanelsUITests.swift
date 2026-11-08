@@ -302,6 +302,11 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 5), "设置 sheet 必须立刻出现")
         XCTAssertTrue(app.buttons["测试连接"].exists, "连通性区块应在首屏")
         keep(XCTAttachment(screenshot: app.screenshot()))
+        // 「保存方式」三档（在表单下方）：滚下去截一张，供视觉复查/文档用。
+        for _ in 0..<4 { app.swipeUp() }
+        if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
+            snap(app, "90-settings-storage")
+        }
 
         app.buttons["取消"].tap()
     }

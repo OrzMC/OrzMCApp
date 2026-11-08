@@ -1,6 +1,6 @@
 # 服务器资料保存与同步方案
 
-> 状态：**P1 已落地、P2 自建服务器已接线**（2026-11-08）｜最后更新：2026-11-08
+> 状态：**P1/P2/P3 已落地**（存储核心 + 三处接线 + 界面），P4 已打通签名、待真实同步实测｜最后更新：2026-11-08
 > 范围：自建服务器、exaroton 账号、MCSManager 面板；不包含日志和运行状态。
 
 ## 用户选择
@@ -27,7 +27,7 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 |---|---|---|
 | **P1 存储核心** | `ServerRecordBackend`（安装内加密文件 / 本机 Keychain / iCloud Keychain）、`ServerRecordMigration`（先写后验再删源）、`ServerRecordStore`（按档位路由 + 迁移 + 如实报错） | ✅ 已完成，10 + 7 条单测 |
 | **P2 接到现有三处** | ✅ 三处都已接线（自建 RCON 密码 / Exaroton Token / MCSManager API Key）。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
-| **P3 界面** | 每台服务器 / 每个账号的「保存方式」选择（三档 + 说明）、迁移中的进度与失败提示、显式"清除本机资料"入口（macOS 删应用不会清 `Application Support`） | 待做 |
+| **P3 界面** | ✅ 三处表单都有「保存方式」三档选择（不可用档位置灰 + 说明）；保存时用 `move` 迁移，失败就地提示并保留原数据。截图见 `docs/ui-storage-mode-2026-11-08/`。剩余：macOS「清除本机资料」入口 | 基本完成 |
 | **P4 iCloud 真机验证** | ✅ **签名已打通**（2026-11-08）：两端 entitlements 都带 `2N62934Y28.com.joker.OrzMC.shared`，macOS 与 iPhone 运行时都探测到 `iCloud=available`。共享访问组 `com.joker.OrzMC.shared`（entitlements 写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），运行时自动从签名里读；剩余：用同一 Apple 账号在两台设备上做写入/同步/删除/重装恢复的实测 | 待验（能力已就绪） |
 
 ### P1 的接口约定（后续实现别绕开）
@@ -80,3 +80,15 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
   首次签名需要设备注册，因此两个安装脚本都加了 `-allowProvisioningDeviceRegistration`。
 - 实测：`codesign -d --entitlements` 两端都含 `2N62934Y28.com.joker.OrzMC.shared`；
   运行日志（DEBUG）两端都是 `sharedAccessGroup=2N62934Y28.com.joker.OrzMC.shared iCloud=available`。
+
+### P3 界面已实施（2026-11-08）
+
+- 新增 `OrzMC/Common/Storage/StorageModePicker.swift`：三档选择（`pickerStyle(.inline)`，每档一行标题 + 一句
+  "它怎么活"的说明），`isAvailable` 为假的档位置灰并说明原因；`StorageModeMigration.apply` 封装迁移。
+- 接入三处表单：自建服务器设置（`selfHosted`）、Exaroton 账号表单（`exaroton`）、MCSManager 面板表单（`mcsm`）。
+  三者都在**保存时**才迁移（取消不动数据），迁移失败会显示错误并保留原数据。
+- 档位随记录持久化：`SelfHostedServerProfile` / `ExarotonAccount` / `MCSManagerPanel` 的 `storageMode`
+  新增或沿用，老存档缺字段按 `.device` 解码。
+- 截图（iPhone 模拟器，iCloud 档位在模拟器上按预期置灰）：
+  `docs/ui-storage-mode-2026-11-08/settings-storage-iphone.png`。
+- 遗留：macOS「清除本机资料」入口（把 app 拖进废纸篓不会清 `Application Support`）—— 下一轮补。
