@@ -98,7 +98,13 @@ final class ExarotonAccountsModel {
                 accountToken: loadToken(account.id, account.storageMode) ?? ""
             )
         }
-
+        // 启动即与云端合并（iCloud 档位的账号在另一端新增/删除都能反映过来）。
+        syncWithCloud()
+        for account in accounts where models[account.id] == nil {
+            models[account.id] = ExarotonServerModel(
+                accountToken: loadToken(account.id, account.storageMode) ?? ""
+            )
+        }
     }
 
     @discardableResult
@@ -155,6 +161,7 @@ final class ExarotonAccountsModel {
             models[accountID]?.stopConnect()
             models[accountID] = ExarotonServerModel(accountToken: credential)
             accounts = updated
+            publishToCloud(account, token: credential)
             errorMessage = nil
             return true
         } catch {
@@ -195,9 +202,67 @@ final class ExarotonAccountsModel {
         }
     }
 
+    /// 把账号（名字 + Token）整条推到 iCloud；档位不是 iCloud 时清掉云端副本。
+    private func publishToCloud(_ account: ExarotonAccount, token: String) {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        if account.storageMode == .iCloud {
+            guard let config = try? JSONEncoder().encode(account) else { return }
+            CloudRecords.push(id: account.id, kind: .exaroton, config: config, secret: token)
+        } else {
+            CloudRecords.remove(id: account.id, kind: .exaroton)
+        }
+    }
+
+    /// 启动 / 回前台时合并云端账号。
+    ///
+    /// 去重口径：**同一个 Token 视为同一个账号**（本地可能用不同 id 建过同一账号，
+    /// 按 id 合并会变成两条）。命中时用云端那条替换本地的，避免出现两份"海外服"。
+    func syncWithCloud() {
+        guard ServerSecretsStore.isAvailable(.iCloud) else { return }
+        let entries = CloudRecords.pull()[.exaroton] ?? []
+        guard !entries.isEmpty || accounts.contains(where: { $0.storageMode == .iCloud }) else { return }
+        var updated = accounts
+        var cloudIDs = Set<UUID>()
+        var changed = false
+
+        for entry in entries {
+            guard var account = try? JSONDecoder().decode(ExarotonAccount.self, from: entry.config) else { continue }
+            account.storageMode = .iCloud
+            cloudIDs.insert(account.id)
+
+            // 同 Token 的本机账号（可能是别的 id）→ 让位给云端这条。
+            if let duplicate = updated.first(where: { $0.id != account.id && loadToken($0.id, $0.storageMode) == entry.secret }) {
+                updated.removeAll { $0.id == duplicate.id }
+                models[duplicate.id] = nil
+                changed = true
+            }
+            if let index = updated.firstIndex(where: { $0.id == account.id }) {
+                if updated[index] != account { updated[index] = account; changed = true }
+            } else {
+                updated.append(account)
+                changed = true
+            }
+            if !entry.secret.isEmpty,
+               loadToken(account.id, .iCloud) != entry.secret {
+                try? saveToken(entry.secret, account.id, .iCloud)
+            }
+        }
+
+        // ⚠️ 不做"云端没有就删本地"（读取失败/格式升级/延迟都会误删，2026-11-08 踩过）。
+        _ = cloudIDs
+
+        if changed {
+            accounts = updated
+            if let data = try? JSONEncoder().encode(updated) {
+                defaults.set(data, forKey: Self.accountsKey)
+            }
+        }
+    }
+
     func remove(_ id: UUID) {
         do {
             try deleteToken(id)
+            CloudRecords.remove(id: id, kind: .exaroton)
             let updated = accounts.filter { $0.id != id }
             defaults.set(try JSONEncoder().encode(updated), forKey: Self.accountsKey)
             models[id]?.stopBackgroundRefresh()

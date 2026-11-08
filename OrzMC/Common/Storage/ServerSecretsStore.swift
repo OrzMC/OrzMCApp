@@ -155,6 +155,51 @@ enum ServerSecretsStore {
         }
     }
 
+    #if DEBUG
+    /// 仅诊断用：列出本机 Keychain 里的业务账户名（**不读内容**），用于"数据丢了还能不能找回"的排查。
+    static func debugKeychainAccounts() -> [String] {
+        var result: [String] = []
+        for provider in Provider.allCases {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: provider.legacyService,
+                kSecReturnAttributes as String: true,
+                kSecMatchLimit as String: kSecMatchLimitAll,
+            ]
+            var item: CFTypeRef?
+            guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { continue }
+            let items: [[String: Any]]
+            if let array = item as? [[String: Any]] { items = array }
+            else if let single = item as? [String: Any] { items = [single] }
+            else { continue }
+            result += items.compactMap { $0[kSecAttrAccount as String] as? String }
+        }
+        return result.sorted()
+    }
+    #endif
+
+    // MARK: - 云端记录（整条记录，不只凭据）
+
+    /// 写一条**整记录**到 iCloud 后端（`CloudRecords` 用；`.iCloud` 不可用时抛错）。
+    static func writeCloudRecord(_ record: ServerStorageRecord) throws {
+        let backend = try backend(for: .iCloud, config: configuration())
+        try backend.write(record)
+    }
+
+    static func removeCloudRecord(id: UUID, provider: String) {
+        if let backend = try? backend(for: .iCloud, config: configuration()) {
+            try? backend.remove(id: id, provider: provider)
+        }
+    }
+
+    /// 枚举 iCloud 后端里的全部记录（读不到时返回空——调用方据此"这次不同步"，不当成"云端没有"）。
+    static func cloudRecords() -> [ServerStorageRecord] {
+        guard let backend = try? backend(for: .iCloud, config: configuration()),
+              let records = try? backend.records()
+        else { return [] }
+        return records
+    }
+
     /// 这台设备是否支持某个档位（界面用来置灰）。
     static func isAvailable(_ mode: ServerRecordStorageMode) -> Bool {
         switch mode {

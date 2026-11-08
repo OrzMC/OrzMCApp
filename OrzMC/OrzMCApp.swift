@@ -51,6 +51,8 @@ struct OrzMCApp: App {
         if StorageDiagnose.isRequested {
             Task { @MainActor in await StorageDiagnose.runIfRequested() }
         }
+        // 与 iCloud 里的整条记录合并一次（与窗口是否打开无关）。
+        CloudSync.run()
         // 启动时把存储配置初始化一次：顺带打印签名里探测到的 Keychain 共享组
         // （仅 DEBUG，日志不含任何凭据），用于确认 iCloud 档位是否可用。
         _ = ServerSecretsStore.isAvailable(.iCloud)
