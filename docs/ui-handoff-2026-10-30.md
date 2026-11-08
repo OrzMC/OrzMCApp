@@ -52,7 +52,7 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 |---|---|---|
 | 状态徽章唯一实现 | `Sources/OrzMCDesignSystem/StatusBadge.swift`（旋转靠 `TimelineView` 时间驱动） | 不要改回 `@State` + `repeatForever` |
 | 远程状态单一写入口 | `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift`（键是 `RemoteInstanceID`） | 不要退回裸字符串 id，不要改"WS 安静 30 秒"轮询判据 |
-| 多供应商分组 | `OrzMC/Common/ExarotonUI/List/ExarotonServerList.swift`（exaroton 段）+ `OrzMC/Common/MCSManagerUI/MCSManagerSection.swift`（MCSM 段） | **维护者已拍板：按供应商分组、不做 provider 过滤/分段控件** |
+| 多供应商分组 | `OrzMC/Common/ServersUI/ServersContentView.swift`（一个列表，自建 → exaroton → MCSM）+ 两个 `*Section` | **维护者已拍板：按来源分组、不做 provider 过滤/分段控件**（2026-11-08 起连页面级切换控件也没有） |
 | MCSM 停止进度 + 强杀 | `MCSManagerSection.stopHint(...)` + `Sources/OrzMCRemoteHosting/RemoteStopProgress.swift` | 秒数必须每秒刷新；强杀必须二次确认 |
 | 控制台渲染统一 | 解析 `Sources/OrzMCFoundation/ConsoleText.swift`、渲染 `Sources/OrzMCDesignSystem/ConsoleText.swift` | 规则见 `console-rendering.md` |
 | 空/加载/失败态区分 | `ExarotonServerList` 的 `emptyCard` / `loadingCard` / `errorCard` + `Sources/OrzMCDesignSystem/ContentState.swift` | 不要再把三种态合并成一段文案 |
@@ -128,11 +128,26 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 - **现在**：页顶只有一个「添加账号」菜单 → 选供应商（exaroton / MCSManager）→ 弹那一家的表单
   （exaroton：账号 + TOKEN；MCSManager：地址 + API Key）；**一家都没配时只显示空态说明页**，
   配置了哪家才出现哪家的分组与服务器。
-- 代码：`RemoteAddProviderMenu`（`OrzMC/Common/RemoteHostingUI/RemoteHostingSkeleton.swift`）+
+- 代码（**已被 UI-9 取代**）：`RemoteAddProviderMenu`（当时在 `RemoteHostingSkeleton.swift`）+
   `ExarotonContent` 的 `addRequest` 分发；组内不再带添加按钮（`RemoteProviderSection` 去掉 `emptyState`）。
 - 用例：`testSingleAddEntryIsAtTopAndOffersBothProviders`、`testAddEntryOpensMCSManagerForm`、
   `testRemotePageWithoutAccountsShowsEmptyState`（最后一条会剥掉本地凭据，否则"空页"其实不空）。
 - 截图：[`ui-remote-add-provider-2026-11-06/`](ui-remote-add-provider-2026-11-06/)。
+
+### UI-9（✅ 2026-11-08）「我的服务器」+「远程托管」合并成一个列表
+
+- **维护者要求**：两个面合并成一个列表，不用来回切换、省掉顶部切换控件；统一「添加服务器」按钮，
+  点开后选服务器类型；统一添加流程与展示 UI。
+- **现在**：`OrzMC/Common/ServersUI/ServersContentView.swift` 是 macOS「服务器」窗口与 iOS 首页**同一份**页面——
+  一个 ScrollView，分组固定 **自建 → exaroton → MCSManager**；页顶只有一个 `AddServerMenu`
+  （自建服务器 / Exaroton / MCSManager → 各自表单）；三条来源一条都没有时给统一空态。
+- **移除**：`ServersWindowContent`（顶部分段控件 + `orzmc.serversWindow.mode`）、`ExarotonContent`（远程专用页）、
+  `RemoteAddProviderMenu`、iOS 的两个 Tab 与 `ORZMC_DEMO_TAB` 钩子。
+- **模型**：页面层持有 `SelfHostedServersModel` + `ExarotonAccountsModel` + `MCSManagerPanelsModel`；
+  一个 `EditorSheet` 枚举管三种表单（同一视图链只能挂一个 `.sheet`）。
+- **用例**：`selfHosted.addServer` / `remote.addProvider` 合并成 `servers.addServer`（菜单里再选类型）；
+  "空态"用例改为**同时**清掉自建档案与远程凭据（合并后只清一边永远不会空）。
+- **文档**：[`app-ui-design.md`](app-ui-design.md) §11（改前/改后对照）。
 
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 

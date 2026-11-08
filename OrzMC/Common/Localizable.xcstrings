@@ -316,6 +316,17 @@
         }
       }
     },
+    "Add a server you run yourself, or connect an Exaroton account / MCSManager panel — everything shows up in this list.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一台自己运行的服务器，或连接 Exaroton 账号 / MCSManager 面板 —— 都会出现在这个列表里。"
+          }
+        }
+      }
+    },
     "Add an Exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
       "comment": "Remote hosting page empty state",
       "localizations": {
@@ -4147,6 +4158,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "自建"
+          }
+        }
+      }
+    },
+    "Self-hosted server": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自建服务器"
           }
         }
       }

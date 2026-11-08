@@ -25,8 +25,8 @@ import SwiftUI
 
 /// 一家供应商的一组（标题行 + 账号卡）。
 ///
-/// 组内不再自带「添加账号」按钮：页顶只有一个入口（`RemoteAddProviderMenu`），
-/// 先选供应商再填对应表单；一个账号都没有的供应商**整组不渲染**（由页面级空态负责引导）。
+/// 组内不再自带「添加账号」按钮：页顶只有一个入口（`ServersContentView.AddServerMenu`），
+/// 先选服务器类型再填对应表单；一条记录都没有的来源**整组不渲染**（由页面级空态负责引导）。
 struct RemoteProviderSection<Content: View>: View {
     let name: String
     let systemImage: String
@@ -44,44 +44,6 @@ struct RemoteProviderSection<Content: View>: View {
             )
             content()
         }
-    }
-}
-
-/// 页顶**唯一**的添加入口：先选供应商，再填该供应商的表单。
-///
-/// 以前每个供应商分组各有一个「添加账号」，空页上两个按钮长得一样、用户要先分清自己加的是哪家；
-/// 现在统一成一个菜单：选哪家就弹哪家的表单（exaroton：账号 + TOKEN；MCSManager：地址 + API Key）。
-struct RemoteAddProviderMenu: View {
-    let onSelect: (ProviderKind) -> Void
-
-    var body: some View {
-        Menu {
-            Button {
-                onSelect(.exaroton)
-            } label: {
-                Label {
-                    Text(verbatim: "Exaroton")
-                } icon: {
-                    Image(systemName: "cloud")
-                }
-            }
-            .accessibilityIdentifier("remote.addProvider.exaroton")
-
-            Button {
-                onSelect(.mcsmanager)
-            } label: {
-                Label {
-                    Text(verbatim: "MCSManager")
-                } icon: {
-                    Image(systemName: "square.stack.3d.up")
-                }
-            }
-            .accessibilityIdentifier("remote.addProvider.mcsmanager")
-        } label: {
-            Label(String(localized: "Add Account"), systemImage: "plus.circle").font(.callout)
-        }
-        .buttonStyle(.bordered)
-        .accessibilityIdentifier("remote.addProvider")
     }
 }
 

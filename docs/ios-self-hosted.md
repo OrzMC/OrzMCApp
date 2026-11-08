@@ -1,6 +1,6 @@
 # iOS 自建服务器（最小闭环）
 
-> 状态：已落地（2026-10-23）｜最后更新：2026-10-23
+> 状态：已落地（2026-10-23）｜最后更新：2026-11-08
 
 前情：iOS 端以前只有一个页面——exaroton 远程托管（`ExarotonContent`），**必须先注册第三方账号**
 才能用。本文件记录新增的「我的服务器」这条路：不依赖任何账号，直接对一个自己架的
@@ -17,14 +17,13 @@ Minecraft 服务端查状态、发控制台命令。
 | 常用命令 | RCON | 「列出玩家 / 保存世界 / 广播 / 踢出 / 封禁 / OP / 白名单」——**要参数的先填好开头**，不用背语法 |
 | 玩家快捷动作 | RCON | 玩家列表每行有「踢出」「OP」，点一下填进输入框 |
 
-**多台服务器**：顶部胶囊菜单切换（新增/编辑/删除在菜单里，删除要二次确认）。
+**多台服务器**：卡片列表（点卡片进详情，设置里新增/编辑/删除，删除要二次确认）。
 早期版本只存一台，升级时自动迁移（`orzmc.selfHosted.profile` → `orzmc.selfHosted.profiles`，
 密码从旧的固定 Keychain 账户搬到新档案上），用户不会看到"配置没了"。
 
-iOS 首页变成两个并列的 Tab：**我的服务器** / **远程托管**。
-
-macOS 上这两个面放进同一个「服务器」窗口（顶部分段控件切换，`ServersWindowContent`），
-入口在主窗口工具栏的 **Servers**；窗口支持 Esc 关闭（规则见 `docs/app-ui-design.md` §3.2.1）。
+**2026-11-08 起自建与远程托管合并成一个列表**（`ServersContentView`）：iOS 首页不再分 Tab，
+macOS「服务器」窗口也没有顶部分段控件；页顶只有一个「添加服务器」菜单（自建 / Exaroton / MCSManager）。
+入口在 macOS 主窗口工具栏的 **Servers**；窗口支持 Esc 关闭（规则见 `docs/app-ui-design.md` §3.2.1）。
 
 ## 2. 分层
 
@@ -32,9 +31,10 @@ macOS 上这两个面放进同一个「服务器」窗口（顶部分段控件�
 OrzMC/Common/SelfHosted/          应用侧（跨平台，只用 Foundation/SwiftUI）
   SelfHostedCredentials.swift     RCON 密码 → Keychain（按档案 id 分开，含旧账户迁移）
   SelfHostedServersModel.swift    @MainActor @Observable：多档案 + 每台的状态/控制台/错误文案
-  SelfHostedServerView.swift      服务器菜单 + 状态卡 + 玩家列表 + 控制台 + 常用命令
+  SelfHostedServerView.swift      自建分组（`SelfHostedServersSection` + 服务器信息卡片）
+  SelfHostedServerDetailView.swift  详情页：状态卡 + 玩家列表 + 控制台 + 常用命令
   SelfHostedServerSettingsView.swift  地址/端口/RCON 表单（含校验、删除这台服务器）
-  ServersWindowContent.swift     macOS「服务器」窗口：自建 / 远程托管 两个面
+  ../ServersUI/ServersContentView.swift  服务器页：一个列表（自建 / Exaroton / MCSManager）+ 统一添加入口
 
 Sources/OrzMCLauncher/            平台无关、可单测
   SelfHostedProfiles.swift        档案模型 + `upsert`/`remove`/选中规则 + 旧格式迁移

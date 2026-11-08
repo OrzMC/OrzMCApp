@@ -331,7 +331,8 @@ xcrun xcresulttool export attachments --path /tmp/rb.xcresult --output-path /tmp
 写用例时注意：
 - 用 `accessibilityIdentifier`（如 `selfHosted.settings`），不要依赖本地化文案——文案一改测试就红；
 - 测试专用的数据注入走 DEBUG 环境变量（`ORZMC_DEMO_SEED_PROFILE` / `ORZMC_DEMO_RCON_PASSWORD` /
-  `ORZMC_DEMO_TAB` / `ORZMC_DEMO_FAKE_SERVER`），**发布构建里不存在**；
+  `ORZMC_DEMO_FAKE_SERVER` / `ORZMC_DEMO_MCSM_FAKE`），**发布构建里不存在**；
+  （2026-11-08 合并成一个列表后不再有 `ORZMC_DEMO_TAB`）
 - 模拟器首次跑 UI 测试若不预装 App，Xcode 会报
   `bundle identifier for OrzMC couldn't be read` —— 脚本已用 `simctl install` 规避。
 

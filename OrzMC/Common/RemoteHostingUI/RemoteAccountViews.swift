@@ -83,8 +83,8 @@ struct RemoteProviderHeader: View {
     let identifier: String
 
     var body: some View {
-        // 「添加」不再跟在每个供应商标题后面：页顶只有一个添加入口（`RemoteAddProviderMenu`），
-        // 先选供应商再填对应表单。这里只负责"这是哪家、有几个"。
+        // 「添加」不再跟在每个供应商标题后面：页顶只有一个添加入口（`AddServerMenu`），
+        // 先选服务器类型再填对应表单。这里只负责"这是哪家、有几个"。
         HStack(spacing: OrzMCTheme.Spacing.xs) {
             Label {
                 Text(verbatim: name).accessibilityIdentifier(identifier)

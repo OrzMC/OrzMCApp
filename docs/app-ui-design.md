@@ -1,7 +1,7 @@
 # macOS 启动器：UI 信息架构、设计系统与改进路线
 
-> **状态**：生效中｜**最后更新**：2026-10-30
-> **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/ExarotonUI/**` + `Sources/OrzMCDesignSystem/**`
+> **状态**：生效中｜**最后更新**：2026-11-08
+> **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/{ServersUI,SelfHosted,ExarotonUI,MCSManagerUI,RemoteHostingUI}/**` + `Sources/OrzMCDesignSystem/**`
 > **交接**：[`ui-handoff.md`](ui-handoff.md)（给下一个 agent 的状态/待办/提示词）。
 > **关联**：[`app-launcher-architecture.md`](app-launcher-architecture.md)（模型职责）、
 > [`app-platform-split.md`](app-platform-split.md)（平台分层）、
@@ -12,19 +12,26 @@
 
 ---
 
-## 远程托管账号层级（2026-10-30，2026-11-05 抽成共享骨架）
+## 服务器页：一个列表、按来源分组（2026-11-08 合并）
 
-按供应商分组，固定 exaroton → MCSManager；每组允许多个账号，每个账号下完整展示实例。
-**页顶只有一个带边框的「添加账号」菜单**（先选供应商，再填对应表单）；分组标题旁不再放添加按钮，
-一个账号都没有的供应商整组不渲染。账号和实例操作菜单统一使用系统默认带边框样式。
+**一个页面**（`OrzMC/Common/ServersUI/ServersContentView.swift`，macOS「服务器」窗口与 iOS 首页同一份），
+分组顺序固定 **自建 → exaroton → MCSManager**；每组允许多个账号 / 面板，每个账号下完整展示实例。
+**页顶只有一个带边框的「添加服务器」菜单**（先选来源：自建服务器 / Exaroton 账号 / MCSManager 面板，
+再填对应表单）；分组标题旁不再放添加按钮，一条记录都没有的来源整组不渲染。
+账号和实例操作菜单统一使用系统默认带边框样式。
 
-**共享骨架落在** `OrzMC/Common/RemoteHostingUI/`（两家供应商都用，macOS 与 iPhone 同一份）：
+> 2026-11-08 之前自建与远程托管是两个"面"：macOS 窗口顶部分段控件切换、iOS 两个 Tab。
+> 合并后**顶部不再有切换控件**，iOS 也不再分 Tab——"服务器在哪"只是同一张列表里的分组。
+> 决策与验收见下方 §11。
+
+**共享骨架落在** `OrzMC/Common/RemoteHostingUI/`（三家来源都用，macOS 与 iPhone 同一份）：
 
 | 骨架 | 负责 | 两家各自特化的部分 |
 |---|---|---|
-| `RemoteProviderSection` | 供应商标题行（图标 + 名称 + 实例数）；**一个账号都没有的供应商整组不渲染** | 标题文案 / 图标 / 计数口径 |
-| `RemoteAddProviderMenu` | **页顶唯一**的添加入口：先选供应商（exaroton / MCSManager），再弹对应表单 | 表单内容（账号+TOKEN / 地址+API Key） |
-| `EmptyContentView`（设计系统） | 一家都没配时的空态说明页 | 文案 |
+| `ServersContentView`（`Common/ServersUI/`） | 页面层：持有三个模型、页顶唯一添加入口、所有表单 sheet、统一空态 | 分组顺序与空态文案 |
+| `AddServerMenu` | **页顶唯一**的添加入口：先选来源（自建 / Exaroton / MCSManager），再弹对应表单 | 表单内容（地址+RCON / 账号+TOKEN / 地址+API Key） |
+| `RemoteProviderSection` | 分组标题行（图标 + 名称 + 实例数）；**一条记录都没有的来源整组不渲染** | 标题文案 / 图标 / 计数口径 |
+| `EmptyContentView`（设计系统） | 三条来源一条都没有时的空态说明页 | 文案 |
 | `RemoteAccountCard` | 账号卡（头部 + 面板底 + 内边距） | exaroton：账号凭据；MCSM：面板地址 + API Key |
 | `RemoteAccountMenu` | `⋯` 菜单：刷新 → 编辑 → 删除（顺序固定） | 编辑/删除落到各自模型 |
 | `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台 sheet |
@@ -32,8 +39,8 @@
 
 排版规则（改远程托管页必须遵守）：
 
-0. **添加入口只有一个，在页顶**：菜单里选供应商 → 弹该供应商的表单；不在分组标题旁边再放「添加账号」。
-   没有任何账号时不渲染任何分组，只显示空态说明页（同一页不再出现两个"空卡片"）。
+0. **添加入口只有一个，在页顶**：菜单里选来源 → 弹该来源的表单；不在分组标题旁边再放「添加」。
+   三条来源一条都没有时不渲染任何分组，只显示空态说明页（同一页不再出现"空卡片"）。
 1. **组内不再"面板套面板"**：账号卡是一张面板，实例/额度池是**平铺行**（同一套行骨架），
    行间用 `Spacing.md` 分隔。
 2. **行内字段顺序固定**：名称 + 状态徽标（`RemoteInstanceHeading`，内含 `OrzMCStatusBadge`）→ 明细 → 右侧。
@@ -134,22 +141,22 @@ Settings（TabView：General / Server / Tools / About）
 
 ```
 WindowGroup
-└── ContentView（两个并列 Tab）
-    ├── 我的服务器（SelfHostedServerView）
-    │   ├── 状态卡（SLP：在线/版本/玩家/延迟/MOTD）
-    │   ├── 玩家列表（服务端没隐藏时）
-    │   └── 控制台（RCON）
-    └── 远程托管（ExarotonContent）
-        └── NavigationStack
-            ├── ExarotonServerList（摘要卡 + 服务器/额度池卡片 + 账号 Token）
-            ├── ExarotonServerDetail（概览 / 玩家列表 / 性能 / 内存 / 操作 / 控制台）
-            └── ExarotonCreditPoolDetail（成员 / 服务器）
+└── ContentView
+    └── ServersContentView（与 macOS「服务器」窗口同一份）
+        └── NavigationStack（标题：服务器）
+            ├── SelfHostedServersSection（自建：卡片列表，点卡片进详情）
+            │   └── SelfHostedServerDetailView（状态 / 玩家 / RCON 控制台）
+            ├── ExarotonAccountsSection（账号卡 → 实例卡片 / 额度池）
+            │   ├── ExarotonServerDetail（概览 / 玩家 / 性能 / 内存 / 操作 / 控制台）
+            │   └── ExarotonCreditPoolDetail（成员 / 服务器）
+            └── MCSManagerSection（面板卡 → 实例卡片 → 控制台 sheet）
 ```
 
-iOS 与 macOS **共用** `Common/ExarotonUI` 与 `Common/SelfHosted`；
+iOS 与 macOS **共用** `Common/ServersUI`、`Common/SelfHosted`、`Common/ExarotonUI`、`Common/MCSManagerUI`；
 平台差异只在 `#if os(...)` 里（List 样式、键盘、sheet detents、是否需要 Esc）。
 
-macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部分段控件切换（见 §3.2）。
+macOS 的「服务器」窗口与 iOS 首页是**同一个页面**：一个列表、页顶一个「添加服务器」菜单，
+不再有分段控件 / Tab 切换（见 §3.2、§11）。
 
 ### 1.3 关键跳转规则
 
@@ -234,7 +241,7 @@ macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部�
 |---|---|---|
 | `Window(id:"main")` | 主启动器 | **唯一**，单份 `AppModel` |
 | `WindowGroup(for: ConsoleTarget.self)` | 某个实例的控制台 | 共享主窗口的 `AppModel`，同一个 `ServerConsoleModel` |
-| `Window(id:"remote")` | 「服务器」：自建（SLP/RCON）+ exaroton 托管，顶部切换 | 自建用 `SelfHostedServerModel`；托管用独立的 `ExarotonServerModel`。都不碰本机进程状态 |
+| `Window(id:"remote")` | 「服务器」：一个列表（自建 SLP/RCON + exaroton + MCSManager 面板按来源分组） | 自建用 `SelfHostedServersModel`；托管用独立的 `ExarotonServerModel` / `MCSManagerModel`。都不碰本机进程状态 |
 
 - `GameView` 工具栏的 **Servers** 打开「服务器」窗口；
 - 控制台工具栏的 **Open in New Window** 用 `openWindow(value: ConsoleTarget)` 打开独立控制台；
@@ -578,3 +585,22 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 | 常规（iPad 横屏 / macOS） | 与名称同一行；真放不下才退化成底栏（`ViewThatFits`） |
 
 顺带：`Actions == EmptyView` 的卡片（例如「我的服务器」）不再预留操作栏，避免多出一条空白分隔线。
+
+## 11. 2026-11-08 自建 + 远程托管合并成一个列表
+
+维护者要求：**「我的服务器」与「远程托管」合并成一个列表**，不再来回切换、省掉顶部切换控件，
+用统一的「添加服务器」按钮（点开后选服务器类型），统一添加流程与展示 UI。
+
+| 位置 | 改前 | 改后 |
+|---|---|---|
+| 页面 | macOS 顶部分段控件切两个面；iOS 两个 Tab | **一个** `ServersContentView`（macOS 窗口 + iOS 首页同一份），顶部无切换控件 |
+| 添加 | 自建页「添加服务器」直接弹表单；远程页「添加账号」先选供应商 | 页顶**一个**「添加服务器」菜单：自建服务器 / Exaroton / MCSManager → 各自表单 |
+| 列表 | 两个面各自的空态与页顶按钮 | 一个 ScrollView，分组固定 **自建 → exaroton → MCSManager**；没有内容的来源整组不渲染 |
+| 空态 | 两套文案（还没有服务器 / 没有远程服务器） | 一套统一空态（`还没有服务器` + 一句话说明三种来源） |
+| 模型 | 各页面各持一份 | 页面层持有 `SelfHostedServersModel` + `ExarotonAccountsModel` + `MCSManagerPanelsModel`，一个 `EditorSheet` 枚举管三种表单 |
+
+**移除**：`ServersWindowContent`（分段控件 + `orzmc.serversWindow.mode` 记忆）、`ExarotonContent`
+（远程专用页）、`RemoteAddProviderMenu`（被 `AddServerMenu` 取代）、iOS 的两个 Tab。
+
+**验证**：`check.sh --fast/--build/--ios` + iOS UI 套件；UI 用例的 `ORZMC_DEMO_TAB` 钩子随 Tab 一起移除，
+"空态"用例改为**同时**清掉自建档案与远程凭据（否则合并后永远不空）。
