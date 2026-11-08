@@ -28,7 +28,7 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 | **P1 存储核心** | `ServerRecordBackend`（安装内加密文件 / 本机 Keychain / iCloud Keychain）、`ServerRecordMigration`（先写后验再删源）、`ServerRecordStore`（按档位路由 + 迁移 + 如实报错） | ✅ 已完成，10 + 7 条单测 |
 | **P2 接到现有三处** | ✅ 三处都已接线（自建 RCON 密码 / Exaroton Token / MCSManager API Key）。统一走 `ServerSecretsStore`；档位跟着记录自身（`storageMode` 字段，老数据缺字段时按 `.device` 解码）；**默认仍是"保留在本机"**，升级不迁移、不删除 | 进行中 |
 | **P3 界面** | 每台服务器 / 每个账号的「保存方式」选择（三档 + 说明）、迁移中的进度与失败提示、显式"清除本机资料"入口（macOS 删应用不会清 `Application Support`） | 待做 |
-| **P4 iCloud 真机验证** | 共享访问组已定名 `com.joker.OrzMC.shared`（entitlements 写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），运行时自动从签名里读；**卡在签名**：本机 Xcode 未登录 Apple 账号、App ID 未开 Keychain Sharing，加 entitlement 后 `xcodebuild` 直接报 `No Accounts / No profiles`。需要在 Xcode 里给两个 target 勾上 Keychain Sharing 能力后再验 | 待做（依赖签名配置） |
+| **P4 iCloud 真机验证** | ✅ **签名已打通**（2026-11-08）：两端 entitlements 都带 `2N62934Y28.com.joker.OrzMC.shared`，macOS 与 iPhone 运行时都探测到 `iCloud=available`。共享访问组 `com.joker.OrzMC.shared`（entitlements 写 `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），运行时自动从签名里读；剩余：用同一 Apple 账号在两台设备上做写入/同步/删除/重装恢复的实测 | 待验（能力已就绪） |
 
 ### P1 的接口约定（后续实现别绕开）
 
@@ -74,9 +74,9 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 - `ServerSecretsStore.sharedAccessGroup()` 从**签名里的 entitlements** 读这个组：
   有 → `.iCloud` 后端启用（`ServerRecordKeychain(service: "com.joker.OrzMC.sync", synchronizable: true, accessGroup: …)`）；
   没有 → `.iCloud` 不可用（界面置灰）。
-- **本次没有打开 entitlement**：试过在 `project.pbxproj` 里加 `CODE_SIGN_ENTITLEMENTS`，
-  签名立刻失败（`No Accounts: Add a new account in Accounts settings` / `No profiles for 'com.joker.OrzMC'`）。
-  这台机器上 `xcodebuild` 没有 Apple 账号、App ID 也没开 Keychain Sharing。
-  **需要维护者在 Xcode 里**：登录 Apple 账号 → 两个 target（macOS `com.joker.OrzMC`、iOS `com.joker.OrzMC.iOS`）
-  的 Signing & Capabilities 里加 Keychain Sharing，组名填 `com.joker.OrzMC.shared`，
-  然后重新装开发包，此时 `.iCloud` 档位会自动从"置灰"变成"可用"（无需再改代码）。
+- ✅ **entitlement 已打开**（2026-11-08，维护者登录 Apple 账号后）：
+  `OrzMC/Common/OrzMC.entitlements` 里带两个组（默认组 + `$(AppIdentifierPrefix)com.joker.OrzMC.shared`），
+  `project.pbxproj` 给 app target 的两个配置都设了 `CODE_SIGN_ENTITLEMENTS`。
+  首次签名需要设备注册，因此两个安装脚本都加了 `-allowProvisioningDeviceRegistration`。
+- 实测：`codesign -d --entitlements` 两端都含 `2N62934Y28.com.joker.OrzMC.shared`；
+  运行日志（DEBUG）两端都是 `sharedAccessGroup=2N62934Y28.com.joker.OrzMC.shared iCloud=available`。

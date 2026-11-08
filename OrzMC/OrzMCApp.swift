@@ -47,6 +47,9 @@ struct OrzMCApp: App {
         if MCSManagerDiagnose.isRequested {
             Task { @MainActor in await MCSManagerDiagnose.runIfRequested() }
         }
+        // 启动时把存储配置初始化一次：顺带打印签名里探测到的 Keychain 共享组
+        // （仅 DEBUG，日志不含任何凭据），用于确认 iCloud 档位是否可用。
+        _ = ServerSecretsStore.isAvailable(.iCloud)
 #endif
     }
 

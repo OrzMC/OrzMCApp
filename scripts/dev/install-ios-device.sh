@@ -122,6 +122,7 @@ else
     -destination "platform=iOS,id=$DEVICE" \
     -derivedDataPath "$DERIVED_DATA" \
     -allowProvisioningUpdates \
+    -allowProvisioningDeviceRegistration \
     -onlyUsePackageVersionsFromResolvedFile \
     -skipPackageUpdates \
     -skipPackagePluginValidation \
