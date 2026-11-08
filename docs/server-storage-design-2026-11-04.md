@@ -121,3 +121,26 @@ macOS 与 iOS 当前 bundle ID 不同；跨端钥匙串需要同一开发团队�
 - 界面：设置 → 通用 → 「本机资料」区 → **清除本机资料…**（破坏性按钮 + 二次确认）。
   footer 与确认弹窗都明确写：**不动 iCloud 副本**（那属于其它设备），要删就改保存方式或删账号。
 - 执行后回显：「已从这台 Mac 删除 N 条记录、M 条钥匙串项」，失败项也会列出来（不吞错）。
+
+## 真机 · 现有记录的可用性复核（2026-11-08，维护者要求）
+
+用 `ORZMC_STORAGE_DIAGNOSE=report`（只读自检：逐条检查现存记录能否读到凭据，**不打印凭据内容**）
+在两端各跑一次，确认存储重构没有影响既有数据：
+
+| 端 | 记录 | 凭据 | 结论 |
+|---|---|---|---|
+| macOS | 自建 ×2（`测试服`，`rconEnabled=false`） | `secret=no`（**符合预期**：没开 RCON 就没有密码） | 正常 |
+| macOS | Exaroton `海外服` | `secret=yes`，len=100 | 正常 |
+| macOS | MCSManager `测试服` | `secret=yes`，len=32 | 正常 |
+| iPhone | 自建 `测试服` | `secret=yes`，len=8 | 正常 |
+| iPhone | Exaroton `海外服` | `secret=yes`，len=100 | 正常 |
+| iPhone | MCSManager `测试服` | `secret=yes`，len=32 | 正常 |
+
+两端都是 `storageMode=device`（老记录缺字段时按 `.device` 解码），`iCloudAvailable=true`，
+共享组 `2N62934Y28.com.joker.OrzMC.shared`。
+
+迁移自检 `ORZMC_STORAGE_DIAGNOSE=moveprobe`（合成记录，不碰真实数据）：
+`device → iCloud → installation → device` 每一步都读回一致、最后清理干净，两端均 `allOK=true`。
+
+> 注意：`.device` 档位有"回退读"（切档位时不会出现"看不见密码"），因此**在公共 API 上观察不到
+> "来源是否已清空"**——迁移自检只校验目标端读得到。来源清理的真实性由 P1 的 `move` 单测覆盖。
