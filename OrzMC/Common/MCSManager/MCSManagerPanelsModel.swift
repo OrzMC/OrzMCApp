@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OrzMCFoundation
 import MCSMAPI
 import OrzMCRemoteHosting
 
@@ -64,8 +65,11 @@ final class MCSManagerPanelsModel {
 
     /// 添加面板；地址/Key 非法时返回 false，原因在 `lastValidationError`。
     @discardableResult
-    func addPanel(label: String, rawURL: String, apiKey: String) -> Bool {
-        guard let panel = MCSManagerPanel.make(label: label, rawURL: rawURL) else {
+    func addPanel(
+        label: String, rawURL: String, apiKey: String,
+        storageMode: ServerRecordStorageMode = .device
+    ) -> Bool {
+        guard var panel = MCSManagerPanel.make(label: label, rawURL: rawURL) else {
             lastValidationError = String(localized: "The panel address is not valid.")
             return false
         }
@@ -79,6 +83,7 @@ final class MCSManagerPanelsModel {
             return false
         }
         lastValidationError = nil
+        panel.storageMode = storageMode
 
         panels.append(panel)
         if !isDemo {
@@ -91,14 +96,30 @@ final class MCSManagerPanelsModel {
 
     /// 编辑面板（地址/名称/Key）。**`apiKey` 留空 = 不改 Key**（界面上只换地址时不用重新粘 key）。
     @discardableResult
-    func updatePanel(id: UUID, label: String, rawURL: String, apiKey: String) -> Bool {
+    func updatePanel(
+        id: UUID, label: String, rawURL: String, apiKey: String,
+        storageMode: ServerRecordStorageMode? = nil
+    ) -> Bool {
         guard let index = panels.firstIndex(where: { $0.id == id }) else { return false }
-        guard let updated = MCSManagerPanel.make(id: id, label: label, rawURL: rawURL) else {
+        guard var updated = MCSManagerPanel.make(id: id, label: label, rawURL: rawURL) else {
             lastValidationError = String(localized: "The panel address is not valid.")
             return false
         }
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let effectiveKey = trimmedKey.isEmpty ? store.apiKey(for: id) : trimmedKey
+        let previousMode = panels[index].storageMode
+        let targetMode = storageMode ?? previousMode
+        if targetMode != previousMode {
+            do {
+                try StorageModeMigration.apply(
+                    id: id, provider: .mcsmAPIKey, from: previousMode, to: targetMode
+                )
+            } catch {
+                lastValidationError = error.localizedDescription
+                return false
+            }
+        }
+        updated.storageMode = targetMode
         guard !panels.contains(where: {
             $0.id != id && $0.url == updated.url && store.apiKey(for: $0.id) == effectiveKey
         }) else {

@@ -1129,6 +1129,17 @@
         }
       }
     },
+    "Could not move the saved credentials.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "迁移已保存的凭据失败，原记录已保留。"
+          }
+        }
+      }
+    },
     "Could not open the folder. %@": {
       "localizations": {
         "zh-Hans": {
@@ -1733,6 +1744,17 @@
         }
       }
     },
+    "Follows your Apple Account, so other devices can use it too.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随你的 Apple 账号，同一账号的其它设备也能用。"
+          }
+        }
+      }
+    },
     "Force Stop": {
       "extractionState": "manual",
       "localizations": {
@@ -2101,6 +2123,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "跳到最旧版本"
+          }
+        }
+      }
+    },
+    "Keep on this device": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留在本机"
           }
         }
       }
@@ -3322,6 +3355,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "录制"
+          }
+        }
+      }
+    },
+    "Recoverable after reinstalling. Never leaves this device.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重装后仍可恢复；始终只留在本机。"
           }
         }
       }
@@ -4701,6 +4745,17 @@
         }
       }
     },
+    "Storage": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存方式"
+          }
+        }
+      }
+    },
     "Stored in the macOS/iOS keychain and only used for Exaroton requests.": {
       "localizations": {
         "zh-Hans": {
@@ -4721,12 +4776,34 @@
         }
       }
     },
+    "Survives app restarts. Lost if you reinstall the app or move to another device.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关掉应用后仍可使用；重装应用或换设备就没了。"
+          }
+        }
+      }
+    },
     "Switch launch target": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "切换启动目标"
+          }
+        }
+      }
+    },
+    "Sync with iCloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 同步"
           }
         }
       }
@@ -5184,6 +5261,17 @@
         }
       }
     },
+    "This install only": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅本次安装"
+          }
+        }
+      }
+    },
     "This panel is already added.": {
       "localizations": {
         "zh-Hans": {
@@ -5352,6 +5440,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "不可用"
+          }
+        }
+      }
+    },
+    "Unavailable: this build has no Keychain sharing group (or iCloud Keychain is off).": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前不可用：这个构建没有 Keychain 共享组（或 iCloud 钥匙串未开启）。"
           }
         }
       }
@@ -5602,6 +5701,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "官网"
+          }
+        }
+      }
+    },
+    "Where the API key is kept. Changing it moves the saved key.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key 保存在哪里。切换会把已存的 Key 迁移过去。"
+          }
+        }
+      }
+    },
+    "Where the RCON password is kept. Changing it moves the saved password; the server itself is never touched.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RCON 密码保存在哪里。切换会把已存的密码迁移过去；不会碰服务器本身。"
+          }
+        }
+      }
+    },
+    "Where the TOKEN is kept. Changing it moves the saved token.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TOKEN 保存在哪里。切换会把已存的 Token 迁移过去。"
           }
         }
       }

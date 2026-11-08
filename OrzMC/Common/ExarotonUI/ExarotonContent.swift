@@ -171,14 +171,16 @@ private extension ExarotonContent {
         case .mcsmanagerPanel(let mode):
             MCSManagerPanelEditor(
                 mode: mode,
-                onSave: { label, url, key in
+                onSave: { label, url, key, storageMode in
                     switch mode {
                     case .add:
-                        guard mcsm.addPanel(label: label, rawURL: url, apiKey: key) else { return false }
+                        guard mcsm.addPanel(
+                            label: label, rawURL: url, apiKey: key, storageMode: storageMode
+                        ) else { return false }
                     case .edit(let panel):
-                        guard mcsm.updatePanel(id: panel.id, label: label, rawURL: url, apiKey: key) else {
-                            return false
-                        }
+                        guard mcsm.updatePanel(
+                            id: panel.id, label: label, rawURL: url, apiKey: key, storageMode: storageMode
+                        ) else { return false }
                     }
                     editorSheet = nil
                     Task { await mcsm.reloadAll(); mcsm.start() }
