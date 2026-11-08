@@ -72,6 +72,9 @@ struct RemoteAccountCard<Actions: View, Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
             RemoteAccountHeader(name: name, subtitle: subtitle, isLoading: isLoading, actions: actions)
+            // 标题与内容之间一条细线：账号/面板现在只是**标签**，行才是内容
+            // （2026-11-08 视觉评审：没有这条线时标题像"浮在卡片外"）。
+            RemoteRowDivider()
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,7 +109,9 @@ struct RemoteAccountMenu: View {
                 onEdit()
             }
             ServerActionDivider()
-            icon("Remove Account", "trash", key: .remove, help: "Remove this account", tint: OrzMCTheme.Palette.danger) {
+            // 危险色**不常驻**：图标红着会一直抢注意力，也和主窗口的中性删除图标不一致。
+            // 真正的红色留给确认框里的 destructive 按钮。
+            icon("Remove Account", "trash", key: .remove, help: "Remove this account") {
                 onRemove()
             }
         }
@@ -180,6 +185,34 @@ struct RemoteInlineError: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// 面板卡内部行与行之间的细线。
+///
+/// 平铺行（`.plain`）自己没有面板，靠这条线表达"这是同一张卡里的两行"（系统分组列表的做法）。
+struct RemoteRowDivider: View {
+    var body: some View {
+        Divider().opacity(0.5)
+    }
+}
+
+/// 一行**元信息**（版本 / 玩家 / 延迟 / 成员数…）：纯文本 + `·` 分隔。
+///
+/// 以前这里是描边胶囊（`OrzMCTag`）：和状态徽章同形，一张卡里 3 个胶囊 + 1 个徽章，
+/// 看起来像 4 个可点的过滤器。元信息是**内容**不是控件（HIG Layout：控件与内容要有区别）；
+/// 纯文本还能在 iPhone 窄屏 / 大字号下自然换行。
+struct RemoteMetadataLine: View {
+    let items: [String]
+
+    var body: some View {
+        if !items.isEmpty {
+            Text(verbatim: items.joined(separator: " · "))
+                .font(.caption)
+                .foregroundStyle(OrzMCTheme.Palette.metadata)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

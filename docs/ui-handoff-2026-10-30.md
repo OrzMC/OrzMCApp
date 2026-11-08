@@ -159,6 +159,16 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 - 用例：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`；
   细节见 [`app-ui-design.md`](app-ui-design.md) §12。
 
+### UI-11（✅ 2026-11-08）视觉评审落地：两层表面 / 字阶 / 标签 / 图标 / 折叠控件
+
+- 依据 HIG（DocC JSON 核验 2026-11-08）+ 截图量测：三层玻璃面板、三处 `.headline`、3.21:1 / 2.19:1 小字、
+  每行 5 个图标、面板圆角 16 与令牌 14 漂移。
+- 改动：`ServerCard(surface:)` 去掉"卡中卡"；分组/账号/服务器三档字阶；标签改 `RemoteMetadataLine`；
+  图标 `Palette.control` + hover + 32/22 命中区 + danger 色不常驻；折叠控件改中性选中底；
+  `orzMCPanel` 默认圆角对齐 `Radius.lg`；iOS 紧凑宽度 footer 移到操作栏之前。
+- 细节与量测表见 [`app-ui-design.md`](app-ui-design.md) §13。
+- 未做：A 方案（账号降级为子标题行）；macOS 亮色/高对比/VoiceOver 人工复核。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

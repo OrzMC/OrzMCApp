@@ -96,7 +96,8 @@ struct RemoteInstanceRow<Details: View, Trailing: View, Footer: View>: View {
         if showsDisclosure {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
+                .frame(width: 12)
                 .accessibilityHidden(true)
         }
     }

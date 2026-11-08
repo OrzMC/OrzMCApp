@@ -11,10 +11,13 @@ struct RemoteAccountHeader<Actions: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: OrzMCTheme.Spacing.sm) {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.xs) {
-                Text(verbatim: name).font(.headline)
+                // 账号/面板是**容器**：比里面的服务器名小一档（服务器才是内容）。
+                // 以前三者都是 `.headline`，层级只靠缩进，卡片里看起来"一样重要"。
+                Text(verbatim: name).font(.callout.weight(.semibold))
                     .accessibilityIdentifier("remote.accountName")
                 if let subtitle, !subtitle.isEmpty {
-                    Text(verbatim: subtitle).font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: subtitle).font(.caption)
+                        .foregroundStyle(OrzMCTheme.Palette.metadata)
                 }
             }
             Spacer(minLength: OrzMCTheme.Spacing.xs)
@@ -93,12 +96,16 @@ struct RemoteProviderHeader: View {
             if let onToggle {
                 Button(action: onToggle) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 12, alignment: .center)
+                        // 命中区 18×18：5pt 宽的箭头只有一圈 12×12 的框，指针也很难点中。
+                        .frame(width: 18, height: 18)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
+                // iOS 的 borderless 按钮默认用强调色染图标：折叠箭头会变成蓝色（像链接）。
+                // 它是**结构控件**，不该抢强调色（2026-11-08 浅色模拟器截图确认）。
+                .tint(.secondary)
                 .help(isExpanded ? "Collapse this section" : "Expand this section")
                 .accessibilityLabel(Text(isExpanded ? "Collapse this section" : "Expand this section"))
                 .accessibilityIdentifier("\(identifier).toggle")
@@ -110,12 +117,14 @@ struct RemoteProviderHeader: View {
             } icon: {
                 Image(systemName: systemImage).foregroundStyle(.secondary).accessibilityHidden(true)
             }
-            .font(.headline)
+            // 分组是**结构标签**：比卡片标题小一档 + 次级色（与主窗口「客户端/服务端」分组一致）。
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
             // 点标题也能折叠/展开（与主窗口实例栏的表头一致）。
             .contentShape(Rectangle())
             .onTapGesture { onToggle?() }
             if count > 0 {
-                Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.tertiary)
             }
             Spacer(minLength: 0)
         }

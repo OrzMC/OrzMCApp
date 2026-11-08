@@ -147,7 +147,6 @@ struct SelfHostedServerCard: View {
             ServerIconButton(
                 title: "Delete",
                 systemImage: "trash",
-                tint: OrzMCTheme.Palette.danger,
                 help: "Removes the address, the saved RCON password and the console history (asks for confirmation)",
                 identifier: "selfHosted.action.remove"
             ) {
@@ -169,7 +168,7 @@ struct SelfHostedServerCard: View {
             String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
         } ?? " ")
             .font(.caption)
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(.secondary)
             .frame(height: 14, alignment: .leading)
     }
 }

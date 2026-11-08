@@ -9,7 +9,7 @@ import SwiftUI
 public struct OrzMCPanel: ViewModifier {
     private let cornerRadius: CGFloat
 
-    public init(cornerRadius: CGFloat = 16) {
+    public init(cornerRadius: CGFloat = OrzMCTheme.Radius.lg) {
         self.cornerRadius = cornerRadius
     }
 
@@ -33,7 +33,7 @@ public struct OrzMCPanel: ViewModifier {
 
 public extension View {
     /// 统一面板外观（macOS 26+ 为液态玻璃）。
-    func orzMCPanel(cornerRadius: CGFloat = 16) -> some View {
+    func orzMCPanel(cornerRadius: CGFloat = OrzMCTheme.Radius.lg) -> some View {
         modifier(OrzMCPanel(cornerRadius: cornerRadius))
     }
 }

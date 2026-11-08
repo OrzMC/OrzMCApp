@@ -278,7 +278,10 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 20), "服务器名应显示")
         XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "假服务器在线，状态应为「在线」")
         XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
-        XCTAssertTrue(app.staticTexts["26.3"].exists, "版本标签来自 SLP")
+        // 版本 / 玩家 / 延迟现在是同一行元信息（`26.3 · 2/20 名玩家 · 1 毫秒`），
+        // 不再是一个个描边胶囊，所以按"包含"断言。
+        XCTAssertTrue(waitForStaticText(app, containing: "26.3", timeout: 10), "版本来自 SLP")
+        XCTAssertTrue(waitForStaticText(app, containing: "名玩家", timeout: 10), "玩家数来自 SLP")
         XCTAssertTrue(app.staticTexts["玩家"].exists, "玩家卡应始终显示")
 
         // 三个名单页签都能切（数据来自假 RCON：list / whitelist list / banlist list）

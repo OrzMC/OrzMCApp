@@ -143,8 +143,10 @@ struct MCSManagerSection: View {
                     RemoteInlineEmpty()
                 }
             } else {
-                VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.md) {
-                    ForEach(instances) { instance in
+                // 面板卡是唯一的表面；实例行用 `.plain` 平铺 + 细线分隔（不再卡中卡）。
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(instances.enumerated()), id: \.offset) { index, instance in
+                        if index > 0 { RemoteRowDivider() }
                         row(instance, model: model)
                     }
                 }
@@ -170,6 +172,7 @@ struct MCSManagerSection: View {
                 sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
             },
             tapIdentifier: "mcsm.instanceRow",
+            surface: .plain,
             actions: {
                 if let model {
                     instanceActions(instance, model: model, state: state)
@@ -259,7 +262,7 @@ struct MCSManagerSection: View {
             ServerIconButton(
                 title: "Force Stop",
                 systemImage: "xmark.octagon",
-                tint: OrzMCTheme.Palette.danger,
+                // 与主窗口的「终止」保持一致：图标中性，红色只出现在二次确认与就地提示里。
                 help: "Terminate the process (may lose unsaved progress)",
                 isEnabled: model.canPerform(.kill, on: instance),
                 identifier: "mcsm.forceStop"

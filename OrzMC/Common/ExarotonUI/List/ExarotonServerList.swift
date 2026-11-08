@@ -20,12 +20,16 @@ struct ExarotonServerList: View {
             } else if model.servers.isEmpty && model.creditPools.isEmpty && model.listLoadError == nil {
                 RemoteInlineEmpty()
             }
-            ForEach(model.servers, id: \.id) { server in
+            // 行现在是**平铺**的（`.plain`，由账号卡提供唯一表面）：行与行之间用一条细线分隔，
+            // 和系统分组列表一致；不再每行套一层玻璃面板。
+            ForEach(Array(model.servers.enumerated()), id: \.offset) { index, server in
+                if index > 0 { RemoteRowDivider() }
                 ExarotonServerCardLink(server: server)
             }
             if !model.creditPools.isEmpty {
                 RemoteSubsectionLabel(title: String(localized: "Credit Pools"), systemImage: "bubbles.and.sparkles")
-                ForEach(model.creditPools) { pool in
+                ForEach(Array(model.creditPools.enumerated()), id: \.offset) { index, pool in
+                    if index > 0 { RemoteRowDivider() }
                     NavigationLink {
                         ExarotonCreditPoolDetail(creditPool: pool).environment(model)
                     } label: {

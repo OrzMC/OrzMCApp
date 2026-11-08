@@ -10,6 +10,11 @@
 //
 //  这里只统一**结构与动作样式**：
 //
+//  2026-11-08 视觉评审后补三件事（见 docs/app-ui-design.md §13）：
+//  · `surface`：顶层卡片是面板，**面板里再放的行**用 `.plain`（不再"卡中卡"/玻璃套玻璃）；
+//  · 标签从描边胶囊改成一行「`·` 分隔」的元信息（胶囊和状态徽章同形，看着像按钮）；
+//  · 卡片可点时有 hover 反馈（macOS 上 `.plain` 按钮几乎没有可点感）。
+//
 //      heading  名称 + `OrzMCStatusBadge`（只走 `RemoteInstanceHeading`）
 //      details  地址 / 标签（版本、玩家、延迟） / 备注（MOTD 等）
 //      actions  右侧图标按钮组（`ServerActionGroup`，与主窗口实例卡头同一套：
@@ -25,8 +30,17 @@ import SwiftUI
 
 // MARK: - 卡片
 
+/// 卡片表面的两种用法。
+enum ServerCardSurface {
+    /// 顶层卡片：自己是一块面板（玻璃/半透明填充 + 描边）。
+    case panel
+    /// 面板内部的**行**：不再套第二层面板，只留上下内边距（由外层卡片提供表面）。
+    case plain
+}
+
 struct ServerCard<Actions: View, Footer: View>: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isHovering = false
 
     let name: String
     var statusTitle: String? = nil
@@ -46,6 +60,8 @@ struct ServerCard<Actions: View, Footer: View>: View {
     var onTap: (() -> Void)? = nil
     /// `onTap` 那个按钮的自动化锚点。**只加在按钮上**，不加在容器上。
     var tapIdentifier: String? = nil
+    /// 表面：顶层卡片 `.panel`；账号卡/面板卡**内部**的行用 `.plain`。
+    var surface: ServerCardSurface = .panel
 
     @ViewBuilder var actions: () -> Actions
     @ViewBuilder var footer: () -> Footer
@@ -63,6 +79,9 @@ struct ServerCard<Actions: View, Footer: View>: View {
                         Spacer(minLength: 0)
                         disclosure
                     }
+                    // 底部操作栏之前先放 footer（更新时间 / 停止进度 / 错误）：
+                    // 否则 footer 会落到操作栏下面，看起来像在解释那排按钮。
+                    footer()
                     actionBar
                 }
             } else if hasActions {
@@ -89,12 +108,27 @@ struct ServerCard<Actions: View, Footer: View>: View {
                     disclosure
                 }
             }
-            footer()
+            if !usesActionBar {
+                footer()
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(OrzMCTheme.Spacing.md)
-        .orzMCPanel()
+        .background {
+            // 可点的卡片在指针悬停时给一层非常轻的底色：`.plain` / 玻璃面板上都要能看出"可以点"。
+            if isTappable {
+                RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md, style: .continuous)
+                    .fill(OrzMCTheme.Palette.subtleFill.opacity(isHovering ? 0.55 : 0))
+            }
+        }
+        .modifier(ServerCardSurfaceModifier(surface: surface))
+        .onHover { inside in
+            guard isTappable else { return }
+            isHovering = inside
+        }
     }
+
+    /// 卡片本体是不是按钮（有 `onTap` 才是；`NavigationLink` 包卡片的写法已废弃）。
+    private var isTappable: Bool { onTap != nil }
 
     /// 卡片上到底有没有动作按钮（`Actions == EmptyView` 的卡片不该留一条空的操作栏）。
     private var hasActions: Bool {
@@ -148,24 +182,18 @@ struct ServerCard<Actions: View, Footer: View>: View {
             if let address {
                 Text(address)
                     .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(OrzMCTheme.Palette.metadata)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
             if let extra {
                 extra
             }
-            if !tags.isEmpty {
-                HStack(spacing: OrzMCTheme.Spacing.xs) {
-                    ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
-                        OrzMCTag(tag)
-                    }
-                }
-            }
+            RemoteMetadataLine(items: tags)
             if let message, !message.isEmpty {
                 Text(verbatim: message)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(OrzMCTheme.Palette.metadata)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -178,7 +206,9 @@ struct ServerCard<Actions: View, Footer: View>: View {
         if showsDisclosure {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                // 箭头是**功能元素**（点击进下一页）：`.tertiary` 在面板上只有约 2.2:1，提到 secondary。
+                .foregroundStyle(.secondary)
+                .frame(width: 12)
                 .accessibilityHidden(true)
         }
     }
@@ -194,6 +224,7 @@ extension ServerCard where Actions == EmptyView {
         message: String? = nil,
         extra: AnyView? = nil,
         showsDisclosure: Bool = false,
+        surface: ServerCardSurface = .panel,
         onTap: (() -> Void)? = nil,
         tapIdentifier: String? = nil,
         @ViewBuilder footer: @escaping () -> Footer
@@ -209,6 +240,7 @@ extension ServerCard where Actions == EmptyView {
             showsDisclosure: showsDisclosure,
             onTap: onTap,
             tapIdentifier: tapIdentifier,
+            surface: surface,
             actions: { EmptyView() },
             footer: footer
         )
@@ -225,6 +257,7 @@ extension ServerCard where Actions == EmptyView, Footer == EmptyView {
         message: String? = nil,
         extra: AnyView? = nil,
         showsDisclosure: Bool = false,
+        surface: ServerCardSurface = .panel,
         onTap: (() -> Void)? = nil,
         tapIdentifier: String? = nil
     ) {
@@ -239,6 +272,7 @@ extension ServerCard where Actions == EmptyView, Footer == EmptyView {
             showsDisclosure: showsDisclosure,
             onTap: onTap,
             tapIdentifier: tapIdentifier,
+            surface: surface,
             actions: { EmptyView() },
             footer: { EmptyView() }
         )
@@ -270,20 +304,27 @@ struct ServerActionDivider: View {
 
 /// 服务器卡片上的一个图标动作。
 ///
-/// `.borderless` 保留系统 hover/按下反馈；`.plain` 在 macOS 上几乎没有可点击感（主窗口那边踩过）。
+/// `.borderless` 保留按下反馈；**hover 底色自己画**（卡片面板是玻璃/半透明，系统不给边界反馈时
+/// 图标看着像"静态装饰"）。命中区统一 22×22，符号 13pt：11–12pt 的旧尺寸在 macOS 上偏小，
+/// 也和主窗口图标按钮不一致（2026-11-08 视觉评审）。
 struct ServerIconButton: View {
     let title: LocalizedStringKey
     let systemImage: String
-    var tint: Color = OrzMCTheme.Palette.idle
+    var tint: Color = OrzMCTheme.Palette.control
     var help: LocalizedStringKey? = nil
     var isEnabled = true
     var identifier: String? = nil
     let action: () -> Void
 
+    @State private var isHovering = false
+
     var body: some View {
         button
             .buttonStyle(.borderless)
             .foregroundStyle(tint)
+            // `.foregroundStyle` 会盖掉系统对 disabled 的调暗，自己补上：
+            // 否则"离线实例的重启/停止/强杀"看起来和可用的一模一样。
+            .opacity(isEnabled ? 1 : 0.35)
             .disabled(!isEnabled)
             .modifier(OptionalHelp(help: help))
     }
@@ -297,12 +338,50 @@ struct ServerIconButton: View {
         }
     }
 
+    /// 图标命中区：iOS 按触控给到 32×32（HIG 建议 ≥44，但卡片里 5 个图标一排会把名字挤没；
+    /// 32 + 6pt 间距已明显好过原来的 ~13pt 字形）；macOS 指针用 22×22。
+    private var hitSize: CGFloat {
+        #if os(iOS)
+        return 32
+        #else
+        return 22
+        #endif
+    }
+
     private var base: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .labelStyle(.iconOnly)
+                .font(.system(size: hitSize > 22 ? 15 : 13))
+                .frame(width: hitSize, height: hitSize)
+                .background {
+                    RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm, style: .continuous)
+                        .fill(OrzMCTheme.Palette.subtleFill.opacity(isHovering && isEnabled ? 0.9 : 0))
+                }
+                .contentShape(Rectangle())
         }
         .accessibilityLabel(Text(title))
+        .onHover { isHovering = $0 }
+    }
+}
+
+/// `ServerCard` 的表面：顶层用面板，面板内部的行用 `.plain`。
+///
+/// 嵌套面板（账号卡里再套实例卡）会变成"玻璃套玻璃"，而且内外圆角相同、也不同心
+/// （外层 14 / 内层 14 + 12pt 内边距）——2026-11-08 视觉评审的主要观感问题。
+private struct ServerCardSurfaceModifier: ViewModifier {
+    let surface: ServerCardSurface
+
+    func body(content: Content) -> some View {
+        switch surface {
+        case .panel:
+            content
+                .padding(OrzMCTheme.Spacing.md)
+                .orzMCPanel()
+        case .plain:
+            content
+                .padding(.vertical, OrzMCTheme.Spacing.sm)
+        }
     }
 }
 

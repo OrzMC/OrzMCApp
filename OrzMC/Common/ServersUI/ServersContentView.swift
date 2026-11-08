@@ -211,8 +211,24 @@ private extension ServersContentView {
             }
         }
         .padding(3)
-        .background(OrzMCTheme.Palette.subtleFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
+        .background(OrzMCTheme.Palette.controlFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
         .help("Collapse or expand every server group")
+    }
+
+    private static var modeButtonWidth: CGFloat {
+        #if os(iOS)
+        return 34
+        #else
+        return 30
+        #endif
+    }
+
+    private static var modeButtonHeight: CGFloat {
+        #if os(iOS)
+        return 30
+        #else
+        return 22
+        #endif
     }
 
     /// 单个模式按钮：图标态，选中档有底色；存在单组覆盖时两档都不高亮（= 混合状态）。
@@ -226,11 +242,14 @@ private extension ServersContentView {
         Button(action: action) {
             Label(label, systemImage: systemImage)
                 .labelStyle(.iconOnly)
-                .frame(width: 30, height: 22)
+                .font(.system(size: 13))
+                // 触控（iOS）给更大的命中区；指针（macOS）保持紧凑。
+                .frame(width: Self.modeButtonWidth, height: Self.modeButtonHeight)
+                .foregroundStyle(isActive ? Color.primary : Color.secondary)
                 .background {
                     if isActive {
                         RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm)
-                            .fill(OrzMCTheme.Palette.selectionFill)
+                            .fill(OrzMCTheme.Palette.selectionNeutral)
                     }
                 }
                 .contentShape(Rectangle())

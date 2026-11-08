@@ -19,7 +19,12 @@ struct ExarotonServerCardLink: View {
         NavigationLink {
             ExarotonServerDetail(server: server).environment(model)
         } label: {
-            ExarotonServerCard(server: server, status: model.effectiveStatus(for: server), showsCopy: false)
+            ExarotonServerCard(
+                server: server,
+                status: model.effectiveStatus(for: server),
+                showsCopy: false,
+                surface: .plain
+            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("remote.serverCard")
@@ -54,6 +59,8 @@ struct ExarotonServerCard: View {
     var showsDisclosure = true
     /// 详情页里地址可复制；列表行整卡是按钮，不塞复制按钮（点击会互相吞掉）。
     var showsCopy = true
+    /// 表面：账号卡**内部**的行用 `.plain`（不再卡中卡）；独立页面（详情页）用 `.panel`。
+    var surface: ServerCardSurface = .panel
 
     var body: some View {
         ServerCard(
@@ -64,7 +71,8 @@ struct ExarotonServerCard: View {
             tags: tags,
             message: showMotd ? plainMotd : nil,
             extra: showsCopy ? AnyView(addressRows) : nil,
-            showsDisclosure: showsDisclosure
+            showsDisclosure: showsDisclosure,
+            surface: surface
         )
     }
 

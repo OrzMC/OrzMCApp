@@ -37,6 +37,17 @@ struct SelfHostedServerDetailView: View {
         model.profiles.servers.first(where: { $0.id == profileID })
     }
 
+    /// 状态卡里的元信息（版本 / 玩家 / 延迟），与列表卡片的 `RemoteMetadataLine` 同一套。
+    private var statusTags: [String] {
+        var items: [String] = []
+        if let version = model.currentStatus?.versionName { items.append(version) }
+        if let players = model.playersText { items.append(players) }
+        if let latency = model.currentStatus?.latencyMilliseconds, latency > 0 {
+            items.append(String(localized: "\(latency) ms"))
+        }
+        return items
+    }
+
     private var filteredConsoleLines: [SelfHostedServersModel.ConsoleLine] {
         let query = consoleSearch.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return model.currentConsoleLines }
@@ -186,26 +197,16 @@ struct SelfHostedServerDetailView: View {
 
             Text(profile.address)
                 .font(OrzMCTheme.Typography.code)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(OrzMCTheme.Palette.metadata)
                 .textSelection(.enabled)
 
-            HStack(spacing: OrzMCTheme.Spacing.xs) {
-                if let version = model.currentStatus?.versionName {
-                    OrzMCTag(version)
-                }
-                if let players = model.playersText {
-                    OrzMCTag(players)
-                }
-                if let latency = model.currentStatus?.latencyMilliseconds, latency > 0 {
-                    OrzMCTag(String(localized: "\(latency) ms"))
-                }
-                Spacer(minLength: 0)
-            }
+            // 与列表卡片同一套元信息（纯文本 + `·`），不再用描边胶囊（看着像按钮）。
+            RemoteMetadataLine(items: statusTags)
 
             if let motd = model.currentStatus?.motd, !motd.isEmpty {
                 Text(verbatim: motd)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(OrzMCTheme.Palette.metadata)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

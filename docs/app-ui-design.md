@@ -634,3 +634,49 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
   分组标题仍是 `staticTexts[selfHosted.section]` 这类锚点（identifier 留在 `Text` 上）。
 
 **用例**：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`。
+
+## 13. 2026-11-08 视觉评审：把"层级 / 字阶 / 色彩 / 可点感"落到令牌
+
+按 Apple HIG（2026-11-08 用 DocC JSON 核验 `Layout` / `Lists and tables` / `Typography` / `Color` /
+`Materials` / `Buttons` / `Toolbars`）对合并后的服务器页做了一次带量测的评审，然后按结论改了实现。
+
+**量测（暗色、macOS 27.2、绿色强调色、780pt 内容宽）**
+
+| 项目 | 改前 | 结论 |
+|---|---|---|
+| 表面层级 | 窗口 28 / 账号卡 45 / 实例卡 59（sRGB 8bit） | 三个层级，且 45 与 59 **都是 `orzMCPanel()`**（macOS 26+ 为 Liquid Glass） |
+| 次级信息对比 | 3.21:1（地址 / 标签 / MOTD / 图标） | 11pt 正文低于 4.5:1 |
+| 三级信息对比 | 2.19:1（更新时间 / `chevron`） | 箭头是功能元素，低于 3:1 |
+| 字号 | 分组 / 账号 / 实例**都是 `.headline`** | 层级只靠缩进 |
+| 每行动作 | MCSM 行 5 个图标 + 3 条分隔线 | 密度偏高 |
+| 面板圆角 | 默认 16pt（令牌 `Radius.lg` 是 14） | 令牌漂移；嵌套时内外同半径、不同心 |
+
+**改了什么**
+
+1. **两层表面**：`ServerCard(surface: .panel | .plain)`。顶层卡片（自建 / 详情页）仍是面板；
+   账号卡 / 面板卡**内部的行一律 `.plain`**，由外层卡片提供唯一表面 + `RemoteRowDivider` 分隔。
+   账号卡标题下再加一条分隔线，标题与内容的关系不再"浮着"。
+   规则来源：HIG `Materials`（内容层别用 Liquid Glass、效果要克制）+ `Layout`（用对齐/缩进/分隔线表达层级）。
+2. **字阶三档**：分组 `.subheadline.weight(.semibold)` + `.secondary`（计数 `.caption` tertiary）→
+   账号/面板 `.callout.weight(.semibold)`（host/caption 用 `Palette.metadata`）→ 服务器名保持 `.headline`。
+3. **标签不再像按钮**：`OrzMCTag`（描边胶囊）只留给"分类标签"；服务器卡片、额度池、自建详情页的
+   版本/玩家/延迟改成 `RemoteMetadataLine`（`caption` + `·` 分隔，可换行）。实心胶囊只留给状态徽章。
+4. **图标动作**：`Palette.control`（primary 0.72，≈6:1）替代 `.secondary`；命中区 macOS 22×22 / iOS 32×32；
+   指针 hover 画 `subtleFill` 圆角底；`disabled` 自己补 `opacity 0.35`（`.foregroundStyle` 会盖掉系统调暗）。
+   **危险色不常驻**：卡片上的删除/强杀图标改中性（与主窗口一致），红色只出现在确认框与就地提示。
+5. **折叠控件**：底色 `Palette.controlFill`、选中档 `Palette.selectionNeutral`（不再借用强调色，
+   同一屏里绿色只表达状态）；未选中图标 `secondary` 而不是"像禁用"；组头箭头 18×18 命中区 + `.tint(.secondary)`
+   （iOS borderless 默认把箭头染成蓝色）；iOS 上模式按钮 34×30。
+6. **卡片可点感**：`ServerCard` 在有 `onTap` 时 hover 给一层很轻的底；iOS 紧凑宽度下
+   footer（更新时间/停止进度/错误）移到**底部操作栏之前**，不再像在解释那排按钮。
+7. **令牌对齐**：`orzMCPanel()` 默认圆角 16 → `OrzMCTheme.Radius.lg`（14）；
+   新增 `Palette.control` / `Palette.metadata` / `Palette.selectionNeutral`。
+
+**没做 / 待定**
+
+- **A 方案**（账号/面板降级成子标题行、所有服务器卡片同一层）仍是后续选项：本轮用 B 方案（只去掉内层面板），
+  改动小、可回滚。若之后要 A，`RemoteAccountCard` 与两个 `*Section` 是落点。
+- 亮色 / 提高对比 / 减弱透明 / VoiceOver 在 **macOS** 上还没人工复核（应用外观是用户设置，本轮没有改成浅色）。
+  iOS 浅色已在模拟器上截图检查（分组箭头不再是强调色、卡片操作栏顺序正确）。
+
+**验证**：`check.sh --fast/--build/--ios` 绿；iOS UI 套件 45 通过 / 15 按需跳过。
