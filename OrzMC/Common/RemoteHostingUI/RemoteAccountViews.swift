@@ -5,7 +5,6 @@ import SwiftUI
 struct RemoteAccountHeader<Actions: View>: View {
     let name: String
     var subtitle: String? = nil
-    let isLoading: Bool
     @ViewBuilder var actions: () -> Actions
 
     var body: some View {
@@ -21,7 +20,6 @@ struct RemoteAccountHeader<Actions: View>: View {
                 }
             }
             Spacer(minLength: OrzMCTheme.Spacing.xs)
-            if isLoading { ProgressView().controlSize(.small) }
             actions()
         }
     }

@@ -1,5 +1,5 @@
 //
-//  MCSManagerConsoleSheet.swift
+//  MCSManagerConsoleView.swift
 //  OrzMC
 //
 //  P2-7 第 5 步（界面）+ B1（实时流）：MCSManager 实例的控制台。
@@ -13,6 +13,9 @@
 //   2. **轮询**（回退）：面板给不出通道 / 节点在 NAT 后面连不上时，3 秒一次取 `outputlog` 尾部。
 //  两者共用 `ConsoleTextBuffer`（超长按行裁剪），渲染路径完全一样 —— 用户看到的都是同一份文本。
 //
+//  2026-11-08：从 **sheet** 改成**导航页**（与主窗口"服务器 → 控制台"一致）：
+//  由 `ServersContentView` 的 `NavigationStack` 推入，返回按钮/⌘← 回服务器列表。
+//
 
 import MCSMAPI
 import MCSMStream
@@ -21,13 +24,11 @@ import OrzMCFoundation
 import OrzMCRemoteHosting
 import SwiftUI
 
-struct MCSManagerConsoleSheet: View {
+struct MCSManagerConsoleView: View {
 
     let instance: MCSManagerInstance
     /// 面板模型（同一个 `MCSManagerModel`，动作/命令都走它，互斥与错误面一致）。
     let model: MCSManagerModel
-
-    @Environment(\.dismiss) private var dismiss
 
     /// 控制台文本的累积器（实时流追加 / 轮询整段替换）。
     @State private var buffer = ConsoleLineBuffer()
@@ -69,13 +70,13 @@ struct MCSManagerConsoleSheet: View {
             commandBar
         }
         .padding(OrzMCTheme.Spacing.md)
-        // ⚠️ 最小尺寸只给 **macOS**（桌面上 sheet 太窄看不出日志）；
-        // iPhone SE 只有 375pt 宽，硬写 `minWidth: 420` 会把标题、日志、发送按钮都挤出屏幕
-        // （真机/模拟器实测：内容被裁掉左右两边，UI 用例也因此查不到控制台容器）。
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 360)
-        #else
+        #if os(iOS)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
+        // 与主窗口的控制台页同一套标题（`Console — %@`）。
+        .navigationTitle(String(localized: "Console — \(instance.nickname)"))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .task { await runConsole() }
     }

@@ -132,7 +132,7 @@
 		CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000004 /* MCSManagerAPIClient.swift */; };
 		CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000012 /* RemoteServerState+Presentation.swift */; };
 		CD2026102700000000000021 /* MCSManagerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000022 /* MCSManagerSection.swift */; };
-		CD2026102700000000000045 /* MCSManagerConsoleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */; };
+		CD2026102700000000000045 /* MCSManagerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000046 /* MCSManagerConsoleView.swift */; };
 		CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000042 /* MCSManagerPanelEditor.swift */; };
 		CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000032 /* MCSManagerPanelsModel.swift */; };
 		CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000062 /* MCSManagerDiagnose.swift */; };
@@ -223,7 +223,7 @@
 		CD2026102700000000000004 /* MCSManagerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerAPIClient.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000012 /* RemoteServerState+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteServerState+Presentation.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000022 /* MCSManagerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerSection.swift"; sourceTree = "<group>"; };
-		CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerConsoleSheet.swift"; sourceTree = "<group>"; };
+		CD2026102700000000000046 /* MCSManagerConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerConsoleView.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000042 /* MCSManagerPanelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelEditor.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000032 /* MCSManagerPanelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModel.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000062 /* MCSManagerDiagnose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerDiagnose.swift"; sourceTree = "<group>"; };
@@ -616,7 +616,7 @@
 			isa = PBXGroup;
 			children = (
 				CD2026102700000000000022 /* MCSManagerSection.swift */,
-				CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */,
+				CD2026102700000000000046 /* MCSManagerConsoleView.swift */,
 				CD2026102700000000000042 /* MCSManagerPanelEditor.swift */,
 			);
 			path = MCSManagerUI;
@@ -1032,7 +1032,7 @@
 				CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */,
 				CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */,
 				CD2026102700000000000021 /* MCSManagerSection.swift in Sources */,
-				CD2026102700000000000045 /* MCSManagerConsoleSheet.swift in Sources */,
+				CD2026102700000000000045 /* MCSManagerConsoleView.swift in Sources */,
 				CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */,
 				CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */,
 				CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */,

@@ -34,7 +34,7 @@
 | `EmptyContentView`（设计系统） | 三条来源一条都没有时的空态说明页 | 文案 |
 | `RemoteAccountCard` | 账号卡（头部 + 面板底 + 内边距） | exaroton：账号凭据；MCSM：面板地址 + API Key |
 | `RemoteAccountMenu` | `⋯` 菜单：刷新 → 编辑 → 删除（顺序固定） | 编辑/删除落到各自模型 |
-| `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台 sheet |
+| `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台**页** |
 | `RemoteInlineLoading` / `RemoteInlineEmpty` / `RemoteInlineError` | 账号内的加载 / 空 / 失败（同一套排版，失败带「重试」） | 文案 |
 
 排版规则（改远程托管页必须遵守）：
@@ -149,7 +149,7 @@ WindowGroup
             ├── ExarotonAccountsSection（账号卡 → 实例卡片 / 额度池）
             │   ├── ExarotonServerDetail（概览 / 玩家 / 性能 / 内存 / 操作 / 控制台）
             │   └── ExarotonCreditPoolDetail（成员 / 服务器）
-            └── MCSManagerSection（面板卡 → 实例卡片 → 控制台 sheet）
+            └── MCSManagerSection（面板卡 → 实例卡片 → 控制台页，push）
 ```
 
 iOS 与 macOS **共用** `Common/ServersUI`、`Common/SelfHosted`、`Common/ExarotonUI`、`Common/MCSManagerUI`；
@@ -732,3 +732,31 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
    现在**换成与图标按钮同尺寸的槽位**（`OrzMCActionButton.hitSize`：macOS 22 / iOS 32），
    并且是"替换刷新按钮"而不是加在它左边 —— 刷新中不会产生位移。
    MCSM 实例行的 busy 转圈同样处理。
+
+## 15. 2026-11-08 控制台改成导航页 + 三类卡片交互对齐
+
+维护者反馈三条：
+
+**① exaroton 实例卡不是整卡可点（额度池可以）**
+
+原因：exaroton 行是 `NavigationLink { ... } label: { ServerCard(...) }`，`ServerCard` 根部没有
+`contentShape`，命中区只有文字/图标的实际绘制范围；额度池用的是 `RemoteInstanceRow`，它根部有
+`.contentShape(Rectangle())`，所以整行可点。
+→ `ServerCard` 根上加 `.contentShape(Rectangle())`：`NavigationLink` 包整卡时也覆盖整卡
+（自建/MCSM 走 `onTap` 的透明垫层不受影响）。新增 `testExarotonCardClickAnywhereOpensDetail`。
+
+**② 服务器卡片的「控制台」改用导航页（与主窗口一致）**
+
+以前 MCSM 实例点开控制台是 **sheet**，主窗口是 **push**（`ServerConsoleView`）——
+同一个产品里"打开控制台"两种形态。
+→ 删除 `MCSManagerSection` 的 sheet 枚举与 `.sheet`，新增页面路由
+`MCSManagerConsoleRoute(panelID:instanceID:)`；`ServersContentView` 用
+`.navigationDestination(for:)` 推到 `MCSManagerConsoleView`（原 `MCSManagerConsoleSheet`，
+文件名/类型一起改）。标题统一为已有的 **`Console — %@`** 键，iOS `.inline`；
+返回按钮/⌘← 回服务器列表（与主窗口一致）。
+
+**③ 账号卡/面板卡的刷新也要"转圈顶替图标"**
+
+自建卡片的刷新是"刷新时图标换成同尺寸转圈"；exaroton 账号卡与 MCSM 面板卡原来是"标题旁边多一个小转圈"。
+→ `RemoteAccountMenu` 增加 `isRefreshing`：刷新中在**同一槽位**（`OrzMCActionButton.hitSize`）
+换成转圈，不产生位移；移除 `RemoteAccountHeader` 里旧的 `isLoading` 小转圈（避免两个指示重复）。

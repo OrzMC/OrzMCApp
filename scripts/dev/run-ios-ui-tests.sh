@@ -61,11 +61,12 @@ ui_tests_for_changes() {
 
   local ADD="testAddFromEmptyPageOpensProviderForms testSingleAddEntryIsAtTopAndOffersBothProviders
      testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet
-     testSelfHostedCardHasUnifiedActions testServerGroupsCollapseAndExpand"
+     testSelfHostedCardHasUnifiedActions testServerGroupsCollapseAndExpand
+     testExarotonCardClickAnywhereOpensDetail testSelfHostedCardClickAnywhereOpensDetail"
   local EXA="testCreditPoolServerOpensDetail testRemoteDetailShowsActionButtons
      testMultipleRemoteAccountsShowInstances testExarotonStoppingProgressContinuesAfterReentering
      testMemoryRevertRestoresValue testMemoryRowIsSingleLine"
-  local MCSM="testMCSManagerSectionShowsInstancesAndStatus testMCSManagerConsoleSheetShowsOutput
+  local MCSM="testMCSManagerSectionShowsInstancesAndStatus testMCSManagerConsolePageShowsOutput
      testMCSManagerConsoleCanFilterAndChangeDisplay testMCSManagerConsoleScrollsThroughManyLines
      testMCSManagerInstanceMenuListsActionsAndConsole testPanelMenuEditOpensEditor"
   local CONSOLE="testConsoleEmptyStateSitsTopLeft testConsoleInputNotCoveredByTabBar

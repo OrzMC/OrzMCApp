@@ -9,7 +9,7 @@
 //
 //  2026-11-05 跨端重构：分组的"标题行 / 账号卡 / 行骨架 / 加载·空·错误态"改走
 //  `Common/RemoteHostingUI`（与 exaroton 同一套），这里只留 MCSM 特有的能力：
-//  面板编辑、实例动作菜单、强杀二次确认、控制台 sheet，以及"点实例行 = 开控制台"。
+//  面板编辑、实例动作菜单、强杀二次确认、控制台页，以及"点实例行 = 开控制台"。
 //  状态徽章只有一个实现（`OrzMCStatusBadge`，经 `RemoteInstanceHeading`）。
 //
 
@@ -21,31 +21,16 @@ struct MCSManagerSection: View {
 
     /// 打开面板编辑表单（由页面层弹 sheet —— 空态页没有分组，也只能从那里弹）。
     let onEditPanel: (MCSManagerPanel) -> Void
+    /// 打开实例控制台：由页面层**推导航页**（与主窗口"服务器 → 控制台"一致，不再弹 sheet）。
+    let onOpenConsole: (MCSManagerPanel, MCSManagerInstance) -> Void
     /// 这一组是否展开（折叠时只保留标题行）。
     var isExpanded = true
     var onToggle: (() -> Void)? = nil
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
-    /// 当前要显示的弹窗。
-    ///
-    /// ⚠️ **同一条视图链上只能挂一个 `.sheet`**：原来"编辑面板"和"控制台"各挂一个，
-    /// 结果控制台那个永远不弹（真机/模拟器实测，UI 用例点「控制台」后界面毫无变化）。
-    /// 合并成一个枚举就没这个问题。
-    @State private var sheet: Sheet?
-
     /// 等待确认的「强制终止」目标（强杀会丢未保存进度，必须二次确认）。
     /// 用 `MCSManagerConsoleTarget` 只是为了顺手带上"它属于哪个面板的模型"。
     @State private var confirmingKill: MCSManagerConsoleTarget?
-
-    enum Sheet: Identifiable {
-        case console(MCSManagerConsoleTarget)
-
-        var id: String {
-            switch self {
-            case .console(let target): return "console-\(target.id)"
-            }
-        }
-    }
 
     private var instanceCount: Int {
         mcsm.panels.reduce(0) { $0 + mcsm.instances(of: $1.id).count }
@@ -66,18 +51,6 @@ struct MCSManagerSection: View {
             }
         }
         .accessibilityElement(children: .contain)
-
-        .sheet(item: $sheet) { current in
-            switch current {
-            case .console(let target):
-                MCSManagerConsoleSheet(instance: target.instance, model: target.model)
-                    .presentationDragIndicator(.visible)
-                    .presentationCompactAdaptation(horizontal: .none, vertical: .sheet)
-                    #if os(iOS)
-                    .presentationDetents([.large])
-                    #endif
-            }
-        }
         .confirmationDialog(
             String(localized: "Force stop this server?"),
             isPresented: Binding(
@@ -116,13 +89,13 @@ struct MCSManagerSection: View {
 
         return RemoteAccountCard(
             name: panel.label,
-            subtitle: panel.url.host ?? panel.url.absoluteString,
-            isLoading: model?.isLoading == true
+            subtitle: panel.url.host ?? panel.url.absoluteString
         ) {
             RemoteAccountMenu(
                 onRefresh: {
                     Task { await model?.reload() }
                 },
+                isRefreshing: model?.isLoading == true,
                 onEdit: { onEditPanel(panel) },
                 onRemove: {
                     mcsm.removePanel(id: panel.id)
@@ -147,7 +120,7 @@ struct MCSManagerSection: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(instances.enumerated()), id: \.offset) { index, instance in
                         if index > 0 { RemoteRowDivider() }
-                        row(instance, model: model)
+                        row(instance, panel: panel, model: model)
                     }
                 }
             }
@@ -158,7 +131,7 @@ struct MCSManagerSection: View {
     ///
     /// 点名字/地址 = 打开控制台；生命周期动作在右侧图标按钮里（强杀仍需二次确认）。
     /// 以前这里是"玩家数 + `⋯ ⌄` 下拉胶囊"，和其它两处观感都不一样（维护者 2026-11-07 反馈）。
-    private func row(_ instance: MCSManagerInstance, model: MCSManagerModel?) -> some View {
+    private func row(_ instance: MCSManagerInstance, panel: MCSManagerPanel, model: MCSManagerModel?) -> some View {
         let state = model?.state(of: instance) ?? instance.status.remoteState
 
         return ServerCard(
@@ -168,14 +141,14 @@ struct MCSManagerSection: View {
             address: instance.address,
             tags: playerTags(instance, state: state),
             onTap: {
-                guard let model else { return }
-                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+                guard model != nil else { return }
+                onOpenConsole(panel, instance)
             },
             tapIdentifier: "mcsm.instanceRow",
             surface: .plain,
             actions: {
                 if let model {
-                    instanceActions(instance, model: model, state: state)
+                    instanceActions(instance, panel: panel, model: model, state: state)
                 }
             },
             footer: {
@@ -210,6 +183,7 @@ struct MCSManagerSection: View {
     @ViewBuilder
     private func instanceActions(
         _ instance: MCSManagerInstance,
+        panel: MCSManagerPanel,
         model: MCSManagerModel,
         state: RemoteServerState
     ) -> some View {
@@ -227,7 +201,7 @@ struct MCSManagerSection: View {
                 help: "Open this server's console",
                 identifier: "mcsm.instanceAction.console"
             ) {
-                sheet = .console(MCSManagerConsoleTarget(instance: instance, model: model))
+                onOpenConsole(panel, instance)
             }
 
             ServerActionDivider()
@@ -317,10 +291,10 @@ struct MCSManagerSection: View {
 
 }
 
-/// 控制台 sheet 的目标（实例 + 它所属面板的模型）。
+/// 强杀确认的目标（实例 + 它所属面板的模型）。
 ///
-/// `Identifiable` 要用实例 id：同一台实例打开两次是同一个目标，换实例才是新目标
-/// （否则 sheet 会拿旧实例的状态去渲染）。
+/// 控制台已经改成导航页（`MCSManagerConsoleView`），这里只剩"强杀二次确认"需要
+/// 把实例和模型一起带过去。
 struct MCSManagerConsoleTarget: Identifiable {
     let instance: MCSManagerInstance
     let model: MCSManagerModel

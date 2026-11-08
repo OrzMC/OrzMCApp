@@ -65,13 +65,12 @@ struct RemoteProviderSection<Content: View>: View {
 struct RemoteAccountCard<Actions: View, Content: View>: View {
     let name: String
     var subtitle: String? = nil
-    let isLoading: Bool
     @ViewBuilder var actions: () -> Actions
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            RemoteAccountHeader(name: name, subtitle: subtitle, isLoading: isLoading, actions: actions)
+            RemoteAccountHeader(name: name, subtitle: subtitle, actions: actions)
             // 标题与内容之间一条细线：账号/面板现在只是**标签**，行才是内容
             // （2026-11-08 视觉评审：没有这条线时标题像"浮在卡片外"）。
             RemoteRowDivider()
@@ -92,6 +91,8 @@ struct RemoteAccountCard<Actions: View, Content: View>: View {
 struct RemoteAccountMenu: View {
     /// 拉一次最新数据（两家都支持；`nil` = 这家没有手动刷新）。
     var onRefresh: (() -> Void)? = nil
+    /// 正在刷新：把刷新图标**换成同尺寸的转圈**（与自建卡片同一套交互，不再另加一个加载指示）。
+    var isRefreshing = false
     let onEdit: () -> Void
     let onRemove: () -> Void
     /// 自动化锚点前缀（例如 MCSM 的 `mcsm.panel`）：实际锚点是 `<前缀>.refresh/.edit/.remove`。
@@ -100,8 +101,15 @@ struct RemoteAccountMenu: View {
     var body: some View {
         ServerActionGroup {
             if let onRefresh {
-                icon("Refresh", "arrow.clockwise", key: .refresh, help: "Reload this account's servers") {
-                    onRefresh()
+                if isRefreshing {
+                    // 与图标按钮同尺寸的槽位：刷新中不产生位移，整排图标保持对齐。
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: OrzMCActionButton.hitSize, height: OrzMCActionButton.hitSize)
+                } else {
+                    icon("Refresh", "arrow.clockwise", key: .refresh, help: "Reload this account's servers") {
+                        onRefresh()
+                    }
                 }
                 ServerActionDivider()
             }

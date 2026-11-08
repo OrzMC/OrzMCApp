@@ -94,6 +94,9 @@ struct ServerCard<Actions: View, Footer: View>: View {
             }
         }
         .modifier(ServerCardSurfaceModifier(surface: surface))
+        // `NavigationLink` 包整卡的用法（exaroton 实例行）靠 label 的 content shape 决定命中区：
+        // 不加这一行，只有文字/图标能点，卡片右侧与内边距点不动（2026-11-08 维护者反馈）。
+        .contentShape(Rectangle())
         .onHover { inside in
             guard isTappable else { return }
             isHovering = inside

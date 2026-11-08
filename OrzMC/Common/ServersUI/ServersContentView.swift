@@ -87,6 +87,22 @@ struct ServersContentView: View {
             .navigationDestination(for: SelfHostedServerRoute.self) { route in
                 SelfHostedServerDetailView(profileID: route.id, model: selfHosted)
             }
+            // MCSManager 控制台：**导航页**（与主窗口"服务器 → 控制台"一致），不再弹 sheet。
+            .navigationDestination(for: MCSManagerConsoleRoute.self) { route in
+                if let model = mcsm.model(for: route.panelID),
+                   let instance = mcsm.instances(of: route.panelID).first(where: { $0.id == route.instanceID }) {
+                    MCSManagerConsoleView(instance: instance, model: model)
+                } else {
+                    EmptyContentView(
+                        ContentState(
+                            title: String(localized: "Server removed"),
+                            message: String(localized: "This server is no longer in your list."),
+                            systemImage: "terminal"
+                        )
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
         }
         .environment(accounts)
         .environment(mcsm)
@@ -253,6 +269,9 @@ private extension ServersContentView {
                 if !mcsm.panels.isEmpty {
                     MCSManagerSection(
                         onEditPanel: { editor = .mcsmanagerPanel(.edit($0)) },
+                        onOpenConsole: { panel, instance in
+                            path.append(MCSManagerConsoleRoute(panelID: panel.id, instanceID: instance.id))
+                        },
                         isExpanded: sectionExpanded("mcsm"),
                         onToggle: { toggleGroup("mcsm") }
                     )
@@ -416,6 +435,12 @@ extension ServersContentView {
 /// 自建服务器详情的导航值（`Hashable` 路由，避免把整个档案塞进路径）。
 struct SelfHostedServerRoute: Hashable {
     let id: UUID
+}
+
+/// MCSManager 控制台页的导航值：只带面板/实例 id，目标页自己从模型里取最新实例。
+struct MCSManagerConsoleRoute: Hashable {
+    let panelID: UUID
+    let instanceID: String
 }
 
 #Preview {

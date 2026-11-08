@@ -1079,6 +1079,23 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
+    /// exaroton 实例行也**整卡可点**（2026-11-08 维护者反馈：以前只有文字能点）。
+    /// 它用 `NavigationLink` 包整卡，命中区靠 `ServerCard` 根部的 `contentShape`。
+    func testExarotonCardClickAnywhereOpensDetail() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到 exaroton 实例卡")
+        // 卡片最右侧 12pt（文字之外的空白）点一下。
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: card.frame.maxX - 12, dy: card.frame.midY))
+            .tap()
+        XCTAssertTrue(app.staticTexts["概览"].waitForExistence(timeout: 20),
+                      "点卡片空白处也应进入详情页")
+    }
+
     /// **整卡可点**（2026-11-08 维护者反馈）：点卡片右侧的空白区域也要进详情页，
     /// 不能只有"名称 + 明细"那一小块能点。
     func testSelfHostedCardClickAnywhereOpensDetail() {
@@ -1410,7 +1427,7 @@ extension RemotePanelsUITests {
     }
 
     /// 控制台显示日志、正确处理终端重绘，并将命令原样送到假面板。
-    func testMCSManagerConsoleSheetShowsOutput() {
+    func testMCSManagerConsolePageShowsOutput() {
         let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_REDRAW": "1"])
         app.launch()

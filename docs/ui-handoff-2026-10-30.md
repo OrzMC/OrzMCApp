@@ -180,6 +180,15 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
   （透明垫层，锚点不变）；刷新转圈放进与图标同尺寸的槽位（替换刷新按钮，不再挤歪整排）。
 - 细节：`app-ui-design.md` §14 / §14.1。
 
+### UI-13（✅ 2026-11-08）控制台改导航页 + 卡片交互对齐
+
+- exaroton 实例卡整卡可点（`ServerCard` 根部 `contentShape`；新用例 `testExarotonCardClickAnywhereOpensDetail`）。
+- MCSM 控制台从 sheet 改为 **push 导航页**（`MCSManagerConsoleRoute` → `MCSManagerConsoleView`），
+  与主窗口 `ServerConsoleView` 一致；标题沿用 `Console — %@`。
+- 账号卡/面板卡的刷新改成"转圈顶替刷新图标"（`RemoteAccountMenu.isRefreshing`），与自建卡片同一套；
+  移除标题旁旧的小转圈。
+- 细节：`app-ui-design.md` §15。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

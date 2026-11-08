@@ -43,9 +43,10 @@ struct ExarotonAccountsSection: View {
     // MARK: - 组件
 
     private func accountCard(_ account: ExarotonAccount, model: ExarotonServerModel) -> some View {
-        RemoteAccountCard(name: account.displayName, isLoading: model.isLoadingList) {
+        RemoteAccountCard(name: account.displayName) {
             RemoteAccountMenu(
                 onRefresh: { Task { await model.reloadList() } },
+                isRefreshing: model.isLoadingList,
                 onEdit: { onEditAccount(account) },
                 onRemove: { accounts.remove(account.id) }
             )
