@@ -60,7 +60,8 @@ ui_tests_for_changes() {
   [[ -z "$files" ]] && { echo "NONE"; return; }
 
   local ADD="testAddFromEmptyPageOpensProviderForms testSingleAddEntryIsAtTopAndOffersBothProviders
-     testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet"
+     testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet
+     testSelfHostedCardHasUnifiedActions testServerGroupsCollapseAndExpand"
   local EXA="testCreditPoolServerOpensDetail testRemoteDetailShowsActionButtons
      testMultipleRemoteAccountsShowInstances testExarotonStoppingProgressContinuesAfterReentering
      testMemoryRevertRestoresValue testMemoryRowIsSingleLine"

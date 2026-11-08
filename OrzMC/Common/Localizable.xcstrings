@@ -881,12 +881,34 @@
         }
       }
     },
+    "Collapse or expand every server group": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有服务器分组"
+          }
+        }
+      }
+    },
     "Collapse this instance": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "收起该实例"
+          }
+        }
+      }
+    },
+    "Collapse this section": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起这一组"
           }
         }
       }
@@ -1747,6 +1769,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "展开该实例"
+          }
+        }
+      }
+    },
+    "Expand this section": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开这一组"
           }
         }
       }

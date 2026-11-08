@@ -1076,6 +1076,84 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
+    /// **自建卡片的动作与其它来源统一**（2026-11-08）：刷新 / 配置 / 删除，
+    /// 与 exaroton 账号卡、MCSM 面板卡同一套图标按钮组（`selfHosted.action.*`）。
+    func testSelfHostedCardHasUnifiedActions() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.buttons["selfHosted.serverCard"].waitForExistence(timeout: 25), "应看到服务器卡片")
+        for id in ["selfHosted.action.refresh", "selfHosted.action.edit", "selfHosted.action.remove"] {
+            XCTAssertTrue(app.buttons[id].exists, "卡片上应有 \(id)")
+        }
+
+        // 「配置」= 服务器设置表单（与账号/面板表单同一套：标题栏 取消 / 保存）。
+        app.buttons["selfHosted.action.edit"].tap()
+        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 10), "配置应打开服务器设置")
+        app.buttons["取消"].tap()
+
+        // 「删除」要二次确认（删的是本机档案 + 密码，服务器本身不动）。
+        let remove = app.buttons["selfHosted.action.remove"]
+        for _ in 0..<4 where !remove.isHittable { app.swipeUp() }
+        remove.tap()
+        XCTAssertTrue(
+            waitForStaticText(app, containing: "删除这台服务器？", timeout: 10),
+            "删除应弹二次确认（标题）"
+        )
+        // 弹窗里的取消：`confirmationDialog` 的取消槽位不一定在 `app.buttons` 顶层，
+        // 优先取 sheet 里的那个，再退回所有同名按钮里的最后一个。
+        let cancelInSheet = app.sheets.firstMatch.buttons["取消"]
+        if cancelInSheet.isHittable {
+            cancelInSheet.tap()
+        } else {
+            app.buttons.matching(NSPredicate(format: "label == %@", "取消"))
+                .allElementsBoundByIndex.last?.tap()
+        }
+        XCTAssertTrue(app.buttons["selfHosted.serverCard"].waitForExistence(timeout: 10), "取消后卡片仍在")
+    }
+
+    /// **分组的折叠/展开**：单组折叠 + 全部折叠/全部展开（与主窗口实例栏同一套）。
+    func testServerGroupsCollapseAndExpand() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let selfHostedCard = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        let exarotonCard = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(selfHostedCard.waitForExistence(timeout: 25))
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+
+        // 全部折叠：组标题都还在，卡片一个都不渲染。
+        let collapseAll = app.buttons["servers.collapseAll"]
+        XCTAssertTrue(collapseAll.waitForExistence(timeout: 10), "页顶应有「全部折叠」")
+        collapseAll.tap()
+        XCTAssertTrue(app.staticTexts["selfHosted.section"].waitForExistence(timeout: 10),
+                      "折叠后仍保留分组标题")
+        XCTAssertTrue(app.staticTexts["exaroton.section"].exists)
+        XCTAssertFalse(selfHostedCard.exists, "全部折叠后不应渲染卡片")
+        XCTAssertFalse(exarotonCard.exists, "全部折叠后不应渲染远程卡片")
+
+        // 全部展开：卡片回来。
+        let expandAll = app.buttons["servers.expandAll"]
+        XCTAssertTrue(expandAll.waitForExistence(timeout: 10), "页顶应有「全部展开」")
+        expandAll.tap()
+        XCTAssertTrue(selfHostedCard.waitForExistence(timeout: 10), "全部展开后卡片应回来")
+
+        // 单组折叠：只收起 exaroton，自建那组不受影响。
+        let exarotonToggle = app.buttons["exaroton.section.toggle"]
+        for _ in 0..<4 where !exarotonToggle.isHittable { app.swipeUp() }
+        XCTAssertTrue(exarotonToggle.waitForExistence(timeout: 10))
+        exarotonToggle.tap()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].exists, "单组折叠后标题仍在")
+        XCTAssertFalse(exarotonCard.exists, "单组折叠只影响这一组的卡片")
+        XCTAssertTrue(selfHostedCard.exists, "其它组不受影响")
+
+        // 再点一次展开回来。
+        app.buttons["exaroton.section.toggle"].tap()
+        XCTAssertTrue(exarotonCard.waitForExistence(timeout: 10), "再点一次应展开")
+    }
+
     /// 远程详情 · 控制台（假"已连接"）：专门看控制台日志区 + 下方按钮的排版。
     func testSnapshotRemoteConsole() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",

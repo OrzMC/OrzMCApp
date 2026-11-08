@@ -149,6 +149,16 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
   "空态"用例改为**同时**清掉自建档案与远程凭据（合并后只清一边永远不会空）。
 - **文档**：[`app-ui-design.md`](app-ui-design.md) §11（改前/改后对照）。
 
+### UI-10（✅ 2026-11-08）自建卡片动作统一 + 分组折叠/展开
+
+- 维护者反馈：自建的「刷新/配置/删除」样式与其它来源不统一；分组要能单独折叠，也要全部折叠/展开。
+- 现在：自建卡片右上走同一套 `ServerActionGroup`（`selfHosted.action.refresh|edit|remove`，删除二次确认）；
+  每组标题可折叠（`<分组>.section.toggle`），页顶有「全部折叠 / 全部展开」（`servers.collapseAll|expandAll`），
+  规则沿用主窗口实例栏（`allExpanded` + 单组覆盖，默认展开）。
+- 卡片导航改成 `ServerCard(onTap:)` + `NavigationStack(path:)`（`NavigationLink` 包住时按钮点不到）。
+- 用例：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`；
+  细节见 [`app-ui-design.md`](app-ui-design.md) §12。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

@@ -21,6 +21,9 @@ struct MCSManagerSection: View {
 
     /// 打开面板编辑表单（由页面层弹 sheet —— 空态页没有分组，也只能从那里弹）。
     let onEditPanel: (MCSManagerPanel) -> Void
+    /// 这一组是否展开（折叠时只保留标题行）。
+    var isExpanded = true
+    var onToggle: (() -> Void)? = nil
     @Environment(MCSManagerPanelsModel.self) private var mcsm
 
     /// 当前要显示的弹窗。
@@ -54,7 +57,9 @@ struct MCSManagerSection: View {
             name: "MCSManager",
             systemImage: "square.stack.3d.up",
             count: instanceCount,
-            identifier: "mcsm.section"
+            identifier: "mcsm.section",
+            isExpanded: isExpanded,
+            onToggle: onToggle
         ) {
             ForEach(mcsm.panels) { panel in
                 panelCard(panel)

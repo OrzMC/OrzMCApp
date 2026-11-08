@@ -23,15 +23,20 @@ import SwiftUI
 
 // MARK: - 供应商分组
 
-/// 一家供应商的一组（标题行 + 账号卡）。
+/// 一个来源的一组（标题行 + 账号/服务器卡片）。
 ///
 /// 组内不再自带「添加账号」按钮：页顶只有一个入口（`ServersContentView.AddServerMenu`），
 /// 先选服务器类型再填对应表单；一条记录都没有的来源**整组不渲染**（由页面级空态负责引导）。
+///
+/// 折叠由页面层决定（与主窗口实例栏同一套：`allExpanded` + 单栏覆盖）：
+/// 折叠时**只保留标题行**，内容整段不渲染（模型轮询也就自然停在展开时）。
 struct RemoteProviderSection<Content: View>: View {
     let name: String
     let systemImage: String
     let count: Int
     let identifier: String
+    var isExpanded = true
+    var onToggle: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -40,9 +45,13 @@ struct RemoteProviderSection<Content: View>: View {
                 name: name,
                 systemImage: systemImage,
                 count: count,
-                identifier: identifier
+                identifier: identifier,
+                isExpanded: isExpanded,
+                onToggle: onToggle
             )
-            content()
+            if isExpanded {
+                content()
+            }
         }
     }
 }

@@ -31,6 +31,15 @@ struct ServersContentView: View {
     /// 当前要弹的表单。**用一个枚举 + `.sheet(item:)`**：
     /// 同一视图链上只能挂一个 `.sheet`，分开挂会互相吞掉（2026-11-05 实测）。
     @State private var editor: EditorSheet?
+    /// 自建服务器详情路由：**value-based 导航**（不用 `NavigationLink` 包卡片）——
+    /// 卡片上现在有刷新/配置/删除三个按钮，被链接包住时点击会被链接吞掉。
+    @State private var path = NavigationPath()
+    /// 全部折叠/展开（默认展开；与主窗口实例栏同一套规则：全局值 + 单组覆盖）。
+    @AppStorage("orzmc.servers.allExpanded") private var allExpanded = true
+    /// 单组覆盖：`分组 id → 是否展开`（点某一组标题时写入；切换全局模式时清空）。
+    @State private var expansionOverrides: [String: Bool] = [:]
+    /// 等待二次确认的删除目标（自建服务器：删档案 + Keychain 密码，服务器本身不动）。
+    @State private var pendingDelete: SelfHostedServerProfile?
     @Environment(\.scenePhase) private var scenePhase
 
     /// 服务器从哪里来（添加菜单的第一层选择）。
@@ -63,7 +72,7 @@ struct ServersContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if isEmpty {
                     emptyPage
@@ -75,6 +84,9 @@ struct ServersContentView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .navigationDestination(for: SelfHostedServerRoute.self) { route in
+                SelfHostedServerDetailView(profileID: route.id, model: selfHosted)
+            }
         }
         .environment(accounts)
         .environment(mcsm)
@@ -90,6 +102,29 @@ struct ServersContentView: View {
         }
         .sheet(item: $editor) { current in
             editor(for: current)
+        }
+        // 切「全部折叠 / 全部展开」= 重置单组覆盖，回到统一状态。
+        .onChange(of: allExpanded) { expansionOverrides = [:] }
+        .confirmationDialog(
+            String(localized: "Delete This Server?"),
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { profile in
+            Button(String(localized: "Delete"), role: .destructive) {
+                selfHosted.remove(profile.id)
+                pendingDelete = nil
+            }
+            Button(String(localized: "Cancel"), role: .cancel) { pendingDelete = nil }
+        } message: { _ in
+            Text(
+                String(
+                    localized: "Removes the address, the saved RCON password and the console history on this device. The server itself is not touched."
+                )
+            )
         }
         // 列表页定时探一遍自建服务器：卡片上的状态不该停在"上次打开列表时"的旧值。
         .task { await selfHosted.refreshAllStatuses() }
@@ -115,16 +150,95 @@ private extension ServersContentView {
 
     /// 页顶**唯一**的添加入口：先选服务器类型，再填该类型的表单。
     var addMenu: some View {
-        HStack {
-            Spacer(minLength: 0)
-            AddServerMenu { source in
-                switch source {
-                case .selfHosted: editor = .selfHosted(SelfHostedServerProfile())
-                case .exaroton: editor = .exarotonAccount(nil)
-                case .mcsmanager: editor = .mcsmanagerPanel(.add)
-                }
+        AddServerMenu { source in
+            switch source {
+            case .selfHosted: editor = .selfHosted(SelfHostedServerProfile())
+            case .exaroton: editor = .exarotonAccount(nil)
+            case .mcsmanager: editor = .mcsmanagerPanel(.add)
             }
         }
+    }
+
+    /// 列表页的页顶一行：左「全部折叠 / 全部展开」，右「添加服务器」。
+    ///
+    /// 折叠控件与主窗口详情页的「实例栏」同一套观感（两个图标按钮 + `subtleFill` 底），
+    /// 位置也贴着内容（列表上方），不是塞进窗口工具栏。
+    var topBar: some View {
+        HStack(spacing: OrzMCTheme.Spacing.sm) {
+            sectionDisplayControls
+            Spacer(minLength: 0)
+            addMenu
+        }
+    }
+
+    /// 分组展开状态：单组覆盖优先，否则跟随全局值。
+    func sectionExpanded(_ id: String) -> Bool {
+        expansionOverrides[id] ?? allExpanded
+    }
+
+    /// 注意：别把它命名成 `toggleSection(...)` —— 会撞上 `check-localization.py` 里
+    /// `Section("…")` 的模式，把组 id 当界面文案去要翻译。
+    private func toggleGroup(_ id: String) {
+        expansionOverrides[id] = !sectionExpanded(id)
+    }
+
+    private func setAllExpanded(_ expanded: Bool) {
+        allExpanded = expanded
+        expansionOverrides = [:]
+    }
+
+    /// **全部折叠 / 全部展开**：两个动作按钮，点一下把所有分组设成同一状态。
+    ///
+    /// 不用 `Picker` 绑 `allExpanded`：单组折叠后全局值没变，再点"已选中的那一档"不会触发
+    /// `onChange`，看起来就是按钮没用（主窗口 2026-10-22 实测踩过，这里沿用同一结论）。
+    var sectionDisplayControls: some View {
+        HStack(spacing: 2) {
+            modeButton(
+                systemImage: "rectangle.compress.vertical",
+                label: "Collapse All",
+                isActive: !allExpanded && expansionOverrides.isEmpty,
+                identifier: "servers.collapseAll"
+            ) {
+                setAllExpanded(false)
+            }
+            modeButton(
+                systemImage: "rectangle.expand.vertical",
+                label: "Expand All",
+                isActive: allExpanded && expansionOverrides.isEmpty,
+                identifier: "servers.expandAll"
+            ) {
+                setAllExpanded(true)
+            }
+        }
+        .padding(3)
+        .background(OrzMCTheme.Palette.subtleFill, in: RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md))
+        .help("Collapse or expand every server group")
+    }
+
+    /// 单个模式按钮：图标态，选中档有底色；存在单组覆盖时两档都不高亮（= 混合状态）。
+    private func modeButton(
+        systemImage: String,
+        label: LocalizedStringKey,
+        isActive: Bool,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(width: 30, height: 22)
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: OrzMCTheme.Radius.sm)
+                            .fill(OrzMCTheme.Palette.selectionFill)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .help(label)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(identifier)
     }
 
     /// 一条都没有：页顶入口 + 居中的空态说明。
@@ -159,15 +273,30 @@ private extension ServersContentView {
     var listPage: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
-                addMenu
+                topBar
                 if !selfHosted.profiles.servers.isEmpty {
-                    SelfHostedServersSection(model: selfHosted)
+                    SelfHostedServersSection(
+                        model: selfHosted,
+                        isExpanded: sectionExpanded("selfHosted"),
+                        onToggle: { toggleGroup("selfHosted") },
+                        onOpen: { path.append(SelfHostedServerRoute(id: $0.id)) },
+                        onEdit: { editor = .selfHosted($0) },
+                        onDelete: { pendingDelete = $0 }
+                    )
                 }
                 if !accounts.accounts.isEmpty {
-                    ExarotonAccountsSection(onEditAccount: { editor = .exarotonAccount($0) })
+                    ExarotonAccountsSection(
+                        onEditAccount: { editor = .exarotonAccount($0) },
+                        isExpanded: sectionExpanded("exaroton"),
+                        onToggle: { toggleGroup("exaroton") }
+                    )
                 }
                 if !mcsm.panels.isEmpty {
-                    MCSManagerSection(onEditPanel: { editor = .mcsmanagerPanel(.edit($0)) })
+                    MCSManagerSection(
+                        onEditPanel: { editor = .mcsmanagerPanel(.edit($0)) },
+                        isExpanded: sectionExpanded("mcsm"),
+                        onToggle: { toggleGroup("mcsm") }
+                    )
                 }
             }
             .padding(OrzMCTheme.Spacing.lg)
@@ -324,6 +453,11 @@ extension ServersContentView {
     }
 }
 #endif
+
+/// 自建服务器详情的导航值（`Hashable` 路由，避免把整个档案塞进路径）。
+struct SelfHostedServerRoute: Hashable {
+    let id: UUID
+}
 
 #Preview {
     ServersContentView()

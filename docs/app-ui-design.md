@@ -604,3 +604,33 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 
 **验证**：`check.sh --fast/--build/--ios` + iOS UI 套件；UI 用例的 `ORZMC_DEMO_TAB` 钩子随 Tab 一起移除，
 "空态"用例改为**同时**清掉自建档案与远程凭据（否则合并后永远不空）。
+
+## 12. 2026-11-08 服务器卡片动作统一 + 分组折叠
+
+维护者反馈：① 自建服务器的「刷新 / 配置 / 删除」没有和 exaroton / MCSManager 统一；
+② 各来源分组要能单独折叠/展开，也要「全部折叠 / 全部展开」，跟主窗口实例栏一个用法。
+
+**① 卡片动作统一**（`OrzMC/Common/SelfHosted/SelfHostedServerView.swift`）
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 动作位置 | 只在详情页工具栏（刷新 / 设置），删除藏在设置表单里 | 卡片右上就是**同一套** `ServerActionGroup`：刷新 ｜ 配置 ｜ 删除（危险动作单独成组并着色） |
+| 自动化锚点 | `selfHosted.refresh` / `selfHosted.settings`（详情页） | 卡片上是 `selfHosted.action.refresh|edit|remove`；详情页工具栏保留 |
+| 删除 | 无确认（只能从设置表单删） | `confirmationDialog` 二次确认（删本机档案 + 密码，服务器本身不动） |
+| 单台刷新 | 只能"全部探一遍" | `SelfHostedServersModel.refreshStatus(for:)`：只探这一台、同台不重入 |
+
+卡片的导航也从 `NavigationLink` 包整卡改成 `ServerCard(onTap:)` + `NavigationStack(path:)`
+（`SelfHostedServerRoute`）——包在链接里的按钮点不到（MCSM 实例行早就这么做了，这里对齐）。
+
+**② 分组折叠**（`RemoteProviderSection` / `RemoteProviderHeader` + `ServersContentView`）
+
+- 每组标题左侧有 `chevron`，**点箭头或标题**都能折叠；折叠时只留标题（数量仍在），内容整段不渲染。
+- 页顶左侧两个图标按钮：**全部折叠 / 全部展开**（与主窗口 `BasicInfo.displayModeControls` 同一套观感：
+  `subtleFill` 底 + 选中档 `selectionFill`）；全局值存 `orzmc.servers.allExpanded`（默认**展开**），
+  单组点击写入 `expansionOverrides`，切全局档位时清空覆盖。
+- 规则与主窗口一致：**不用 `Picker` 绑全局值**（单组覆盖后全局值没变，再点同一档不触发 `onChange`）。
+- 自动化锚点：`servers.collapseAll` / `servers.expandAll` / `<分组>.section.toggle`
+  （`selfHosted.section.toggle`、`exaroton.section.toggle`、`mcsm.section.toggle`）；
+  分组标题仍是 `staticTexts[selfHosted.section]` 这类锚点（identifier 留在 `Text` 上）。
+
+**用例**：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`。

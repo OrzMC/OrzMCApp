@@ -64,6 +64,8 @@ final class SelfHostedServersModel {
     private(set) var isProbing = false
     /// 列表页把所有服务器一起探一遍时的加载态（与详情页的单台 `isProbing` 分开）。
     private(set) var isProbingAll = false
+    /// 卡片上「刷新」正在探的那几台（同一台不重入；与批量探测互不覆盖）。
+    private(set) var refreshingIDs: Set<UUID> = []
     private(set) var isSending = false
     var commandDraft = ""
 
@@ -309,6 +311,26 @@ enum SelfHostedFakeServer {
         #endif
         isProbing = true
         defer { isProbing = false }
+        apply(await probeResult(profile), to: profile)
+    }
+
+    /// 卡片上的**单台刷新**：只探这一台，其它卡片的状态与时间戳不受影响。
+    ///
+    /// 与 `refreshAllStatuses()` 的区别：后者是页面级"全部探一遍"（进列表/定时），
+    /// 这里是用户在某张卡片上点刷新；同一台重复点不会叠请求。
+    func isRefreshing(_ id: UUID) -> Bool { refreshingIDs.contains(id) }
+
+    func refreshStatus(for id: UUID) async {
+        guard let profile = profiles.servers.first(where: { $0.id == id }), profile.isConfigured,
+              !refreshingIDs.contains(id) else { return }
+        refreshingIDs.insert(id)
+        defer { refreshingIDs.remove(id) }
+        #if DEBUG
+        if SelfHostedFakeServer.isEnabled {
+            applyFakeStatus(to: profile)
+            return
+        }
+        #endif
         apply(await probeResult(profile), to: profile)
     }
 

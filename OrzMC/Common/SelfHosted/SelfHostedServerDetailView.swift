@@ -10,7 +10,8 @@ import SwiftUI
 
 /// 「我的服务器」**详情页**：状态卡 + 玩家名单 + 控制台（RCON）。
 ///
-/// 从列表页（`SelfHostedServerView`）点卡片进来。这些内容以前平铺在列表下面，
+/// 从列表页（`ServersContentView` 里的 `SelfHostedServersSection`）点卡片进来。
+/// 这些内容以前平铺在列表下面，
 /// 导致"列表 + 详情"混在一屏、换服务器时整页重排；现在按远程托管页的规则拆开：
 /// **列表只回答"有哪些服务器、它们现在怎么样"，详情才回答"对这台做什么"**。
 struct SelfHostedServerDetailView: View {
