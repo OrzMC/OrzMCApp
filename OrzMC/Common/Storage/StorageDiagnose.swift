@@ -15,6 +15,7 @@
 #if DEBUG
 import Foundation
 import OrzMCFoundation
+import OrzMCLauncher
 
 @MainActor
 enum StorageDiagnose {
@@ -26,7 +27,7 @@ enum StorageDiagnose {
 
     static var isRequested: Bool {
         let value = ProcessInfo.processInfo.environment[environmentKey]
-        return ["write", "read", "delete"].contains(value ?? "")
+        return ["write", "read", "delete", "report", "moveprobe"].contains(value ?? "")
     }
 
     static func runIfRequested() async {
@@ -40,6 +41,85 @@ enum StorageDiagnose {
         ]
 
         switch action {
+        case "report":
+            // **只读自检**：把两端现存的记录逐条过一遍，看凭据还能不能读到（不打印任何凭据内容）。
+            var entries: [[String: String]] = []
+            let profiles = SelfHostedProfilesStore.load()
+            for profile in profiles.servers {
+                let secret = ServerSecretsStore.secret(
+                    id: profile.id, provider: .selfHostedRCON, mode: profile.storageMode
+                )
+                entries.append([
+                    "kind": "selfHosted",
+                    "name": profile.name.isEmpty ? profile.host : profile.name,
+                    "mode": profile.storageMode.rawValue,
+                    "hasSecret": (secret?.isEmpty == false) ? "yes" : "no",
+                    "length": String(secret?.count ?? 0),
+                ])
+            }
+            if let data = UserDefaults.standard.data(forKey: ExarotonAccountsModel.accountsKey),
+               let accounts = try? JSONDecoder().decode([ExarotonAccount].self, from: data) {
+                for account in accounts {
+                    let token = ServerSecretsStore.secret(
+                        id: account.id, provider: .exarotonToken, mode: account.storageMode
+                    )
+                    entries.append([
+                        "kind": "exaroton",
+                        "name": account.displayName,
+                        "mode": account.storageMode.rawValue,
+                        "hasSecret": (token?.isEmpty == false) ? "yes" : "no",
+                        "length": String(token?.count ?? 0),
+                    ])
+                }
+            }
+            for panel in MCSManagerCredentials.panels() {
+                let key = ServerSecretsStore.secret(
+                    id: panel.id, provider: .mcsmAPIKey, mode: panel.storageMode
+                )
+                entries.append([
+                    "kind": "mcsm",
+                    "name": panel.label,
+                    "mode": panel.storageMode.rawValue,
+                    "hasSecret": (key?.isEmpty == false) ? "yes" : "no",
+                    "length": String(key?.count ?? 0),
+                ])
+            }
+            report["records"] = String(entries.count)
+            report["okCount"] = String(entries.filter { $0["hasSecret"] == "yes" }.count)
+            report["missingCount"] = String(entries.filter { $0["hasSecret"] != "yes" }.count)
+            let detail = entries.map { e in
+                "\(e["kind"] ?? "?") | \(e["name"] ?? "?") | mode=\(e["mode"] ?? "?") | secret=\(e["hasSecret"] ?? "?") | len=\(e["length"] ?? "0")"
+            }
+            report["detail"] = detail.joined(separator: " ;; ")
+        case "moveprobe":
+            // 迁移自检（合成记录，不碰真实数据）：device → iCloud → installation → device，每步读回比对。
+            let payload = "move-probe-\(report["at"] ?? "")"
+            var steps: [String] = []
+            func record(_ ok: Bool, _ step: String) { steps.append("\(step)=\(ok ? "ok" : "FAIL")") }
+
+            _ = ServerSecretsStore.save(payload, id: probeID, provider: .selfHostedRCON, mode: .device)
+            record(ServerSecretsStore.secret(id: probeID, provider: .selfHostedRCON, mode: .device) == payload,
+                   "device(write)")
+
+            func move(_ from: ServerRecordStorageMode, _ to: ServerRecordStorageMode) {
+                do {
+                    try ServerSecretsStore.move(id: probeID, provider: .selfHostedRCON, from: from, to: to)
+                    // 只校验目标端读得到；**来源是否清空在公共 API 上观察不到** ——
+                    // `.device` 有回退读（切档位时"看不见密码"更糟），所以读 source 会拿到目标那份。
+                    record(ServerSecretsStore.secret(id: probeID, provider: .selfHostedRCON, mode: to) == payload,
+                           "\(from.rawValue)->\(to.rawValue)")
+                } catch {
+                    steps.append("\(from.rawValue)->\(to.rawValue)=FAIL(\(error))")
+                }
+            }
+            move(.device, .iCloud)
+            move(.iCloud, .installation)
+            move(.installation, .device)
+
+            ServerSecretsStore.remove(id: probeID, provider: .selfHostedRCON)
+            record(ServerSecretsStore.secret(id: probeID, provider: .selfHostedRCON, mode: .device) == nil, "cleanup")
+            report["steps"] = steps.joined(separator: " ")
+            report["allOK"] = String(!steps.contains { $0.contains("FAIL") })
         case "write":
             let payload = "probe:\(report["at"] ?? ""):\(report["device"] ?? "")"
             let ok = ServerSecretsStore.save(
