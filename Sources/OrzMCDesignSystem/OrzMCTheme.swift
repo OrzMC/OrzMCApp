@@ -70,12 +70,13 @@ public enum OrzMCTheme {
         public static let danger = Color.red
         /// 未运行 / 未知 / 中性。
         public static let idle = Color.secondary
-        /// 卡片上的图标按钮：比 `.secondary` 亮一档。
+        /// 卡片上的图标按钮：接近正文强度（不是 `.secondary` 那种"灰"）。
         ///
-        /// 为什么不用 `.secondary`：面板底是半透明/玻璃层，`secondary` 里的灰在深色下合成后
-        /// 只有约 3.2:1（2026-11-08 截图实测），图标在卡片上"像禁用"。0.72 的 primary
-        /// 在深/浅两种外观下都在 6:1 以上，且仍是次要视觉（不抢标题）。
-        public static let control = Color.primary.opacity(0.72)
+        /// 为什么不用 `.secondary`：面板底是半透明/玻璃层，`secondary` 的灰在深色下合成后
+        /// 只有约 3.2:1，图标在卡片上"像禁用"；0.72 实测仍有 180/255 的灰，
+        /// 维护者两次反馈"一直灰色、像不可点击"（2026-11-08）。0.85 在深/浅外观下都 ≥10:1，
+        /// 与 disabled（0.35）拉开足够差距，也不会像纯白那样抢标题。
+        public static let control = Color.primary.opacity(0.85)
         /// 卡片里的"次要但重要"信息（地址、版本/玩家/延迟、MOTD）。
         ///
         /// 比 `.secondary` 强一档（11pt 下 `.secondary` 实测 3.2:1，低于 4.5:1）；

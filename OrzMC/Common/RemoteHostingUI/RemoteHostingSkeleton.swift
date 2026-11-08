@@ -124,7 +124,7 @@ struct RemoteAccountMenu: View {
         _ systemImage: String,
         key: Part,
         help: LocalizedStringKey,
-        tint: Color = OrzMCTheme.Palette.idle,
+        tint: Color = OrzMCTheme.Palette.control,
         action: @escaping () -> Void
     ) -> some View {
         ServerIconButton(

@@ -714,3 +714,21 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 - 「全部折叠/展开」控件抽成 `OrzMCDisplayModeControls`（设计系统），**主窗口与服务器窗口共用同一份**：
   容器 `controlFill`、选中档 `selectionNeutral`（不再借用强调色）、未选中图标 `secondary`，
   macOS 30×22 / iOS 34×30；服务器页仍保留 `servers.collapseAll|expandAll` 锚点。
+
+### 14.1 追加（同日二次反馈：图标"还是灰的"、卡片只点文字能跳、刷新转圈没对齐）
+
+1. **图标强度**：`Palette.control` 从 `primary 0.72` 提到 **0.85**（深色面板上实测 180/255 → 216/255），
+   disabled 仍是 0.35 —— 启用/禁用一眼能分开。
+   另外 `RemoteAccountMenu`（账号/面板卡的刷新·配置·删除）之前把默认 tint 写成了 `Palette.idle`（`secondary`），
+   比自建卡片暗一档，正是维护者看到"一直灰色"的那三颗；统一改走 `Palette.control`。
+2. **整卡可点**：`ServerCard` 改为 `ZStack`，底下垫一层铺满卡片（含内边距）的透明 `Button`，
+   文本与动作按钮在它上面：
+   - 点文字 → 内容里的主按钮（保留 `tapIdentifier`，UI 用例照旧）；
+   - 点右侧/下方空白 → 垫层按钮（2026-11-08 反馈的"点无内容区域没反应"）；
+   - 点动作图标 → 各自的按钮；
+   - 垫层对无障碍隐藏（`accessibilityHidden`），避免出现两个同名按钮。
+   新增用例 `testSelfHostedCardClickAnywhereOpensDetail`（在名称按钮右边缘 +80pt 处点击应进详情页）。
+3. **刷新转圈对齐**：`ProgressView` 之前是 `.controlSize(.mini)` 直接塞在动作组最左边，会把整排图标推歪。
+   现在**换成与图标按钮同尺寸的槽位**（`OrzMCActionButton.hitSize`：macOS 22 / iOS 32），
+   并且是"替换刷新按钮"而不是加在它左边 —— 刷新中不会产生位移。
+   MCSM 实例行的 busy 转圈同样处理。

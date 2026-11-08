@@ -1079,6 +1079,26 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
+    /// **整卡可点**（2026-11-08 维护者反馈）：点卡片右侧的空白区域也要进详情页，
+    /// 不能只有"名称 + 明细"那一小块能点。
+    func testSelfHostedCardClickAnywhereOpensDetail() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到服务器卡片")
+
+        // 卡片比"名称按钮"宽：在名称按钮右边缘再往右 80pt 处点一下（那一片是卡片空白）。
+        let emptySpot = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: card.frame.maxX + 80, dy: card.frame.midY))
+        emptySpot.tap()
+
+        XCTAssertTrue(app.staticTexts["玩家"].waitForExistence(timeout: 20),
+                      "点卡片空白处也应进入详情页")
+        XCTAssertTrue(app.staticTexts["控制台（RCON）"].exists, "详情页应有控制台")
+    }
+
     /// **自建卡片的动作与其它来源统一**（2026-11-08）：刷新 / 配置 / 删除，
     /// 与 exaroton 账号卡、MCSM 面板卡同一套图标按钮组（`selfHosted.action.*`）。
     func testSelfHostedCardHasUnifiedActions() {

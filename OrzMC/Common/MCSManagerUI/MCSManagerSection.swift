@@ -216,7 +216,10 @@ struct MCSManagerSection: View {
         ServerActionGroup {
             if model.isBusy(instance) == true,
                state != .starting, state != .stopping, state != .restarting {
-                ProgressView().controlSize(.mini)
+                // 与图标按钮同尺寸的槽位：否则转圈会把后面那排图标挤歪（对齐问题）。
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: OrzMCActionButton.hitSize, height: OrzMCActionButton.hitSize)
             }
             ServerIconButton(
                 title: "Console",

@@ -59,7 +59,8 @@ public struct OrzMCActionButton: View {
     private var effectiveEnabled: Bool { isEnabled && isEnabledByEnvironment }
 
     /// 命中区：触控按 32，指针按 22（与服务器窗口同一套）。
-    private static var hitSize: CGFloat {
+    /// 公开给调用方：把 `ProgressView` 放进同样大小的槽位，加载时不会把整排图标挤歪。
+    public static var hitSize: CGFloat {
         #if os(iOS)
         return 32
         #else

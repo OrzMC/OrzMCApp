@@ -67,10 +67,46 @@ struct ServerCard<Actions: View, Footer: View>: View {
     @ViewBuilder var footer: () -> Footer
 
     var body: some View {
-        // 布局按**宽度等级**决定，不再用 `ViewThatFits` 逐卡自适应（2026-11-07 维护者截图反馈）：
-        // 同屏两张卡里一张把动作挤成一行、另一张折到第二行，看着像"按钮掉到底部"。
-        //   · 紧凑宽度（iPhone 竖屏）：动作**固定**成卡片底部一条操作栏（上分隔线 + 右对齐）；
-        //   · 常规宽度（iPad 横屏 / macOS）：动作与名称同一行（放不下才退化成底栏）。
+        ZStack(alignment: .topLeading) {
+            // **整卡可点**：铺满卡片（含内边距）的一层按钮垫在内容下面。
+            // 以前只有"名称 + 明细"那一个按钮能点，卡片右侧/下方的空白点了没反应
+            // （2026-11-08 维护者反馈）。文本与动作按钮在它上面，点击照常落到各自控件；
+            // 空白处则落到这一层。
+            // 它对无障碍隐藏：焦点仍由内容里的主按钮（带 `tapIdentifier`）表达，避免两个同名按钮。
+            if let onTap {
+                Button(action: onTap) {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityHidden(true)
+            }
+
+            cardContent
+                .padding(.horizontal, surface == .panel ? OrzMCTheme.Spacing.md : 0)
+                .padding(.vertical, surface == .panel ? OrzMCTheme.Spacing.md : OrzMCTheme.Spacing.sm)
+        }
+        .background {
+            // 可点的卡片在指针悬停时给一层非常轻的底色：`.plain` / 玻璃面板上都要能看出"可以点"。
+            if isTappable {
+                RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md, style: .continuous)
+                    .fill(OrzMCTheme.Palette.subtleFill.opacity(isHovering ? 0.55 : 0))
+            }
+        }
+        .modifier(ServerCardSurfaceModifier(surface: surface))
+        .onHover { inside in
+            guard isTappable else { return }
+            isHovering = inside
+        }
+    }
+
+    /// 卡片的可视内容（文本 + 动作 + footer）：布局按宽度等级决定。
+    ///
+    /// 不再用 `ViewThatFits` 逐卡自适应（2026-11-07 维护者截图反馈）：
+    /// 同屏两张卡里一张把动作挤成一行、另一张折到第二行，看着像"按钮掉到底部"。
+    /// · 紧凑宽度（iPhone 竖屏）：动作**固定**成卡片底部一条操作栏（上分隔线 + 右对齐）；
+    /// · 常规宽度（iPad 横屏 / macOS）：动作与名称同一行（放不下才退化成底栏）。
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
             if usesActionBar {
                 VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
@@ -113,18 +149,6 @@ struct ServerCard<Actions: View, Footer: View>: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            // 可点的卡片在指针悬停时给一层非常轻的底色：`.plain` / 玻璃面板上都要能看出"可以点"。
-            if isTappable {
-                RoundedRectangle(cornerRadius: OrzMCTheme.Radius.md, style: .continuous)
-                    .fill(OrzMCTheme.Palette.subtleFill.opacity(isHovering ? 0.55 : 0))
-            }
-        }
-        .modifier(ServerCardSurfaceModifier(surface: surface))
-        .onHover { inside in
-            guard isTappable else { return }
-            isHovering = inside
-        }
     }
 
     /// 卡片本体是不是按钮（有 `onTap` 才是；`NavigationLink` 包卡片的写法已废弃）。
@@ -338,12 +362,10 @@ private struct ServerCardSurfaceModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch surface {
         case .panel:
-            content
-                .padding(OrzMCTheme.Spacing.md)
-                .orzMCPanel()
+            // 内边距在 `body` 里（整卡点击层要盖住它）。
+            content.orzMCPanel()
         case .plain:
             content
-                .padding(.vertical, OrzMCTheme.Spacing.sm)
         }
     }
 }
