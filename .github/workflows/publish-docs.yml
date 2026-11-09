@@ -1,37 +1,61 @@
 name: Publish Docs
+
+# 触发（2026-11-09 调整）：
+#   · 手动：workflow_dispatch（发版后/想立刻刷新时用）
+#   · main 上 DocC 内容有变动时自动跑（只盯 documentation.docc 和本 workflow 自己，
+#     避免每次改 Swift 代码都白跑一台 macOS runner）
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "OrzMC/Common/documentation.docc/**"
+      - ".github/workflows/publish-docs.yml"
+
 permissions:
   contents: write
+
+# 同一时间只允许一个部署；新的推送取消旧的，避免 gh-pages 被乱序覆盖。
+concurrency:
+  group: publish-docs
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   docs:
-    runs-on: macos-latest
+    runs-on: macos-26
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
+
       - uses: maxim-lobanov/setup-xcode@v1
-      - name: Cache built docs
-        id: cache-docs
+
+      # 不再缓存"生成的站点"（旧 workflow 把输出塞进仓库的 docs/ 并整体缓存）：
+      # 站点内容跟着 DocC/HTML 模板走，缓存会让上游改动（例如根路径落地页）被旧产物盖掉。
+      # 只缓存 DerivedData 与 SwiftPM sources（真正省时间的部分）。
+      - name: Cache DerivedData
         uses: actions/cache@v5
-        with:
-          path: docs
-          key: ${{ runner.os }}-docs-${{ hashFiles('OrzMC/Common/documentation.docc/**', '**/*.swift', '**/*.md') }}
-      - uses: actions/cache@v5
         with:
           path: DerivedData
           key: ${{ runner.os }}-docs-derived-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**') }}
-      - uses: actions/cache@v5
+
+      - name: Cache SwiftPM sources
+        uses: actions/cache@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData/SourcePackages
           key: ${{ runner.os }}-docs-spm-${{ hashFiles('**/Package.resolved') }}
+
       - name: Resolve package dependencies
         run: |
           xcrun xcodebuild -resolvePackageDependencies -scheme OrzMC
-      - name: Build documentation
-        if: steps.cache-docs.outputs.cache-hit != 'true'
+
+      - name: Build DocC and prepare static site
         run: |
-          mkdir -p DerivedData docs
+          set -euo pipefail
+          mkdir -p DerivedData
+          rm -rf docs-site
           xcrun xcodebuild docbuild \
             -quiet \
             -scheme OrzMC \
@@ -47,33 +71,42 @@ jobs:
             ONLY_ACTIVE_ARCH=YES \
             COMPILER_INDEX_STORE_ENABLE=NO \
             SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO
-          DOCCARCHIVE_PATH=$(find DerivedData -type d -name "OrzMC.doccarchive")
+
+          DOCCARCHIVE_PATH="$(find DerivedData -type d -name "OrzMC.doccarchive" -print -quit)"
+          if [ -z "$DOCCARCHIVE_PATH" ]; then
+            echo "::error::DocC archive not found under DerivedData"
+            exit 1
+          fi
+
           xcrun docc process-archive transform-for-static-hosting \
             "$DOCCARCHIVE_PATH" \
-            --output-path docs \
-            --hosting-base-path "/${{ github.event.repository.name }}"
-          touch docs/.nojekyll
-          lowercase_scheme=$(echo "OrzMC" | tr '[:upper:]' '[:lower:]')
-          cat > docs/index.html <<EOF
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta http-equiv="refresh" content="0; url=/${{ github.event.repository.name }}/documentation/${lowercase_scheme}/">
-          </head>
-          <body>
-              <p>Redirecting to <a href="/${{ github.event.repository.name }}/documentation/${lowercase_scheme}/">documentation</a>...</p>
-          </body>
-          </html>
-          EOF
-      - name: Use cached documentation
-        if: steps.cache-docs.outputs.cache-hit == 'true'
+            --output-path docs-site \
+            --hosting-base-path "/${GITHUB_REPOSITORY#*/}"
+
+          touch docs-site/.nojekyll
+
+          # 根路径 = 文档首页（不再是一次 meta-refresh 空白跳转）。
+          python3 scripts/dev/make-docs-landing.py docs-site \
+            --base-path "/${GITHUB_REPOSITORY#*/}"
+
+      - name: Assert site is complete
         run: |
-          echo "Using cached docs artifact"
+          set -euo pipefail
+          test -f docs-site/.nojekyll
+          test -f docs-site/index.html
+          grep -q "history.replaceState" docs-site/index.html || {
+            echo "::error::docs landing page missing the DocC route shim"
+            exit 1
+          }
+          test -d docs-site/documentation || {
+            echo "::error::docs-site/documentation missing"
+            exit 1
+          }
+
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: docs
+          folder: docs-site
           clean: true
           single-commit: true
-          
