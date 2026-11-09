@@ -763,3 +763,30 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 
 > 全应用的刷新入口、进行中/禁用状态与自动刷新节律，见
 > [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（含 5 种交互模式与不一致清单）。
+
+## 16. 2026-11-08 刷新交互收口（按清单执行）
+
+清单见 [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（改前快照）。
+本轮把 P0/P1 与便宜项一次做完：
+
+1. **设计系统新增 `OrzMCRefreshButton`**：空闲 = 图标；刷新中 = **同槽位**转圈（`OrzMCActionButton.hitSize`，
+   不产生位移）；禁用 = 0.35；hover / help / identifier 与 `OrzMCActionButton` 一致。
+   用在：自建列表卡、`RemoteAccountMenu`（exaroton 账号卡 + MCSM 面板卡）、MCSM 控制台页头部、
+   自建详情页玩家卡（顺手去掉按钮左边那个独立小转圈）。
+2. **下拉刷新 = 全部来源**：`ServersContentView.refreshEverything()` 并发刷新
+   自建状态（`refreshAllStatuses`）+ 每个 exaroton 账号（新增 `ExarotonAccountsModel.reloadAll()`）
+   + 每个 MCSM 面板（`reloadAll`）。以前只刷自建。
+3. **macOS 服务器窗口加「刷新全部」工具栏按钮 + ⌘R**（锚点 `servers.refreshAll`），行为与下拉一致。
+4. **额度池刷新**：`fetchDataWithLoading()` 加 `guard !isLoading`（以前只有整页遮罩、按钮还能连点），
+   工具栏按钮补 `.disabled(isLoading)` 与 `creditPool.refresh` 锚点；iOS 下拉也走 loading 路径。
+5. **help 文案区分对象**：账号卡「Reload this account's servers」、面板卡
+   「Reload this panel's instances」、控制台「Reload the log history」。
+6. **锚点补齐**：`exaroton.accountAction.refresh`（账号菜单整组）、`selfHosted.players.refresh`、
+   `creditPool.refresh`、`mcsm.console.refresh`、`servers.refreshAll`。
+
+**有意保留的差异**（不是遗漏）：
+
+- 自建**详情页工具栏**的刷新仍是系统 toolbar 按钮 + 状态卡里的 16×16 转圈：
+  系统 toolbar 自己表达禁用态；状态卡转圈同时覆盖 20 秒自动刷新，换到按钮上会每 20 秒闪一下。
+- 主窗口**侧边栏版本列表**（图标叠加转圈 + 变暗）与设置里的两个**同步本地重扫**（无加载态）保持现状：
+  前者在 30pt 的搜索栏控件里，套 22×22 的动作按钮会变形；后者是同步 IO，瞬时完成。

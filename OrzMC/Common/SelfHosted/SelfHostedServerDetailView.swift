@@ -271,19 +271,14 @@ struct SelfHostedServerDetailView: View {
                 Label("Players", systemImage: "person.2")
                     .font(.subheadline.weight(.semibold))
                 Spacer(minLength: 0)
-                ProgressView()
-                    .controlSize(.small)
-                    .opacity(model.isFetchingLists ? 1 : 0)
-                    .frame(width: 16, height: 16)
-                Button {
+                OrzMCRefreshButton(
+                    help: "Reload online / whitelist / ban lists",
+                    isRefreshing: model.isFetchingLists,
+                    isEnabled: canRunCommands,
+                    identifier: "selfHosted.players.refresh"
+                ) {
                     Task { await model.refreshPlayerLists() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                        .labelStyle(.iconOnly)
                 }
-                .buttonStyle(.borderless)
-                .disabled(model.isFetchingLists || !canRunCommands)
-                .help("Reload online / whitelist / ban lists")
             }
 
             if profile.rconEnabled {

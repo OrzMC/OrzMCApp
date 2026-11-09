@@ -3522,6 +3522,17 @@
         }
       }
     },
+    "Refresh every server": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新全部服务器"
+          }
+        }
+      }
+    },
     "Refresh version list": {
       "localizations": {
         "zh-Hans": {
@@ -3598,6 +3609,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新加载远程服务器"
+          }
+        }
+      }
+    },
+    "Reload the log history": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载历史日志"
+          }
+        }
+      }
+    },
+    "Reload this account's servers": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载该账号的服务器"
+          }
+        }
+      }
+    },
+    "Reload this panel's instances": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载这个面板的实例"
           }
         }
       }

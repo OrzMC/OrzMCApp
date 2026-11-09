@@ -48,7 +48,8 @@ struct ExarotonAccountsSection: View {
                 onRefresh: { Task { await model.reloadList() } },
                 isRefreshing: model.isLoadingList,
                 onEdit: { onEditAccount(account) },
-                onRemove: { accounts.remove(account.id) }
+                onRemove: { accounts.remove(account.id) },
+                identifier: "exaroton.account"
             )
         } content: {
             ExarotonServerList()

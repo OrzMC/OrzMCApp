@@ -122,22 +122,13 @@ struct SelfHostedServerCard: View {
     @ViewBuilder
     private var actions: some View {
         ServerActionGroup {
-            // 刷新时用**同样大小的**转圈占住刷新按钮的位置：以前小号转圈挤在最左边，
-            // 整排图标被推歪、上下也不对齐（2026-11-08 维护者反馈）。
-            if isRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(width: OrzMCActionButton.hitSize, height: OrzMCActionButton.hitSize)
-            } else {
-                ServerIconButton(
-                    title: "Refresh",
-                    systemImage: "arrow.clockwise",
-                    help: "Check the server status now",
-                    isEnabled: profile.isConfigured,
-                    identifier: "selfHosted.action.refresh"
-                ) {
-                    onRefresh?()
-                }
+            OrzMCRefreshButton(
+                help: "Check the server status now",
+                isRefreshing: isRefreshing,
+                isEnabled: profile.isConfigured,
+                identifier: "selfHosted.action.refresh"
+            ) {
+                onRefresh?()
             }
             ServerActionDivider()
             ServerIconButton(

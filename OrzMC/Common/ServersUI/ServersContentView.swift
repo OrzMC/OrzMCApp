@@ -88,6 +88,20 @@ struct ServersContentView: View {
                 SelfHostedServerDetailView(profileID: route.id, model: selfHosted)
             }
             // MCSManager 控制台：**导航页**（与主窗口"服务器 → 控制台"一致），不再弹 sheet。
+            #if os(macOS)
+            .toolbar {
+                ToolbarItem {
+                    Button {
+                        Task { await refreshEverything() }
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .help("Refresh every server")
+                    .keyboardShortcut("r", modifiers: .command)
+                    .accessibilityIdentifier("servers.refreshAll")
+                }
+            }
+            #endif
             .navigationDestination(for: MCSManagerConsoleRoute.self) { route in
                 if let model = mcsm.model(for: route.panelID),
                    let instance = mcsm.instances(of: route.panelID).first(where: { $0.id == route.instanceID }) {
@@ -152,7 +166,9 @@ struct ServersContentView: View {
             }
         }
         #if os(iOS)
-        .refreshable { await selfHosted.refreshAllStatuses() }
+        // 下拉刷新 = **全部来源**：自建状态 + 每个 exaroton 账号 + 每个 MCSM 面板
+        // （以前只刷自建，用户会以为整页都刷新了）。
+        .refreshable { await refreshEverything() }
         #endif
         #if DEBUG
         .task { await Self.runDiagnosticsIfRequested(accounts: accounts) }
@@ -185,6 +201,14 @@ private extension ServersContentView {
             Spacer(minLength: 0)
             sectionDisplayControls
         }
+    }
+
+    /// 页面级"全部刷新"：三个来源并发，各组卡片自己显示转圈。
+    func refreshEverything() async {
+        async let selfHostedStatuses: Void = selfHosted.refreshAllStatuses()
+        async let exarotonLists: Void = accounts.reloadAll()
+        async let mcsmLists: Void = mcsm.reloadAll()
+        _ = await (selfHostedStatuses, exarotonLists, mcsmLists)
     }
 
     /// 分组展开状态：单组覆盖优先，否则跟随全局值。

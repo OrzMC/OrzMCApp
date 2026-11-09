@@ -107,14 +107,13 @@ struct MCSManagerConsoleView: View {
                 verbatim: state.localizedTitle,
                 style: state.statusStyle
             )
-            Button {
+            OrzMCRefreshButton(
+                help: "Reload the log history",
+                isRefreshing: isLoading,
+                identifier: "mcsm.console.refresh"
+            ) {
                 Task { await reloadHistory() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(.borderless)
-            .disabled(isLoading)
-            .accessibilityLabel(String(localized: "Refresh"))
         }
     }
 

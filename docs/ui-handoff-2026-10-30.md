@@ -189,6 +189,15 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
   移除标题旁旧的小转圈。
 - 细节：`app-ui-design.md` §15。
 
+### UI-14（✅ 2026-11-08）刷新交互收口
+
+- 设计系统 `OrzMCRefreshButton`（空闲图标 / 刷新中同槽位转圈 / 禁用 0.35），用于自建卡、账号/面板卡、
+  MCSM 控制台页、自建玩家卡；额度池刷新加防重入与禁用。
+- 合并页下拉刷新与 macOS ⌘R 都改为**刷新全部来源**（自建 + exaroton + MCSM）。
+- help 文案按对象区分；补齐 `exaroton.accountAction.refresh` / `selfHosted.players.refresh` /
+  `creditPool.refresh` / `mcsm.console.refresh` / `servers.refreshAll`。
+- 清单：`ui-refresh-inventory-2026-11-08.md`；收口细节：`app-ui-design.md` §16。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

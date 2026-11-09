@@ -111,6 +111,69 @@ public struct OrzMCActionButton: View {
     }
 }
 
+/// 统一的「刷新」按钮：空闲 = 图标；刷新中 = **同一槽位**换成转圈；禁用 = 0.35。
+///
+/// 2026-11-08 收口：以前全应用有 5 种刷新反馈（图标不动旁边转圈 / 叠加转圈+变暗 /
+/// 整页遮罩 / 只有按钮变灰 / 图标→转圈）。列表卡片、账号/面板卡、控制台页、玩家卡
+/// 现在都走这一份，保证"点下去在同一个位置看到转圈、不产生位移"。
+public struct OrzMCRefreshButton: View {
+    private let title: LocalizedStringKey
+    private let help: LocalizedStringKey?
+    private let isRefreshing: Bool
+    private let isEnabled: Bool
+    private let identifier: String?
+    private let action: () -> Void
+
+    public init(
+        title: LocalizedStringKey = "Refresh",
+        help: LocalizedStringKey? = nil,
+        isRefreshing: Bool = false,
+        isEnabled: Bool = true,
+        identifier: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.help = help
+        self.isRefreshing = isRefreshing
+        self.isEnabled = isEnabled
+        self.identifier = identifier
+        self.action = action
+    }
+
+    public var body: some View {
+        if isRefreshing {
+            // 与图标按钮同尺寸：不产生位移；无障碍上读成"刷新（进行中）"。
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: OrzMCActionButton.hitSize, height: OrzMCActionButton.hitSize)
+                .opacity(isEnabled ? 1 : 0.35)
+                .accessibilityLabel(Text(title))
+                .modifier(RefreshIdentifier(identifier: identifier))
+        } else {
+            OrzMCActionButton(
+                title: title,
+                systemImage: "arrow.clockwise",
+                help: help,
+                isEnabled: isEnabled,
+                identifier: identifier,
+                action: action
+            )
+        }
+    }
+}
+
+private struct RefreshIdentifier: ViewModifier {
+    let identifier: String?
+
+    func body(content: Content) -> some View {
+        if let identifier {
+            content.accessibilityIdentifier(identifier)
+        } else {
+            content
+        }
+    }
+}
+
 /// 「全部折叠 / 全部展开」两个动作按钮（模式控件）。
 ///
 /// 两个窗口（主窗口实例详情 / 服务器窗口）共用同一份：以前各写一遍，

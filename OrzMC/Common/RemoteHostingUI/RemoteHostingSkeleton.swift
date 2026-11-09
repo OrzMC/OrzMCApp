@@ -93,6 +93,8 @@ struct RemoteAccountMenu: View {
     var onRefresh: (() -> Void)? = nil
     /// 正在刷新：把刷新图标**换成同尺寸的转圈**（与自建卡片同一套交互，不再另加一个加载指示）。
     var isRefreshing = false
+    /// 刷新的悬停提示：账号卡与面板卡说明的对象不同（账号 ≠ 面板）。
+    var refreshHelp: LocalizedStringKey = "Reload this account's servers"
     let onEdit: () -> Void
     let onRemove: () -> Void
     /// 自动化锚点前缀（例如 MCSM 的 `mcsm.panel`）：实际锚点是 `<前缀>.refresh/.edit/.remove`。
@@ -101,16 +103,12 @@ struct RemoteAccountMenu: View {
     var body: some View {
         ServerActionGroup {
             if let onRefresh {
-                if isRefreshing {
-                    // 与图标按钮同尺寸的槽位：刷新中不产生位移，整排图标保持对齐。
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: OrzMCActionButton.hitSize, height: OrzMCActionButton.hitSize)
-                } else {
-                    icon("Refresh", "arrow.clockwise", key: .refresh, help: "Reload this account's servers") {
-                        onRefresh()
-                    }
-                }
+                OrzMCRefreshButton(
+                    help: refreshHelp,
+                    isRefreshing: isRefreshing,
+                    identifier: identifier.map { "\($0)Action.refresh" },
+                    action: onRefresh
+                )
                 ServerActionDivider()
             }
             icon("Edit Account", "slider.horizontal.3", key: .edit, help: "Edit this account") {
@@ -125,7 +123,7 @@ struct RemoteAccountMenu: View {
         }
     }
 
-    private enum Part: String { case refresh, edit, remove }
+    private enum Part: String { case edit, remove }
 
     private func icon(
         _ title: LocalizedStringKey,

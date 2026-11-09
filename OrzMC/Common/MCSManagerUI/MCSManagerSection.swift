@@ -96,6 +96,7 @@ struct MCSManagerSection: View {
                     Task { await model?.reload() }
                 },
                 isRefreshing: model?.isLoading == true,
+                refreshHelp: "Reload this panel's instances",
                 onEdit: { onEditPanel(panel) },
                 onRemove: {
                     mcsm.removePanel(id: panel.id)
