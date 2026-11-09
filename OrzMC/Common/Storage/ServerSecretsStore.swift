@@ -3,7 +3,7 @@
 //  OrzMC
 //
 //  服务器资料里的**凭据**（自建 RCON 密码 / Exaroton Token / MCSManager API Key）按
-//  「保存方式」路由到对应后端。设计见 `docs/server-storage-design-2026-11-04.md`。
+//  「保存方式」路由到对应后端。设计见 `docs/server-storage.md`。
 //
 //  三档：
 //    · `.device`（默认，保留在本机）—— **沿用旧 Keychain 的 service/account 命名**，

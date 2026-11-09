@@ -1,6 +1,6 @@
 # OrzMCApp 迭代流程（标准化）
 
-> 状态：生效中（2026-10-23）｜最后更新：2026-10-27（新增 §4.0.1 开发包安装验收）
+> 状态：生效中（2026-10-23）｜最后更新：2026-11-09（文档收口；补 Terminal 启动说明）
 > 面向：人 + AI agent。目标只有一个——**改动到合入之间的反馈环尽量短、失败尽量早暴露**。
 
 ## 1. 一条命令的本地门禁
@@ -122,6 +122,10 @@ xcrun simctl io booted screenshot /tmp/ios.png
 iOS 真机安装脚本本身就走开发签名，所以手机上不受影响。
 
 ## 4.0.1 安装验收：直接装**开发包**（不要为验收去打正式包）
+
+**从 agent / 沙箱里启动 Terminal**：`open -Ra Terminal` 在沙箱内可能失败、用完整路径启动 `.command` 还会误报
+`kLSNoExecutableErr`（文件其实存在）。可靠做法是写 `.command` 文件后 `open -a Terminal <file>`（或系统完整路径
+`/System/Applications/Utilities/Terminal.app`），再把结果写回文件/日志轮询——AI 会话里不要指望 `open -Ra`。
 
 > 2026-10-27 起。以前验收走"打正式包"那条路（Release → 签名 → notarize → dmg → 装 dmg → 断言），
 > 一轮 10~15 分钟，其中约 9 分钟在等 Apple 公证。**验收要验的是"装好之后能不能用"**，
@@ -392,4 +396,4 @@ spctl -a -vv --type execute OrzMC.app           # 期望 accepted / Notarized De
 | 提交信息写在 `-m "..."` 里 | 反引号被 shell 当命令替换，消息变空 | 写文件 + `git commit -F` |
 | `github.com:443` 偶发被阻断 | `git push` 超时，但 `api.github.com` 正常 | 直接等网络恢复，别改 git 配置 |
 | 升了 `Package.resolved` 里的版本 | `Couldn't check out revision '<sha>'`（缓存里的 bare repo 没有新 tag） | `scripts/dev/refresh-package.sh <包名>`（秒级：fetch tags + 删 checkout，不重新克隆）；仍失败再 `--purge` |
-| 磁盘 < 5 GB | 构建半途 `No space left on device`，看不到任何编译错误 | `check.sh` 已加磁盘预检并提示清理；耗时与优化见 [`iteration-cost-2026-10-26.md`](iteration-cost-2026-10-26.md) |
+| 磁盘 < 5 GB | 构建半途 `No space left on device`，看不到任何编译错误 | `check.sh` 已加磁盘预检并提示清理；耗时与优化见根仓库 [`docs/iteration-efficiency.md`](https://github.com/OrzMC/OrzMC/blob/main/docs/iteration-efficiency.md) |

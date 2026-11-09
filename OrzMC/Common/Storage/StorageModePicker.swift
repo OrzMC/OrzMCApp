@@ -3,7 +3,7 @@
 //  OrzMC
 //
 //  「保存方式」三档选择（仅本次安装 / 保留在本机 / iCloud 同步）。
-//  设计口径见 `docs/server-storage-design-2026-11-04.md`。
+//  设计口径见 `docs/server-storage.md`。
 //
 //  三条约定（界面侧）：
 //   1. 不可用的档位（例如没开 Keychain Sharing 时的 iCloud）**置灰 + 说明原因**，不给"选了才报错"；

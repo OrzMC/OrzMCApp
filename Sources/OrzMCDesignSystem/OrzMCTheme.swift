@@ -95,8 +95,6 @@ public enum OrzMCTheme {
         public static let panelFill = Color.primary.opacity(0.045)
         /// 面板描边。
         public static let panelBorder = Color.primary.opacity(0.08)
-        /// 分段/模式按钮的选中底色（跟随系统强调色，亮暗都成立）。
-        public static let selectionFill = Color.accentColor.opacity(0.22)
         /// 中性选中底：只表达"这一档生效"，不带品牌色。
         ///
         /// 用在"全部折叠/全部展开"这类**模式**控件上：强调色已经在状态徽章/主操作上表达含义，

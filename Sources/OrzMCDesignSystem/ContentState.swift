@@ -34,10 +34,4 @@ public enum OrzMCContentStates {
         message: String(localized: "Choose a version from the sidebar to view details."),
         systemImage: "cube.box"
     )
-
-    public static let noRemoteServers = ContentState(
-        title: String(localized: "No remote servers"),
-        message: String(localized: "Remote hosting servers will appear here after connecting an account."),
-        systemImage: "server.rack"
-    )
 }

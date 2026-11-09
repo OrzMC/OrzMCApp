@@ -3,7 +3,7 @@
 > 状态：生效中（P2-7 第 1–2 步已完成，2026-10-25）· 对应代码 `Sources/OrzMCRemoteHosting/` +
 > `OrzMC/Common/ExarotonUI/Model/ExarotonHostingProvider.swift` /
 > `OrzMC/Common/ExarotonUI/Model/ExarotonServerModel+StatusCenter.swift`
-> 交接入口：[`../../../HANDOFF.md`](../../../HANDOFF.md) §1 · 待办看板：[`backlog-2026-10-25.md`](backlog-2026-10-25.md) P2-7
+> 交接入口：[根仓库 `HANDOFF.md`](https://github.com/OrzMC/OrzMC/blob/main/HANDOFF.md) §1
 
 ## 目标
 
@@ -70,6 +70,19 @@ public struct ClosureRemoteHostingProvider: RemoteHostingProvider { … }  // �
 | 分组顺序固定为 `ProviderKind.allCases`，组内保持输入顺序 | 界面不能随网络返回顺序抖动 |
 | 分组时**去掉重复实例**（保留第一份） | 多账号把同一实例拉了两遍时 `ForEach` 的 `Identifiable` 会渲染错行 |
 | 状态**不在供应商里推**，仍走唯一状态中心 | 见下节 |
+
+## 多账号与凭据隔离（2026-10-30 起）
+
+每个供应商支持**多个账号 / 面板**，账号下展示其全部实例；同一台服务器出现在不同账号组时**各自独立**状态与连接。
+
+- exaroton：账号元数据存 `EXAROTON_ACCOUNTS`，Token 按账号 UUID 分别存 Keychain；旧 `EXAROTON_TOKEN`
+  只在新条目保存成功后删除，失败保留旧凭据并报错。编辑凭据 = 替换该账号模型；删除 = 停轮询/WebSocket，不影响其它账号。
+- MCSManager：同一地址允许不同 API Key，重复判断用**地址 + 凭据**（不用可改的显示名）；每条记录独立 UUID / Keychain / 模型。
+- 账号名为空或是旧数据迁移来的占位值时，用 exaroton 只读 `GET /account/` 补名称；显式填写的名称不会被覆盖，
+  切换 Token/删账号后到达的旧请求结果直接丢弃。
+- 界面不重复供应商副标题；账号卡头部/编辑表单/实例名称布局分别复用 `RemoteAccountHeader`/`RemoteAccountEditor`/`RemoteInstanceHeading`。
+- 仅 DEBUG：`ORZMC_DEMO_MCSM_PANELS` / `ORZMC_DEMO_MCSM_KEYS`（按账号 UUID 的凭据 JSON）/ `ORZMC_DEMO_TOKEN`
+  用于模拟器只读验收，**不把 Mac 的 Keychain 复制进模拟器，不把凭据写进仓库**。
 
 ## 状态：仍然只有一个来源
 
