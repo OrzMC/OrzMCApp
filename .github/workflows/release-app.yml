@@ -97,11 +97,20 @@ jobs:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DERIVED_DATA_PATH: DerivedData
           RESIGN_EXPORTED_APP: "1"
+          # macOS Developer ID 描述文件（base64）：0.1.7 起 entitlements 有 keychain-access-groups，
+          # 没有它 archive 会报 "requires a provisioning profile"。见 docs/release-signing.md。
+          MACOS_PROFILE: ${{ secrets.MACOS_PROFILE }}
           # 演练模式：仍然签名/公证/打包/断言，但不发布（脚本里 PUBLISH_GITHUB=1 才发 Release/写 appcast）。
           PUBLISH_GITHUB: ${{ inputs.dry_run && '0' || '1' }}
         run: |
           export DEVELOPER_ID_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
           ./scripts/release-macos.sh
+          # 早期失败（例如描述文件解析报错）有时不会让脚本以非 0 退出，这里再断言一次
+          # "确实跑到了最后"：脚本成功收尾才会写 .release-complete。
+          if ! find dist/macos -name .release-complete -print -quit | grep -q .; then
+            echo "::error::release script did not finish (no .release-complete marker)"
+            exit 1
+          fi
 
       - name: Commit appcast.xml
         if: ${{ !inputs.dry_run }}

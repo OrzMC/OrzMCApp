@@ -20,7 +20,7 @@ warn() {
 }
 
 fail() {
-    printf "\nerror: %s\n" "$*" >&2
+    printf "\nerror: %b\n" "$*" >&2
     exit 1
 }
 
@@ -185,6 +185,53 @@ notarize_and_staple() {
     xcrun stapler validate -v "$staple_target"
 }
 
+# ── macOS 描述文件（Developer ID）─────────────────────────────────────────────
+#
+# 为什么需要（2026-11-09，0.1.7 发版 dry-run 抓到）：0.1.7 起 entitlements 里有
+# `keychain-access-groups`（iCloud 档位的跨端共享组），属于 Apple 的**受限权限**：
+# Developer ID 分发必须带描述文件，否则 archive 直接报
+# `"OrzMC" requires a provisioning profile`。
+#
+# 描述文件要满足：
+#   · 类型 **Developer ID**（不是 Mac Team / Mac Development）
+#   · App ID `com.joker.OrzMC`，开启 Keychain Sharing，包含
+#     `2N62934Y28.com.joker.OrzMC.shared`
+#   · 绑定 **Developer ID Application** 证书（仓库 secret 里那张）
+#
+# 用法：`gh secret set MACOS_PROFILE < <(base64 -i OrzMC_DeveloperID.provisionprofile)`
+MACOS_PROFILE_NAME="${MACOS_PROFILE_NAME:-}"
+
+install_macos_provisioning_profile() {
+    local b64="${1:-}"
+    if [ -z "$b64" ]; then
+        fail "MACOS_PROFILE 未设置：0.1.7 起的 macOS 包使用「钥匙串共享」受限权限，Developer ID 签名必须带描述文件。\n      创建：Apple Developer → Profiles → + → Distribution → Developer ID → App ID com.joker.OrzMC（勾选 Keychain Sharing）→ 选 Developer ID Application 证书 → 下载。\n      配置：gh secret set MACOS_PROFILE < <(base64 -i <下载的 .provisionprofile>)"
+    fi
+
+    local tmp uuid name dir
+    tmp="$(mktemp -t orzmc-macos-profile)"
+    if ! printf '%s' "$b64" | base64 --decode > "$tmp" 2>/dev/null; then
+        rm -f "$tmp"
+        fail "MACOS_PROFILE 不是有效的 base64（应为 .provisionprofile 的 base64 文本）"
+    fi
+    uuid="$(security cms -D -i "$tmp" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || true)"
+    name="$(security cms -D -i "$tmp" 2>/dev/null | plutil -extract Name raw - 2>/dev/null || true)"
+    if [ -z "$uuid" ] || [ -z "$name" ]; then
+        rm -f "$tmp"
+        fail "MACOS_PROFILE 解析失败（不是有效的 .provisionprofile？）"
+    fi
+    # Xcode 15+/26 查 UserData 目录；老路径也放一份，兼容不同工具链。
+    for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+               "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+        mkdir -p "$dir"
+        cp "$tmp" "$dir/$uuid.provisionprofile"
+    done
+    rm -f "$tmp"
+    # 变量后面直接跟中文全角括号时必须用 `${name}`：bash 会把它当成变量名的一部分
+    # （2026-11-09 CI 报过 `name�: unbound variable`）。
+    log "macOS 描述文件：${name}（${uuid}）"
+    MACOS_PROFILE_NAME="$name"
+}
+
 write_export_options() {
     local path="$1"
     cat > "$path" <<PLIST
@@ -202,6 +249,14 @@ write_export_options() {
     <string>$APPLE_TEAM_ID</string>
     <key>stripSwiftSymbols</key>
     <true/>
+$(if [ -n "${MACOS_PROFILE_NAME:-}" ]; then cat <<PROFILES
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>${APP_BUNDLE_ID:-com.joker.OrzMC}</key>
+        <string>${MACOS_PROFILE_NAME}</string>
+    </dict>
+PROFILES
+fi)
 </dict>
 </plist>
 PLIST
@@ -247,7 +302,7 @@ codesign_app_args() {
     codesign_distribution_args
 
     local entitlements
-    entitlements="$(entitlements_file)"
+    entitlements="${EXPANDED_ENTITLEMENTS:-$(entitlements_file)}"
     if [ -n "$entitlements" ]; then
         printf '%s\0' --entitlements "$entitlements"
     fi
@@ -561,10 +616,16 @@ case "${ARCHIVE_CODE_SIGNING_MODE:-manual}" in
         )
         ;;
     manual)
+        install_macos_provisioning_profile "${MACOS_PROFILE:-}"
         ARCHIVE_SIGNING_ARGS=(
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             CODE_SIGN_STYLE=Manual
             CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION"
+            # ⚠️ 不能直接传 `PROVISIONING_PROFILE_SPECIFIER`：命令行设置会作用到所有 target，
+            # SwiftPM 依赖（Starscream / OpenAPIGenerator …）不支持描述文件，archive 会直接失败。
+            # 改由 `Config.xcconfig` 里的 `PROVISIONING_PROFILE_SPECIFIER = $(ORZMC_MACOS_PROFILE)`
+            # 只作用于 app target。
+            ORZMC_MACOS_PROFILE="$MACOS_PROFILE_NAME"
         )
         ;;
     *)
@@ -606,6 +667,18 @@ xcodebuild -exportArchive \
 [ -d "$APP_PATH" ] || fail "Exported app not found at $APP_PATH"
 
 if [ "${RESIGN_EXPORTED_APP:-1}" != "0" ]; then
+    # 带描述文件时：签名里的 entitlements 已经由 Xcode 展开过（`$(AppIdentifierPrefix)` →
+    # `2N62934Y28.`）；直接用仓库里那份原始 plist 重签会把占位符按字面写进去。
+    if [ -n "${MACOS_PROFILE_NAME:-}" ]; then
+        EXPANDED_ENTITLEMENTS="$DIST_DIR/expanded-entitlements.plist"
+        if codesign -d --entitlements :- "$APP_PATH" > "$EXPANDED_ENTITLEMENTS" 2>/dev/null \
+            && [ -s "$EXPANDED_ENTITLEMENTS" ]; then
+            log "Re-sign uses expanded entitlements: $EXPANDED_ENTITLEMENTS"
+        else
+            EXPANDED_ENTITLEMENTS=""
+            warn "Could not read expanded entitlements; falling back to the source entitlements file."
+        fi
+    fi
     log "Re-signing exported app with hardened runtime"
     sign_exported_app "$APP_PATH"
 fi
@@ -639,3 +712,5 @@ printf "App:     %s\n" "$APP_PATH"
 printf "ZIP:     %s\n" "$UPDATE_ZIP"
 printf "DMG:     %s\n" "$DMG_PATH"
 printf "Appcast: %s\n" "$ROOT_DIR/products/appcast.xml"
+# 完成标记：workflow 用它断言"脚本真的跑到最后了"（早期失败不会被误判成 success）。
+touch "$DIST_DIR/.release-complete"

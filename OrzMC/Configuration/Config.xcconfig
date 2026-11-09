@@ -9,8 +9,14 @@
 // https://help.apple.com/xcode/#/dev745c5c974
 
 // App Release Version
-MARKETING_VERSION=0.1.6
-CURRENT_PROJECT_VERSION=58
+MARKETING_VERSION=0.1.7
+CURRENT_PROJECT_VERSION=59
+
+// macOS Developer ID 发版描述文件（0.1.7 起：钥匙串共享是受限权限，必须带描述文件）。
+// 平时为空；release-macos.sh 在 CI 里把它设成描述文件的 Name。
+// 只写在 app target 使用的 xcconfig 里 —— 直接用命令行传
+// PROVISIONING_PROFILE_SPECIFIER 会作用到 SwiftPM 依赖（它们不支持描述文件）。
+PROVISIONING_PROFILE_SPECIFIER = $(ORZMC_MACOS_PROFILE)
 
 // Swift Config
 SWIFT_VERSION=6.0
