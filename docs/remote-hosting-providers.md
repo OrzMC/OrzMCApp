@@ -180,8 +180,8 @@ RemoteHostingGrouping.groups(from: instances)
 
 ## 界面口径（第 4b 步）
 
-- **按供应商分组**：`ExarotonContent` 里 exaroton 列表保持原样，MCSManager 是同一页里
-  **独立的一组**（`MCSManagerSection`，每个面板一张卡 → 实例行 + 状态徽章）。
+- **按供应商分组**：`ServersContentView`（2026-11-08 起自建 + 远程合并成一个列表）里
+  exaroton 是一组、MCSManager 是**另一组**（`MCSManagerSection`，每个面板一张卡 → 实例行 + 状态徽章）。
   这样"分组"是真的分组，而不是把两家的卡片混在一串里；exaroton 的既有交互（额度池、控制台）零改动。
 - **供应商无关的摘要**：`MCSManagerPanelsModel.instanceSummaries()` / `hostingGroups`
   已经能出 `RemoteInstanceSummary` / `RemoteHostingGroup`（按供应商排序、去重），
@@ -256,8 +256,8 @@ RemoteHostingGrouping.groups(from: instances)
 | 4b | app 侧 MCSM **界面**：远程托管页按供应商分组（exaroton 一组 + MCSManager 一组）、面板配置（URL + apikey）入口、实例卡片 + 状态徽章 | ✅ 2026-10-25 |
 | 5 | 动作 / 命令（MCSM 的 start/stop/restart + 控制台） | ✅ 2026-10-26 |
 
-验收口径（维护者）：新增一个 MCSM 面板（URL + apikey）后，在同一个「远程托管」页里能看到实例并
-实时看到状态变化；切换/删除账号不影响其他账号的轮询。
+验收口径（维护者）：新增一个 MCSM 面板（URL + apikey）后，在服务器页（合并后与自建/Exaroton
+同一个列表）里能看到实例并实时看到状态变化；切换/删除账号不影响其他账号的轮询。
 
 ## 涉及文件
 
@@ -268,7 +268,7 @@ RemoteHostingGrouping.groups(from: instances)
 | `OrzMC/Common/MCSManager/MCSManagerPanelAPI.swift` | app 内部的**只读面板接口**（模型只依赖它 → 单测不碰 OpenAPI 类型） |
 | `OrzMC/Common/MCSManager/MCSManagerAPIClient.swift` | 真实实现：`MCSMAPI` 生成类型 → 上面的接口（403 → `unauthorized` 等） |
 | `OrzMC/Common/MCSManager/MCSManagerPanelsModel.swift` | 多面板聚合：增删面板、每个面板一份 `MCSManagerModel`（各自状态中心/心跳）、`hostingGroups` |
-| `OrzMC/Common/MCSManagerUI/MCSManagerSection.swift` | 远程托管页里的 MCSManager 分组（面板卡 + 实例行 + 添加面板表单） |
+| `OrzMC/Common/MCSManagerUI/MCSManagerSection.swift` | 服务器页里的 MCSManager 分组（面板卡 + 实例行；添加面板表单由 `ServersContentView` 弹） |
 | `OrzMC/Common/RemoteHosting/RemoteServerState+Presentation.swift` | 供应商无关状态 → 文案/徽章风格（复用已翻译的键） |
 | `OrzMC/Common/MCSManager/MCSManagerModel.swift` | `@MainActor @Observable`：列实例（分页取全）、按 `RemoteStatusRefreshPolicy` 轮询、状态写进 `RemoteStatusCenter`、`MCSManagerHostingProvider`（只读） |
 | `OrzMC/Common/MCSManager/MCSManagerErrorText.swift` | 面板错误 → 一句人话（403 的含义与 exaroton 不同：可能是"没开 API Key 功能"） |

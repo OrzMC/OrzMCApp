@@ -1,7 +1,7 @@
 # macOS 启动器：UI 信息架构、设计系统与改进路线
 
-> **状态**：生效中｜**最后更新**：2026-10-30
-> **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/ExarotonUI/**` + `Sources/OrzMCDesignSystem/**`
+> **状态**：生效中｜**最后更新**：2026-11-08
+> **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/{ServersUI,SelfHosted,ExarotonUI,MCSManagerUI,RemoteHostingUI}/**` + `Sources/OrzMCDesignSystem/**`
 > **交接**：[`ui-handoff.md`](ui-handoff.md)（给下一个 agent 的状态/待办/提示词）。
 > **关联**：[`app-launcher-architecture.md`](app-launcher-architecture.md)（模型职责）、
 > [`app-platform-split.md`](app-platform-split.md)（平台分层）、
@@ -12,28 +12,35 @@
 
 ---
 
-## 远程托管账号层级（2026-10-30，2026-11-05 抽成共享骨架）
+## 服务器页：一个列表、按来源分组（2026-11-08 合并）
 
-按供应商分组，固定 exaroton → MCSManager；每组允许多个账号，每个账号下完整展示实例。
-**页顶只有一个带边框的「添加账号」菜单**（先选供应商，再填对应表单）；分组标题旁不再放添加按钮，
-一个账号都没有的供应商整组不渲染。账号和实例操作菜单统一使用系统默认带边框样式。
+**一个页面**（`OrzMC/Common/ServersUI/ServersContentView.swift`，macOS「服务器」窗口与 iOS 首页同一份），
+分组顺序固定 **自建 → exaroton → MCSManager**；每组允许多个账号 / 面板，每个账号下完整展示实例。
+**页顶只有一个带边框的「添加服务器」菜单**（先选来源：自建服务器 / Exaroton 账号 / MCSManager 面板，
+再填对应表单）；分组标题旁不再放添加按钮，一条记录都没有的来源整组不渲染。
+账号和实例操作菜单统一使用系统默认带边框样式。
 
-**共享骨架落在** `OrzMC/Common/RemoteHostingUI/`（两家供应商都用，macOS 与 iPhone 同一份）：
+> 2026-11-08 之前自建与远程托管是两个"面"：macOS 窗口顶部分段控件切换、iOS 两个 Tab。
+> 合并后**顶部不再有切换控件**，iOS 也不再分 Tab——"服务器在哪"只是同一张列表里的分组。
+> 决策与验收见下方 §11。
+
+**共享骨架落在** `OrzMC/Common/RemoteHostingUI/`（三家来源都用，macOS 与 iPhone 同一份）：
 
 | 骨架 | 负责 | 两家各自特化的部分 |
 |---|---|---|
-| `RemoteProviderSection` | 供应商标题行（图标 + 名称 + 实例数）；**一个账号都没有的供应商整组不渲染** | 标题文案 / 图标 / 计数口径 |
-| `RemoteAddProviderMenu` | **页顶唯一**的添加入口：先选供应商（exaroton / MCSManager），再弹对应表单 | 表单内容（账号+TOKEN / 地址+API Key） |
-| `EmptyContentView`（设计系统） | 一家都没配时的空态说明页 | 文案 |
+| `ServersContentView`（`Common/ServersUI/`） | 页面层：持有三个模型、页顶唯一添加入口、所有表单 sheet、统一空态 | 分组顺序与空态文案 |
+| `AddServerMenu` | **页顶唯一**的添加入口：先选来源（自建 / Exaroton / MCSManager），再弹对应表单 | 表单内容（地址+RCON / 账号+TOKEN / 地址+API Key） |
+| `RemoteProviderSection` | 分组标题行（图标 + 名称 + 实例数）；**一条记录都没有的来源整组不渲染** | 标题文案 / 图标 / 计数口径 |
+| `EmptyContentView`（设计系统） | 三条来源一条都没有时的空态说明页 | 文案 |
 | `RemoteAccountCard` | 账号卡（头部 + 面板底 + 内边距） | exaroton：账号凭据；MCSM：面板地址 + API Key |
 | `RemoteAccountMenu` | `⋯` 菜单：刷新 → 编辑 → 删除（顺序固定） | 编辑/删除落到各自模型 |
-| `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台 sheet |
+| `RemoteInstanceRow` | 实例行：`名称 + 状态徽标` → 明细行 → 右侧动作 → 底部（停止进度 / 错误） | exaroton：id、标签、地址、MOTD、跳详情页；MCSM：地址、玩家数、动作菜单、开控制台**页** |
 | `RemoteInlineLoading` / `RemoteInlineEmpty` / `RemoteInlineError` | 账号内的加载 / 空 / 失败（同一套排版，失败带「重试」） | 文案 |
 
 排版规则（改远程托管页必须遵守）：
 
-0. **添加入口只有一个，在页顶**：菜单里选供应商 → 弹该供应商的表单；不在分组标题旁边再放「添加账号」。
-   没有任何账号时不渲染任何分组，只显示空态说明页（同一页不再出现两个"空卡片"）。
+0. **添加入口只有一个，在页顶**：菜单里选来源 → 弹该来源的表单；不在分组标题旁边再放「添加」。
+   三条来源一条都没有时不渲染任何分组，只显示空态说明页（同一页不再出现"空卡片"）。
 1. **组内不再"面板套面板"**：账号卡是一张面板，实例/额度池是**平铺行**（同一套行骨架），
    行间用 `Spacing.md` 分隔。
 2. **行内字段顺序固定**：名称 + 状态徽标（`RemoteInstanceHeading`，内含 `OrzMCStatusBadge`）→ 明细 → 右侧。
@@ -134,22 +141,22 @@ Settings（TabView：General / Server / Tools / About）
 
 ```
 WindowGroup
-└── ContentView（两个并列 Tab）
-    ├── 我的服务器（SelfHostedServerView）
-    │   ├── 状态卡（SLP：在线/版本/玩家/延迟/MOTD）
-    │   ├── 玩家列表（服务端没隐藏时）
-    │   └── 控制台（RCON）
-    └── 远程托管（ExarotonContent）
-        └── NavigationStack
-            ├── ExarotonServerList（摘要卡 + 服务器/额度池卡片 + 账号 Token）
-            ├── ExarotonServerDetail（概览 / 玩家列表 / 性能 / 内存 / 操作 / 控制台）
-            └── ExarotonCreditPoolDetail（成员 / 服务器）
+└── ContentView
+    └── ServersContentView（与 macOS「服务器」窗口同一份）
+        └── NavigationStack（标题：服务器）
+            ├── SelfHostedServersSection（自建：卡片列表，点卡片进详情）
+            │   └── SelfHostedServerDetailView（状态 / 玩家 / RCON 控制台）
+            ├── ExarotonAccountsSection（账号卡 → 实例卡片 / 额度池）
+            │   ├── ExarotonServerDetail（概览 / 玩家 / 性能 / 内存 / 操作 / 控制台）
+            │   └── ExarotonCreditPoolDetail（成员 / 服务器）
+            └── MCSManagerSection（面板卡 → 实例卡片 → 控制台页，push）
 ```
 
-iOS 与 macOS **共用** `Common/ExarotonUI` 与 `Common/SelfHosted`；
+iOS 与 macOS **共用** `Common/ServersUI`、`Common/SelfHosted`、`Common/ExarotonUI`、`Common/MCSManagerUI`；
 平台差异只在 `#if os(...)` 里（List 样式、键盘、sheet detents、是否需要 Esc）。
 
-macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部分段控件切换（见 §3.2）。
+macOS 的「服务器」窗口与 iOS 首页是**同一个页面**：一个列表、页顶一个「添加服务器」菜单，
+不再有分段控件 / Tab 切换（见 §3.2、§11）。
 
 ### 1.3 关键跳转规则
 
@@ -234,7 +241,7 @@ macOS 的「服务器」窗口把这两个面放进同一个窗口，用顶部�
 |---|---|---|
 | `Window(id:"main")` | 主启动器 | **唯一**，单份 `AppModel` |
 | `WindowGroup(for: ConsoleTarget.self)` | 某个实例的控制台 | 共享主窗口的 `AppModel`，同一个 `ServerConsoleModel` |
-| `Window(id:"remote")` | 「服务器」：自建（SLP/RCON）+ exaroton 托管，顶部切换 | 自建用 `SelfHostedServerModel`；托管用独立的 `ExarotonServerModel`。都不碰本机进程状态 |
+| `Window(id:"remote")` | 「服务器」：一个列表（自建 SLP/RCON + exaroton + MCSManager 面板按来源分组） | 自建用 `SelfHostedServersModel`；托管用独立的 `ExarotonServerModel` / `MCSManagerModel`。都不碰本机进程状态 |
 
 - `GameView` 工具栏的 **Servers** 打开「服务器」窗口；
 - 控制台工具栏的 **Open in New Window** 用 `openWindow(value: ConsoleTarget)` 打开独立控制台；
@@ -578,3 +585,208 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 | 常规（iPad 横屏 / macOS） | 与名称同一行；真放不下才退化成底栏（`ViewThatFits`） |
 
 顺带：`Actions == EmptyView` 的卡片（例如「我的服务器」）不再预留操作栏，避免多出一条空白分隔线。
+
+## 11. 2026-11-08 自建 + 远程托管合并成一个列表
+
+维护者要求：**「我的服务器」与「远程托管」合并成一个列表**，不再来回切换、省掉顶部切换控件，
+用统一的「添加服务器」按钮（点开后选服务器类型），统一添加流程与展示 UI。
+
+| 位置 | 改前 | 改后 |
+|---|---|---|
+| 页面 | macOS 顶部分段控件切两个面；iOS 两个 Tab | **一个** `ServersContentView`（macOS 窗口 + iOS 首页同一份），顶部无切换控件 |
+| 添加 | 自建页「添加服务器」直接弹表单；远程页「添加账号」先选供应商 | 页顶**一个**「添加服务器」菜单：自建服务器 / Exaroton / MCSManager → 各自表单 |
+| 列表 | 两个面各自的空态与页顶按钮 | 一个 ScrollView，分组固定 **自建 → exaroton → MCSManager**；没有内容的来源整组不渲染 |
+| 空态 | 两套文案（还没有服务器 / 没有远程服务器） | 一套统一空态（`还没有服务器` + 一句话说明三种来源） |
+| 模型 | 各页面各持一份 | 页面层持有 `SelfHostedServersModel` + `ExarotonAccountsModel` + `MCSManagerPanelsModel`，一个 `EditorSheet` 枚举管三种表单 |
+
+**移除**：`ServersWindowContent`（分段控件 + `orzmc.serversWindow.mode` 记忆）、`ExarotonContent`
+（远程专用页）、`RemoteAddProviderMenu`（被 `AddServerMenu` 取代）、iOS 的两个 Tab。
+
+**验证**：`check.sh --fast/--build/--ios` + iOS UI 套件；UI 用例的 `ORZMC_DEMO_TAB` 钩子随 Tab 一起移除，
+"空态"用例改为**同时**清掉自建档案与远程凭据（否则合并后永远不空）。
+
+## 12. 2026-11-08 服务器卡片动作统一 + 分组折叠
+
+维护者反馈：① 自建服务器的「刷新 / 配置 / 删除」没有和 exaroton / MCSManager 统一；
+② 各来源分组要能单独折叠/展开，也要「全部折叠 / 全部展开」，跟主窗口实例栏一个用法。
+
+**① 卡片动作统一**（`OrzMC/Common/SelfHosted/SelfHostedServerView.swift`）
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 动作位置 | 只在详情页工具栏（刷新 / 设置），删除藏在设置表单里 | 卡片右上就是**同一套** `ServerActionGroup`：刷新 ｜ 配置 ｜ 删除（危险动作单独成组并着色） |
+| 自动化锚点 | `selfHosted.refresh` / `selfHosted.settings`（详情页） | 卡片上是 `selfHosted.action.refresh|edit|remove`；详情页工具栏保留 |
+| 删除 | 无确认（只能从设置表单删） | `confirmationDialog` 二次确认（删本机档案 + 密码，服务器本身不动） |
+| 单台刷新 | 只能"全部探一遍" | `SelfHostedServersModel.refreshStatus(for:)`：只探这一台、同台不重入 |
+
+卡片的导航也从 `NavigationLink` 包整卡改成 `ServerCard(onTap:)` + `NavigationStack(path:)`
+（`SelfHostedServerRoute`）——包在链接里的按钮点不到（MCSM 实例行早就这么做了，这里对齐）。
+
+**② 分组折叠**（`RemoteProviderSection` / `RemoteProviderHeader` + `ServersContentView`）
+
+- 每组标题左侧有 `chevron`，**点箭头或标题**都能折叠；折叠时只留标题（数量仍在），内容整段不渲染。
+- 页顶左侧两个图标按钮：**全部折叠 / 全部展开**（与主窗口 `BasicInfo.displayModeControls` 同一套观感：
+  `subtleFill` 底 + 选中档 `selectionFill`）；全局值存 `orzmc.servers.allExpanded`（默认**展开**），
+  单组点击写入 `expansionOverrides`，切全局档位时清空覆盖。
+- 规则与主窗口一致：**不用 `Picker` 绑全局值**（单组覆盖后全局值没变，再点同一档不触发 `onChange`）。
+- 自动化锚点：`servers.collapseAll` / `servers.expandAll` / `<分组>.section.toggle`
+  （`selfHosted.section.toggle`、`exaroton.section.toggle`、`mcsm.section.toggle`）；
+  分组标题仍是 `staticTexts[selfHosted.section]` 这类锚点（identifier 留在 `Text` 上）。
+
+**用例**：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`。
+
+## 13. 2026-11-08 视觉评审：把"层级 / 字阶 / 色彩 / 可点感"落到令牌
+
+按 Apple HIG（2026-11-08 用 DocC JSON 核验 `Layout` / `Lists and tables` / `Typography` / `Color` /
+`Materials` / `Buttons` / `Toolbars`）对合并后的服务器页做了一次带量测的评审，然后按结论改了实现。
+
+**量测（暗色、macOS 27.2、绿色强调色、780pt 内容宽）**
+
+| 项目 | 改前 | 结论 |
+|---|---|---|
+| 表面层级 | 窗口 28 / 账号卡 45 / 实例卡 59（sRGB 8bit） | 三个层级，且 45 与 59 **都是 `orzMCPanel()`**（macOS 26+ 为 Liquid Glass） |
+| 次级信息对比 | 3.21:1（地址 / 标签 / MOTD / 图标） | 11pt 正文低于 4.5:1 |
+| 三级信息对比 | 2.19:1（更新时间 / `chevron`） | 箭头是功能元素，低于 3:1 |
+| 字号 | 分组 / 账号 / 实例**都是 `.headline`** | 层级只靠缩进 |
+| 每行动作 | MCSM 行 5 个图标 + 3 条分隔线 | 密度偏高 |
+| 面板圆角 | 默认 16pt（令牌 `Radius.lg` 是 14） | 令牌漂移；嵌套时内外同半径、不同心 |
+
+**改了什么**
+
+1. **两层表面**：`ServerCard(surface: .panel | .plain)`。顶层卡片（自建 / 详情页）仍是面板；
+   账号卡 / 面板卡**内部的行一律 `.plain`**，由外层卡片提供唯一表面 + `RemoteRowDivider` 分隔。
+   账号卡标题下再加一条分隔线，标题与内容的关系不再"浮着"。
+   规则来源：HIG `Materials`（内容层别用 Liquid Glass、效果要克制）+ `Layout`（用对齐/缩进/分隔线表达层级）。
+2. **字阶三档**：分组 `.subheadline.weight(.semibold)` + `.secondary`（计数 `.caption` tertiary）→
+   账号/面板 `.callout.weight(.semibold)`（host/caption 用 `Palette.metadata`）→ 服务器名保持 `.headline`。
+3. **标签不再像按钮**：`OrzMCTag`（描边胶囊）只留给"分类标签"；服务器卡片、额度池、自建详情页的
+   版本/玩家/延迟改成 `RemoteMetadataLine`（`caption` + `·` 分隔，可换行）。实心胶囊只留给状态徽章。
+4. **图标动作**：`Palette.control`（primary 0.72，≈6:1）替代 `.secondary`；命中区 macOS 22×22 / iOS 32×32；
+   指针 hover 画 `subtleFill` 圆角底；`disabled` 自己补 `opacity 0.35`（`.foregroundStyle` 会盖掉系统调暗）。
+   **危险色不常驻**：卡片上的删除/强杀图标改中性（与主窗口一致），红色只出现在确认框与就地提示。
+5. **折叠控件**：底色 `Palette.controlFill`、选中档 `Palette.selectionNeutral`（不再借用强调色，
+   同一屏里绿色只表达状态）；未选中图标 `secondary` 而不是"像禁用"；组头箭头 18×18 命中区 + `.tint(.secondary)`
+   （iOS borderless 默认把箭头染成蓝色）；iOS 上模式按钮 34×30。
+6. **卡片可点感**：`ServerCard` 在有 `onTap` 时 hover 给一层很轻的底；iOS 紧凑宽度下
+   footer（更新时间/停止进度/错误）移到**底部操作栏之前**，不再像在解释那排按钮。
+7. **令牌对齐**：`orzMCPanel()` 默认圆角 16 → `OrzMCTheme.Radius.lg`（14）；
+   新增 `Palette.control` / `Palette.metadata` / `Palette.selectionNeutral`。
+
+**没做 / 待定**
+
+- **A 方案**（账号/面板降级成子标题行、所有服务器卡片同一层）仍是后续选项：本轮用 B 方案（只去掉内层面板），
+  改动小、可回滚。若之后要 A，`RemoteAccountCard` 与两个 `*Section` 是落点。
+- 亮色 / 提高对比 / 减弱透明 / VoiceOver 在 **macOS** 上还没人工复核（应用外观是用户设置，本轮没有改成浅色）。
+  iOS 浅色已在模拟器上截图检查（分组箭头不再是强调色、卡片操作栏顺序正确）。
+
+**验证**：`check.sh --fast/--build/--ios` 绿；iOS UI 套件 45 通过 / 15 按需跳过。
+
+## 14. 2026-11-08 两个窗口的按钮/图标统一（维护者反馈）
+
+**① 主窗口的实例动作按钮"全是灰的"**
+
+原因：`FormSectionHeader` 自己写了一套图标按钮，把 `.foregroundStyle(Palette.idle)` 写在按钮上；
+`.disabled` 只会写进环境，被显式前景色盖掉 → 启动/重启/停止/终止/删除全是一个灰，看不出能不能点。
+服务器窗口后来补了 hover / 大命中区 / disabled 透明度，于是两边**同一件事两种观感**。
+
+现在收进设计系统（`Sources/OrzMCDesignSystem/ActionButton.swift`）：
+
+| 规则 | 值 |
+|---|---|
+| 可用 | `Palette.control`（primary 0.72，深色面板上约 6:1） |
+| 不可用 | `opacity 0.35`（`.foregroundStyle` 会盖掉系统调暗，必须自己补） |
+| 悬停 | `Palette.subtleFill` 圆角底；按下由 `.borderless` 提供 |
+| 命中区 | macOS 22×22 / iOS 32×32（卡片里一排 5 个图标也不能把名字挤没） |
+| 对外 | `OrzMCActionButton`（主窗口 + `ServerIconButton` 都走它） |
+
+`FormSectionHeader.iconButton` 改成调用它，并把可用性**作为参数**传进去（不再依赖外部 `.disabled`）；
+`Console` 在运行中仍用 `success` 绿色（表达"有实时流"，不是"可用"）。
+
+**② 主窗口目录行的"打开"图标**
+
+`arrow.up.forward.app` 是"在别的 App 里打开"，看起来像"打开链接"；改成 **`folder`**（Finder 语义）。
+文案与 `help("Open … in Finder")` 不变。
+
+**③ 服务器窗口页顶：添加在左、折叠/展开在右**
+
+- `topBar`：`添加服务器`（创建类主操作，阅读起点）在左，`全部折叠/展开`（视图模式）在右。
+- 空态页的添加入口也改到左上（`.overlay(alignment: .topLeading)`），与列表页同一位置。
+- 「全部折叠/展开」控件抽成 `OrzMCDisplayModeControls`（设计系统），**主窗口与服务器窗口共用同一份**：
+  容器 `controlFill`、选中档 `selectionNeutral`（不再借用强调色）、未选中图标 `secondary`，
+  macOS 30×22 / iOS 34×30；服务器页仍保留 `servers.collapseAll|expandAll` 锚点。
+
+### 14.1 追加（同日二次反馈：图标"还是灰的"、卡片只点文字能跳、刷新转圈没对齐）
+
+1. **图标强度**：`Palette.control` 从 `primary 0.72` 提到 **0.85**（深色面板上实测 180/255 → 216/255），
+   disabled 仍是 0.35 —— 启用/禁用一眼能分开。
+   另外 `RemoteAccountMenu`（账号/面板卡的刷新·配置·删除）之前把默认 tint 写成了 `Palette.idle`（`secondary`），
+   比自建卡片暗一档，正是维护者看到"一直灰色"的那三颗；统一改走 `Palette.control`。
+2. **整卡可点**：`ServerCard` 改为 `ZStack`，底下垫一层铺满卡片（含内边距）的透明 `Button`，
+   文本与动作按钮在它上面：
+   - 点文字 → 内容里的主按钮（保留 `tapIdentifier`，UI 用例照旧）；
+   - 点右侧/下方空白 → 垫层按钮（2026-11-08 反馈的"点无内容区域没反应"）；
+   - 点动作图标 → 各自的按钮；
+   - 垫层对无障碍隐藏（`accessibilityHidden`），避免出现两个同名按钮。
+   新增用例 `testSelfHostedCardClickAnywhereOpensDetail`（在名称按钮右边缘 +80pt 处点击应进详情页）。
+3. **刷新转圈对齐**：`ProgressView` 之前是 `.controlSize(.mini)` 直接塞在动作组最左边，会把整排图标推歪。
+   现在**换成与图标按钮同尺寸的槽位**（`OrzMCActionButton.hitSize`：macOS 22 / iOS 32），
+   并且是"替换刷新按钮"而不是加在它左边 —— 刷新中不会产生位移。
+   MCSM 实例行的 busy 转圈同样处理。
+
+## 15. 2026-11-08 控制台改成导航页 + 三类卡片交互对齐
+
+维护者反馈三条：
+
+**① exaroton 实例卡不是整卡可点（额度池可以）**
+
+原因：exaroton 行是 `NavigationLink { ... } label: { ServerCard(...) }`，`ServerCard` 根部没有
+`contentShape`，命中区只有文字/图标的实际绘制范围；额度池用的是 `RemoteInstanceRow`，它根部有
+`.contentShape(Rectangle())`，所以整行可点。
+→ `ServerCard` 根上加 `.contentShape(Rectangle())`：`NavigationLink` 包整卡时也覆盖整卡
+（自建/MCSM 走 `onTap` 的透明垫层不受影响）。新增 `testExarotonCardClickAnywhereOpensDetail`。
+
+**② 服务器卡片的「控制台」改用导航页（与主窗口一致）**
+
+以前 MCSM 实例点开控制台是 **sheet**，主窗口是 **push**（`ServerConsoleView`）——
+同一个产品里"打开控制台"两种形态。
+→ 删除 `MCSManagerSection` 的 sheet 枚举与 `.sheet`，新增页面路由
+`MCSManagerConsoleRoute(panelID:instanceID:)`；`ServersContentView` 用
+`.navigationDestination(for:)` 推到 `MCSManagerConsoleView`（原 `MCSManagerConsoleSheet`，
+文件名/类型一起改）。标题统一为已有的 **`Console — %@`** 键，iOS `.inline`；
+返回按钮/⌘← 回服务器列表（与主窗口一致）。
+
+**③ 账号卡/面板卡的刷新也要"转圈顶替图标"**
+
+自建卡片的刷新是"刷新时图标换成同尺寸转圈"；exaroton 账号卡与 MCSM 面板卡原来是"标题旁边多一个小转圈"。
+→ `RemoteAccountMenu` 增加 `isRefreshing`：刷新中在**同一槽位**（`OrzMCActionButton.hitSize`）
+换成转圈，不产生位移；移除 `RemoteAccountHeader` 里旧的 `isLoading` 小转圈（避免两个指示重复）。
+
+> 全应用的刷新入口、进行中/禁用状态与自动刷新节律，见
+> [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（含 5 种交互模式与不一致清单）。
+
+## 16. 2026-11-08 刷新交互收口（按清单执行）
+
+清单见 [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（改前快照）。
+本轮把 P0/P1 与便宜项一次做完：
+
+1. **设计系统新增 `OrzMCRefreshButton`**：空闲 = 图标；刷新中 = **同槽位**转圈（`OrzMCActionButton.hitSize`，
+   不产生位移）；禁用 = 0.35；hover / help / identifier 与 `OrzMCActionButton` 一致。
+   用在：自建列表卡、`RemoteAccountMenu`（exaroton 账号卡 + MCSM 面板卡）、MCSM 控制台页头部、
+   自建详情页玩家卡（顺手去掉按钮左边那个独立小转圈）。
+2. **下拉刷新 = 全部来源**：`ServersContentView.refreshEverything()` 并发刷新
+   自建状态（`refreshAllStatuses`）+ 每个 exaroton 账号（新增 `ExarotonAccountsModel.reloadAll()`）
+   + 每个 MCSM 面板（`reloadAll`）。以前只刷自建。
+3. **macOS 服务器窗口加「刷新全部」工具栏按钮 + ⌘R**（锚点 `servers.refreshAll`），行为与下拉一致。
+4. **额度池刷新**：`fetchDataWithLoading()` 加 `guard !isLoading`（以前只有整页遮罩、按钮还能连点），
+   工具栏按钮补 `.disabled(isLoading)` 与 `creditPool.refresh` 锚点；iOS 下拉也走 loading 路径。
+5. **help 文案区分对象**：账号卡「Reload this account's servers」、面板卡
+   「Reload this panel's instances」、控制台「Reload the log history」。
+6. **锚点补齐**：`exaroton.accountAction.refresh`（账号菜单整组）、`selfHosted.players.refresh`、
+   `creditPool.refresh`、`mcsm.console.refresh`、`servers.refreshAll`。
+
+**有意保留的差异**（不是遗漏）：
+
+- 自建**详情页工具栏**的刷新仍是系统 toolbar 按钮 + 状态卡里的 16×16 转圈：
+  系统 toolbar 自己表达禁用态；状态卡转圈同时覆盖 20 秒自动刷新，换到按钮上会每 20 秒闪一下。
+- 主窗口**侧边栏版本列表**（图标叠加转圈 + 变暗）与设置里的两个**同步本地重扫**（无加载态）保持现状：
+  前者在 30pt 的搜索栏控件里，套 22×22 的动作按钮会变形；后者是同步 IO，瞬时完成。

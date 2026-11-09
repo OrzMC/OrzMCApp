@@ -47,7 +47,9 @@ struct DirectoryRow: View {
             Button {
                 open()
             } label: {
-                Label("Open", systemImage: "arrow.up.forward.app")
+                // "打开目录"用 **folder**（Finder 语义）；`arrow.up.forward.app` 是"在别的 App 里打开"，
+                // 看起来像"打开链接"（2026-11-08 维护者反馈）。
+                Label("Open", systemImage: "folder")
                     .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)

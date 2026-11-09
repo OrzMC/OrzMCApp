@@ -27,10 +27,10 @@ struct ExarotonCreditPoolView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                HStack(spacing: OrzMCTheme.Spacing.xs) {
-                    OrzMCTag(String(localized: "\(creditPool.members ?? 0) members"))
-                    OrzMCTag(String(localized: "\(creditPool.servers ?? 0) servers"))
-                }
+                RemoteMetadataLine(items: [
+                    String(localized: "\(creditPool.members ?? 0) members"),
+                    String(localized: "\(creditPool.servers ?? 0) servers"),
+                ])
             },
             trailing: {
                 if let credits = creditPool.credits {

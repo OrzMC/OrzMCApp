@@ -8,149 +8,53 @@ import OrzMCLauncher
 import OrzMCProtocol
 import SwiftUI
 
-/// 「我的服务器」**列表页**：页顶一个添加入口 + 服务器信息卡片列表，点卡片进详情页。
+/// **自建服务器**分组（`ServersContentView` 里的第一组）：标题行 + 服务器信息卡片列表。
 ///
-/// 结构对齐远程托管页（`ExarotonContent`）：同样"页顶唯一添加入口 + 卡片列表 + 点进详情"，
-/// 这样窗口里两个面看起来是同一个 app。RCON / 玩家 / 控制台这些**与某台服务器强相关**的内容
-/// 全部搬到详情页（`SelfHostedServerDetailView`）——以前它们平铺在列表下面，
-/// 换服务器时整页内容重排，用户还得在一屏里找"哪块属于哪台"。
-struct SelfHostedServerView: View {
-    @State private var model = SelfHostedServersModel()
-    /// 正在编辑的服务器档案。**用 `.sheet(item:)` 而不是 `isPresented + 可选值`**：
-    /// 后者在"同一帧里既设值又置 true"时会用旧值（nil）构建内容，表现为 sheet 里一片空白
-    /// （真机/模拟器都复现到过）。
-    @State private var editing: SelfHostedServerProfile?
+/// 2026-11-08 起自建与远程托管合并在同一页（一个列表、页顶一个「添加服务器」菜单），
+/// 所以这里不再自己持模型、不再有页顶按钮和空态页：**模型由页面层持有**（添加/删除后
+/// 卡片与状态要一起刷新），空态也由页面层统一给（一个来源一条记录都没有时整组不渲染）。
+/// RCON / 玩家 / 控制台这些**与某台服务器强相关**的内容仍在详情页（`SelfHostedServerDetailView`）。
+///
+/// 卡片的动作（刷新 / 配置 / 删除）与 exaroton 账号卡、MCSM 面板卡**同一套** `ServerActionGroup`：
+/// 图标 + 组间细分隔线，危险动作单独成组并着色。以前这些只散落在详情页工具栏与设置表单里，
+/// 列表上看不出"这张卡能做什么"（2026-11-08 维护者反馈）。
+struct SelfHostedServersSection: View {
+    let model: SelfHostedServersModel
+    /// 分组是否展开（折叠时只保留标题行，与远程分组同一套）。
+    var isExpanded = true
+    var onToggle: (() -> Void)? = nil
+    /// 点卡片：由页面层推进导航（这样卡片里的动作按钮才点得到，不会被 `NavigationLink` 吞掉）。
+    let onOpen: (SelfHostedServerProfile) -> Void
+    let onEdit: (SelfHostedServerProfile) -> Void
+    let onDelete: (SelfHostedServerProfile) -> Void
 
     private var servers: [SelfHostedServerProfile] { model.profiles.servers }
 
     var body: some View {
-        Group {
-            if servers.isEmpty {
-                emptyPage
-            } else {
-                listPage
-            }
-        }
-        .navigationTitle(String(localized: "My Server"))
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .sheet(item: $editing) { profile in
-            SelfHostedServerSettingsView(profile: profile) { updated, password, delete in
-                if delete {
-                    model.remove(updated.id)
-                } else {
-                    model.save(updated, rconPassword: password)
-                    Task { await model.refreshAllStatuses() }
-                }
-                editing = nil
-            }
-        }
-        // 列表页也定时探一遍：回到列表时每张卡片的状态不该是"上次进详情前"的旧值。
-        .task {
-            await model.refreshAllStatuses()
-        }
-        .task(id: servers.count) {
-            guard !servers.isEmpty else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(30))
-                await model.refreshAllStatuses()
-            }
-        }
-        #if os(iOS)
-        .refreshable { await model.refreshAllStatuses() }
-        #endif
-    }
-}
-
-// MARK: - 页面
-
-private extension SelfHostedServerView {
-
-    /// 页顶唯一的添加入口。
-    ///
-    /// 与远程托管页同一个位置、同一种样式（`plus.circle` + `.bordered`）：
-    /// 两个面切换时按钮不会"跳"到别处。
-    var addMenu: some View {
-        HStack {
-            Spacer(minLength: 0)
-            Button {
-                addServer()
-            } label: {
-                Label(String(localized: "Add Server"), systemImage: "plus.circle")
-                    .font(.callout)
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("selfHosted.addServer")
-        }
-    }
-
-    /// 有服务器：页顶入口 + 卡片列表（每张卡整卡可点，进详情页）。
-    var listPage: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.lg) {
-                addMenu
-                RemoteProviderSection(
-                    name: String(localized: "Self-hosted"),
-                    systemImage: "server.rack",
-                    count: servers.count,
-                    identifier: "selfHosted.section"
-                ) {
-                    ForEach(servers) { profile in
-                        NavigationLink {
-                            SelfHostedServerDetailView(profileID: profile.id, model: model)
-                        } label: {
-                            SelfHostedServerCard(
-                                profile: profile,
-                                status: model.status(for: profile.id),
-                                statusError: model.statusErrorText(for: profile.id),
-                                playersText: model.playersText(for: profile.id),
-                                lastUpdated: model.lastUpdated(for: profile.id),
-                                isProbing: model.isProbingAll
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("selfHosted.serverCard")
-                    }
-                }
-            }
-            .padding(OrzMCTheme.Spacing.lg)
-            // iOS 26 的浮动 TabBar 会盖住滚动内容底部（SE 小屏实测过控制台输入行被压住）。
-            .padding(.bottom, 76)
-            .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    /// 一台都没加：页顶入口浮在顶端 + 居中的说明页（与远程托管空态同一套 `EmptyContentView`）。
-    var emptyPage: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: OrzMCTheme.Spacing.xl)
-            EmptyContentView(
-                ContentState(
-                    title: String(localized: "No servers yet"),
-                    message: String(
-                        localized: "Add a Minecraft server you run yourself (address + port). The app checks it with Server List Ping; turn on RCON to run console commands."
-                    ),
-                    systemImage: "server.rack"
+        RemoteProviderSection(
+            name: String(localized: "Self-hosted"),
+            systemImage: "server.rack",
+            count: servers.count,
+            identifier: "selfHosted.section",
+            isExpanded: isExpanded,
+            onToggle: onToggle
+        ) {
+            ForEach(servers) { profile in
+                SelfHostedServerCard(
+                    profile: profile,
+                    status: model.status(for: profile.id),
+                    statusError: model.statusErrorText(for: profile.id),
+                    playersText: model.playersText(for: profile.id),
+                    lastUpdated: model.lastUpdated(for: profile.id),
+                    isProbing: model.isProbingAll,
+                    isRefreshing: model.isRefreshing(profile.id),
+                    onOpen: { onOpen(profile) },
+                    onRefresh: { Task { await model.refreshStatus(for: profile.id) } },
+                    onEdit: { onEdit(profile) },
+                    onRemove: { onDelete(profile) }
                 )
-            )
-            .frame(maxWidth: .infinity)
-            Spacer(minLength: OrzMCTheme.Spacing.xl)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // 入口用 `overlay` 浮在页顶：它**不占布局高度**，说明块才是相对整页居中
-        // （与 `ExarotonContent.emptyPage` 同一个坑，2026-11-06 修过）。
-        .overlay(alignment: .top) {
-            addMenu
-                .padding(.horizontal, OrzMCTheme.Spacing.lg)
-                .padding(.top, OrzMCTheme.Spacing.lg)
-        }
-        .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
-    }
-
-    func addServer() {
-        editing = SelfHostedServerProfile()
     }
 }
 
@@ -168,14 +72,23 @@ struct SelfHostedServerCard: View {
     let lastUpdated: Date?
     /// 列表正在批量探测（还没拿到第一份结果时显示"检查中…"）。
     var isProbing = false
+    /// 这一台正在单台刷新。
+    var isRefreshing = false
+    /// 点卡片本体（名称 / 明细那块按钮）时进详情页。
+    var onOpen: (() -> Void)? = nil
+    var onRefresh: (() -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
+    var onRemove: (() -> Void)? = nil
+
+    private var isChecking: Bool { (isProbing || isRefreshing) && status == nil }
 
     private var statusTitle: String {
-        if isProbing, status == nil { return String(localized: "Checking…") }
+        if isChecking { return String(localized: "Checking…") }
         return status != nil ? String(localized: "Online") : String(localized: "Offline")
     }
 
     private var statusStyle: OrzMCStatusStyle {
-        if isProbing, status == nil { return .busy }
+        if isChecking { return .busy }
         return status != nil ? .running : .idle
     }
 
@@ -197,27 +110,66 @@ struct SelfHostedServerCard: View {
             address: profile.address,
             tags: tags,
             message: status?.motd,
-            showsDisclosure: true
-        ) {
-            if let statusError {
-                Text(verbatim: statusError)
-                    .font(.caption)
-                    .foregroundStyle(OrzMCTheme.Palette.danger)
-                    .lineLimit(2)
+            showsDisclosure: true,
+            onTap: onOpen,
+            tapIdentifier: "selfHosted.serverCard",
+            actions: { actions },
+            footer: { footer }
+        )
+    }
+
+    /// 与 `RemoteAccountMenu` / MCSM 实例动作同一套：刷新 ｜ 配置 ｜ 删除（危险动作单独成组）。
+    @ViewBuilder
+    private var actions: some View {
+        ServerActionGroup {
+            OrzMCRefreshButton(
+                help: "Check the server status now",
+                isRefreshing: isRefreshing,
+                isEnabled: profile.isConfigured,
+                identifier: "selfHosted.action.refresh"
+            ) {
+                onRefresh?()
             }
-            // 这一行始终存在（没有更新时间就占位），否则首次加载完成后卡片会突然长高一行。
-            Text(lastUpdated.map {
-                String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
-            } ?? " ")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .frame(height: 14, alignment: .leading)
+            ServerActionDivider()
+            ServerIconButton(
+                title: "Settings",
+                systemImage: "slider.horizontal.3",
+                help: "Server address, port and RCON",
+                identifier: "selfHosted.action.edit"
+            ) {
+                onEdit?()
+            }
+            ServerActionDivider()
+            ServerIconButton(
+                title: "Delete",
+                systemImage: "trash",
+                help: "Removes the address, the saved RCON password and the console history (asks for confirmation)",
+                identifier: "selfHosted.action.remove"
+            ) {
+                onRemove?()
+            }
         }
+    }
+
+    @ViewBuilder
+    private var footer: some View {
+        if let statusError {
+            Text(verbatim: statusError)
+                .font(.caption)
+                .foregroundStyle(OrzMCTheme.Palette.danger)
+                .lineLimit(2)
+        }
+        // 这一行始终存在（没有更新时间就占位），否则首次加载完成后卡片会突然长高一行。
+        Text(lastUpdated.map {
+            String(localized: "Updated \($0.formatted(date: .omitted, time: .standard))")
+        } ?? " ")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(height: 14, alignment: .leading)
     }
 }
 
 #Preview {
-    NavigationStack {
-        SelfHostedServerView()
-    }
+    ServersContentView()
+        .frame(width: 900, height: 620)
 }

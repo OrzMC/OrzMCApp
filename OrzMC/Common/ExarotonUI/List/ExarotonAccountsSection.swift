@@ -11,6 +11,9 @@ import SwiftUI
 struct ExarotonAccountsSection: View {
     /// 打开某个账号的编辑表单（由页面层弹 sheet）。
     let onEditAccount: (ExarotonAccount) -> Void
+    /// 这一组是否展开（折叠时只保留标题行）。
+    var isExpanded = true
+    var onToggle: (() -> Void)? = nil
     @Environment(ExarotonAccountsModel.self) private var accounts
 
     private var instanceCount: Int {
@@ -22,7 +25,9 @@ struct ExarotonAccountsSection: View {
             name: "Exaroton",
             systemImage: "cloud",
             count: instanceCount,
-            identifier: "exaroton.section"
+            identifier: "exaroton.section",
+            isExpanded: isExpanded,
+            onToggle: onToggle
         ) {
             ForEach(accounts.accounts) { account in
                 if let model = accounts.models[account.id] {
@@ -38,11 +43,13 @@ struct ExarotonAccountsSection: View {
     // MARK: - 组件
 
     private func accountCard(_ account: ExarotonAccount, model: ExarotonServerModel) -> some View {
-        RemoteAccountCard(name: account.displayName, isLoading: model.isLoadingList) {
+        RemoteAccountCard(name: account.displayName) {
             RemoteAccountMenu(
                 onRefresh: { Task { await model.reloadList() } },
+                isRefreshing: model.isLoadingList,
                 onEdit: { onEditAccount(account) },
-                onRemove: { accounts.remove(account.id) }
+                onRemove: { accounts.remove(account.id) },
+                identifier: "exaroton.account"
             )
         } content: {
             ExarotonServerList()

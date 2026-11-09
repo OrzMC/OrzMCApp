@@ -10,7 +10,8 @@ import SwiftUI
 
 /// 「我的服务器」**详情页**：状态卡 + 玩家名单 + 控制台（RCON）。
 ///
-/// 从列表页（`SelfHostedServerView`）点卡片进来。这些内容以前平铺在列表下面，
+/// 从列表页（`ServersContentView` 里的 `SelfHostedServersSection`）点卡片进来。
+/// 这些内容以前平铺在列表下面，
 /// 导致"列表 + 详情"混在一屏、换服务器时整页重排；现在按远程托管页的规则拆开：
 /// **列表只回答"有哪些服务器、它们现在怎么样"，详情才回答"对这台做什么"**。
 struct SelfHostedServerDetailView: View {
@@ -34,6 +35,17 @@ struct SelfHostedServerDetailView: View {
     /// 档案可能被删掉（例如在设置里删除后返回）：这时给一个明确的空页，而不是崩在强制解包上。
     private var profile: SelfHostedServerProfile? {
         model.profiles.servers.first(where: { $0.id == profileID })
+    }
+
+    /// 状态卡里的元信息（版本 / 玩家 / 延迟），与列表卡片的 `RemoteMetadataLine` 同一套。
+    private var statusTags: [String] {
+        var items: [String] = []
+        if let version = model.currentStatus?.versionName { items.append(version) }
+        if let players = model.playersText { items.append(players) }
+        if let latency = model.currentStatus?.latencyMilliseconds, latency > 0 {
+            items.append(String(localized: "\(latency) ms"))
+        }
+        return items
     }
 
     private var filteredConsoleLines: [SelfHostedServersModel.ConsoleLine] {
@@ -153,9 +165,6 @@ struct SelfHostedServerDetailView: View {
                 }
             }
             .padding(OrzMCTheme.Spacing.lg)
-            // iOS 26 的浮动 TabBar 会盖住滚动内容底部（SE 小屏实测：控制台输入行被压住）。
-            // `contentMargins` 在这个嵌套结构里不生效，直接在内容尾部留白。
-            .padding(.bottom, 76)
             .containerRelativeFrame(.horizontal) { width, _ in min(width, 780) }
             .frame(maxWidth: .infinity)
         }
@@ -188,26 +197,16 @@ struct SelfHostedServerDetailView: View {
 
             Text(profile.address)
                 .font(OrzMCTheme.Typography.code)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(OrzMCTheme.Palette.metadata)
                 .textSelection(.enabled)
 
-            HStack(spacing: OrzMCTheme.Spacing.xs) {
-                if let version = model.currentStatus?.versionName {
-                    OrzMCTag(version)
-                }
-                if let players = model.playersText {
-                    OrzMCTag(players)
-                }
-                if let latency = model.currentStatus?.latencyMilliseconds, latency > 0 {
-                    OrzMCTag(String(localized: "\(latency) ms"))
-                }
-                Spacer(minLength: 0)
-            }
+            // 与列表卡片同一套元信息（纯文本 + `·`），不再用描边胶囊（看着像按钮）。
+            RemoteMetadataLine(items: statusTags)
 
             if let motd = model.currentStatus?.motd, !motd.isEmpty {
                 Text(verbatim: motd)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(OrzMCTheme.Palette.metadata)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -272,19 +271,14 @@ struct SelfHostedServerDetailView: View {
                 Label("Players", systemImage: "person.2")
                     .font(.subheadline.weight(.semibold))
                 Spacer(minLength: 0)
-                ProgressView()
-                    .controlSize(.small)
-                    .opacity(model.isFetchingLists ? 1 : 0)
-                    .frame(width: 16, height: 16)
-                Button {
+                OrzMCRefreshButton(
+                    help: "Reload online / whitelist / ban lists",
+                    isRefreshing: model.isFetchingLists,
+                    isEnabled: canRunCommands,
+                    identifier: "selfHosted.players.refresh"
+                ) {
                     Task { await model.refreshPlayerLists() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                        .labelStyle(.iconOnly)
                 }
-                .buttonStyle(.borderless)
-                .disabled(model.isFetchingLists || !canRunCommands)
-                .help("Reload online / whitelist / ban lists")
             }
 
             if profile.rconEnabled {

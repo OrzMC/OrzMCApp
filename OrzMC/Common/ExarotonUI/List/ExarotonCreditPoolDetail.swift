@@ -95,24 +95,26 @@ struct ExarotonCreditPoolDetail: View {
             }
         }
         .refreshable {
-            await fetchData()
+            await fetchDataWithLoading()
         }
         .toolbar {
 #if os(macOS)
             Button("Refresh", systemImage: "arrow.clockwise") {
-                Task {
-                    await fetchDataWithLoading()
-                }
+                Task { await fetchDataWithLoading() }
             }
+            .disabled(isLoading)
             .keyboardShortcut(.init(.init("r")), modifiers: .command)
+            .accessibilityIdentifier("creditPool.refresh")
 #endif
         }
     }
 
     func fetchDataWithLoading() async {
+        // 与列表卡片同一套：刷新中不再接收第二次点击（以前只有整页遮罩，按钮仍可点）。
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
         await fetchData()
-        isLoading = false
     }
 
     func fetchData() async {

@@ -23,15 +23,20 @@ import SwiftUI
 
 // MARK: - 供应商分组
 
-/// 一家供应商的一组（标题行 + 账号卡）。
+/// 一个来源的一组（标题行 + 账号/服务器卡片）。
 ///
-/// 组内不再自带「添加账号」按钮：页顶只有一个入口（`RemoteAddProviderMenu`），
-/// 先选供应商再填对应表单；一个账号都没有的供应商**整组不渲染**（由页面级空态负责引导）。
+/// 组内不再自带「添加账号」按钮：页顶只有一个入口（`ServersContentView.AddServerMenu`），
+/// 先选服务器类型再填对应表单；一条记录都没有的来源**整组不渲染**（由页面级空态负责引导）。
+///
+/// 折叠由页面层决定（与主窗口实例栏同一套：`allExpanded` + 单栏覆盖）：
+/// 折叠时**只保留标题行**，内容整段不渲染（模型轮询也就自然停在展开时）。
 struct RemoteProviderSection<Content: View>: View {
     let name: String
     let systemImage: String
     let count: Int
     let identifier: String
+    var isExpanded = true
+    var onToggle: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -40,48 +45,14 @@ struct RemoteProviderSection<Content: View>: View {
                 name: name,
                 systemImage: systemImage,
                 count: count,
-                identifier: identifier
+                identifier: identifier,
+                isExpanded: isExpanded,
+                onToggle: onToggle
             )
-            content()
-        }
-    }
-}
-
-/// 页顶**唯一**的添加入口：先选供应商，再填该供应商的表单。
-///
-/// 以前每个供应商分组各有一个「添加账号」，空页上两个按钮长得一样、用户要先分清自己加的是哪家；
-/// 现在统一成一个菜单：选哪家就弹哪家的表单（exaroton：账号 + TOKEN；MCSManager：地址 + API Key）。
-struct RemoteAddProviderMenu: View {
-    let onSelect: (ProviderKind) -> Void
-
-    var body: some View {
-        Menu {
-            Button {
-                onSelect(.exaroton)
-            } label: {
-                Label {
-                    Text(verbatim: "Exaroton")
-                } icon: {
-                    Image(systemName: "cloud")
-                }
+            if isExpanded {
+                content()
             }
-            .accessibilityIdentifier("remote.addProvider.exaroton")
-
-            Button {
-                onSelect(.mcsmanager)
-            } label: {
-                Label {
-                    Text(verbatim: "MCSManager")
-                } icon: {
-                    Image(systemName: "square.stack.3d.up")
-                }
-            }
-            .accessibilityIdentifier("remote.addProvider.mcsmanager")
-        } label: {
-            Label(String(localized: "Add Account"), systemImage: "plus.circle").font(.callout)
         }
-        .buttonStyle(.bordered)
-        .accessibilityIdentifier("remote.addProvider")
     }
 }
 
@@ -94,13 +65,15 @@ struct RemoteAddProviderMenu: View {
 struct RemoteAccountCard<Actions: View, Content: View>: View {
     let name: String
     var subtitle: String? = nil
-    let isLoading: Bool
     @ViewBuilder var actions: () -> Actions
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: OrzMCTheme.Spacing.sm) {
-            RemoteAccountHeader(name: name, subtitle: subtitle, isLoading: isLoading, actions: actions)
+            RemoteAccountHeader(name: name, subtitle: subtitle, actions: actions)
+            // 标题与内容之间一条细线：账号/面板现在只是**标签**，行才是内容
+            // （2026-11-08 视觉评审：没有这条线时标题像"浮在卡片外"）。
+            RemoteRowDivider()
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,6 +91,10 @@ struct RemoteAccountCard<Actions: View, Content: View>: View {
 struct RemoteAccountMenu: View {
     /// 拉一次最新数据（两家都支持；`nil` = 这家没有手动刷新）。
     var onRefresh: (() -> Void)? = nil
+    /// 正在刷新：把刷新图标**换成同尺寸的转圈**（与自建卡片同一套交互，不再另加一个加载指示）。
+    var isRefreshing = false
+    /// 刷新的悬停提示：账号卡与面板卡说明的对象不同（账号 ≠ 面板）。
+    var refreshHelp: LocalizedStringKey = "Reload this account's servers"
     let onEdit: () -> Void
     let onRemove: () -> Void
     /// 自动化锚点前缀（例如 MCSM 的 `mcsm.panel`）：实际锚点是 `<前缀>.refresh/.edit/.remove`。
@@ -126,29 +103,34 @@ struct RemoteAccountMenu: View {
     var body: some View {
         ServerActionGroup {
             if let onRefresh {
-                icon("Refresh", "arrow.clockwise", key: .refresh, help: "Reload this account's servers") {
-                    onRefresh()
-                }
+                OrzMCRefreshButton(
+                    help: refreshHelp,
+                    isRefreshing: isRefreshing,
+                    identifier: identifier.map { "\($0)Action.refresh" },
+                    action: onRefresh
+                )
                 ServerActionDivider()
             }
             icon("Edit Account", "slider.horizontal.3", key: .edit, help: "Edit this account") {
                 onEdit()
             }
             ServerActionDivider()
-            icon("Remove Account", "trash", key: .remove, help: "Remove this account", tint: OrzMCTheme.Palette.danger) {
+            // 危险色**不常驻**：图标红着会一直抢注意力，也和主窗口的中性删除图标不一致。
+            // 真正的红色留给确认框里的 destructive 按钮。
+            icon("Remove Account", "trash", key: .remove, help: "Remove this account") {
                 onRemove()
             }
         }
     }
 
-    private enum Part: String { case refresh, edit, remove }
+    private enum Part: String { case edit, remove }
 
     private func icon(
         _ title: LocalizedStringKey,
         _ systemImage: String,
         key: Part,
         help: LocalizedStringKey,
-        tint: Color = OrzMCTheme.Palette.idle,
+        tint: Color = OrzMCTheme.Palette.control,
         action: @escaping () -> Void
     ) -> some View {
         ServerIconButton(
@@ -209,6 +191,34 @@ struct RemoteInlineError: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// 面板卡内部行与行之间的细线。
+///
+/// 平铺行（`.plain`）自己没有面板，靠这条线表达"这是同一张卡里的两行"（系统分组列表的做法）。
+struct RemoteRowDivider: View {
+    var body: some View {
+        Divider().opacity(0.5)
+    }
+}
+
+/// 一行**元信息**（版本 / 玩家 / 延迟 / 成员数…）：纯文本 + `·` 分隔。
+///
+/// 以前这里是描边胶囊（`OrzMCTag`）：和状态徽章同形，一张卡里 3 个胶囊 + 1 个徽章，
+/// 看起来像 4 个可点的过滤器。元信息是**内容**不是控件（HIG Layout：控件与内容要有区别）；
+/// 纯文本还能在 iPhone 窄屏 / 大字号下自然换行。
+struct RemoteMetadataLine: View {
+    let items: [String]
+
+    var body: some View {
+        if !items.isEmpty {
+            Text(verbatim: items.joined(separator: " · "))
+                .font(.caption)
+                .foregroundStyle(OrzMCTheme.Palette.metadata)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

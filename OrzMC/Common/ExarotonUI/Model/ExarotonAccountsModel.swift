@@ -217,6 +217,18 @@ final class ExarotonAccountsModel {
     ///
     /// 去重口径：**同一个 Token 视为同一个账号**（本地可能用不同 id 建过同一账号，
     /// 按 id 合并会变成两条）。命中时用云端那条替换本地的，避免出现两份"海外服"。
+    /// 页面级"全部刷新"：每个账号**并发**拉一次列表（页面下拉刷新 / ⌘R 用）。
+    ///
+    /// 每个模型自带 `isLoadingList` 防重入，所以不需要在这里再排队；并发是安全的，
+    /// 而且多账号时不会串行等待。
+    func reloadAll() async {
+        await withTaskGroup(of: Void.self) { group in
+            for model in models.values {
+                group.addTask { await model.reloadList() }
+            }
+        }
+    }
+
     func syncWithCloud() {
         guard ServerSecretsStore.isAvailable(.iCloud) else { return }
         let entries = CloudRecords.pull()[.exaroton] ?? []

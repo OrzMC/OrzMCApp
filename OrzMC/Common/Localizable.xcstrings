@@ -316,6 +316,17 @@
         }
       }
     },
+    "Add a server you run yourself, or connect an Exaroton account / MCSManager panel — everything shows up in this list.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一台自己运行的服务器，或连接 Exaroton 账号 / MCSManager 面板 —— 都会出现在这个列表里。"
+          }
+        }
+      }
+    },
     "Add an Exaroton account or an MCSManager panel (address + API Key) to see its servers here.": {
       "comment": "Remote hosting page empty state",
       "localizations": {
@@ -860,6 +871,17 @@
         }
       }
     },
+    "Collapse or expand every card": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有卡片"
+          }
+        }
+      }
+    },
     "Collapse or expand every instance card": {
       "localizations": {
         "zh-Hans": {
@@ -870,12 +892,34 @@
         }
       }
     },
+    "Collapse or expand every server group": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠或展开所有服务器分组"
+          }
+        }
+      }
+    },
     "Collapse this instance": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "收起该实例"
+          }
+        }
+      }
+    },
+    "Collapse this section": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起这一组"
           }
         }
       }
@@ -1736,6 +1780,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "展开该实例"
+          }
+        }
+      }
+    },
+    "Expand this section": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开这一组"
           }
         }
       }
@@ -3467,6 +3522,17 @@
         }
       }
     },
+    "Refresh every server": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新全部服务器"
+          }
+        }
+      }
+    },
     "Refresh version list": {
       "localizations": {
         "zh-Hans": {
@@ -3543,6 +3609,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新加载远程服务器"
+          }
+        }
+      }
+    },
+    "Reload the log history": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载历史日志"
+          }
+        }
+      }
+    },
+    "Reload this account's servers": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载该账号的服务器"
+          }
+        }
+      }
+    },
+    "Reload this panel's instances": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新加载这个面板的实例"
           }
         }
       }
@@ -4147,6 +4246,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "自建"
+          }
+        }
+      }
+    },
+    "Self-hosted server": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自建服务器"
           }
         }
       }

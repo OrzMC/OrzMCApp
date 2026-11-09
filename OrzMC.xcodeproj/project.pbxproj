@@ -90,6 +90,7 @@
 		CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001003 /* SelfHostedServerView.swift */; };
 		CE2026110700000000006A02 /* SelfHostedServerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110700000000006A01 /* SelfHostedServerDetailView.swift */; };
 		CE2026110700000000006B02 /* ServerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110700000000006B01 /* ServerCard.swift */; };
+		CD2026120100000000000001 /* ServersContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026120100000000000002 /* ServersContentView.swift */; };
 		CE2026110800000000006C02 /* ServerSecretsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000006C01 /* ServerSecretsStore.swift */; };
 		CE2026110800000000006E02 /* StorageModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000006E01 /* StorageModePicker.swift */; };
 		CE2026110800000000006F02 /* StorageDiagnose.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000006F01 /* StorageDiagnose.swift */; };
@@ -97,14 +98,12 @@
 		CE2026110800000000007102 /* CloudRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000007101 /* CloudRecords.swift */; };
 		CE2026110800000000007202 /* CloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026110800000000007201 /* CloudSync.swift */; };
 		CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */; };
-		CE2026102300000000007001 /* ServersWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2026102300000000006001 /* ServersWindowContent.swift */; };
 		CE202610230000000000E200 /* ServerStatusNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000E100 /* ServerStatusNotifications.swift */; };
 		CE202610230000000000D100 /* SelfHostedServersModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000C100 /* SelfHostedServersModelTests.swift */; };
 		CE202610230000000000F200 /* ServerStatusNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000F100 /* ServerStatusNotificationTests.swift */; };
 		CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A100 /* SelfHostedErrorText.swift */; };
 		CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A001 /* SelfHostedCredentials.swift */; };
 		CE202610230000000000B000 /* SelfHostedServersModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE202610230000000000A000 /* SelfHostedServersModel.swift */; };
-		2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */; };
 		2B62C97D2BF7216000387498 /* ExarotonServerDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */; };
 		2B62C9852BF73F0200387498 /* ExarotonServerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C9842BF73F0200387498 /* ExarotonServerList.swift */; };
 		2B62C9922BF76C6600387498 /* ExarotonServerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B62C9912BF76C6600387498 /* ExarotonServerModel.swift */; };
@@ -133,7 +132,7 @@
 		CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000004 /* MCSManagerAPIClient.swift */; };
 		CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000012 /* RemoteServerState+Presentation.swift */; };
 		CD2026102700000000000021 /* MCSManagerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000022 /* MCSManagerSection.swift */; };
-		CD2026102700000000000045 /* MCSManagerConsoleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */; };
+		CD2026102700000000000045 /* MCSManagerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000046 /* MCSManagerConsoleView.swift */; };
 		CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000042 /* MCSManagerPanelEditor.swift */; };
 		CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000032 /* MCSManagerPanelsModel.swift */; };
 		CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2026102700000000000062 /* MCSManagerDiagnose.swift */; };
@@ -224,7 +223,7 @@
 		CD2026102700000000000004 /* MCSManagerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerAPIClient.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000012 /* RemoteServerState+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteServerState+Presentation.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000022 /* MCSManagerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerSection.swift"; sourceTree = "<group>"; };
-		CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerConsoleSheet.swift"; sourceTree = "<group>"; };
+		CD2026102700000000000046 /* MCSManagerConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerConsoleView.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000042 /* MCSManagerPanelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelEditor.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000032 /* MCSManagerPanelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerPanelsModel.swift"; sourceTree = "<group>"; };
 		CD2026102700000000000062 /* MCSManagerDiagnose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCSManagerDiagnose.swift"; sourceTree = "<group>"; };
@@ -241,6 +240,7 @@
 		CE2026102300000000001003 /* SelfHostedServerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerView.swift; sourceTree = "<group>"; };
 		CE2026110700000000006A01 /* SelfHostedServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerDetailView.swift; sourceTree = "<group>"; };
 		CE2026110700000000006B01 /* ServerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCard.swift; sourceTree = "<group>"; };
+		CD2026120100000000000002 /* ServersContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrzMC/Common/ServersUI/ServersContentView.swift"; sourceTree = SOURCE_ROOT; };
 		CE2026110800000000006C01 /* ServerSecretsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSecretsStore.swift; sourceTree = "<group>"; };
 		CE2026110800000000006E01 /* StorageModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModePicker.swift; sourceTree = "<group>"; };
 		CE2026110800000000006F01 /* StorageDiagnose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageDiagnose.swift; sourceTree = "<group>"; };
@@ -248,14 +248,12 @@
 		CE2026110800000000007101 /* CloudRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudRecords.swift; sourceTree = "<group>"; };
 		CE2026110800000000007201 /* CloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSync.swift; sourceTree = "<group>"; };
 		CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedServerSettingsView.swift; sourceTree = "<group>"; };
-		CE2026102300000000006001 /* ServersWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServersWindowContent.swift"; sourceTree = "<group>"; };
 		CE202610230000000000E100 /* ServerStatusNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerStatusNotifications.swift"; sourceTree = "<group>"; };
 		CE202610230000000000C100 /* SelfHostedServersModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedServersModelTests.swift"; sourceTree = "<group>"; };
 		CE202610230000000000F100 /* ServerStatusNotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerStatusNotificationTests.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A100 /* SelfHostedErrorText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedErrorText.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A001 /* SelfHostedCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedCredentials.swift"; sourceTree = "<group>"; };
 		CE202610230000000000A000 /* SelfHostedServersModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SelfHostedServersModel.swift"; sourceTree = "<group>"; };
-		2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonContent.swift; sourceTree = "<group>"; };
 		2B62C97C2BF7216000387498 /* ExarotonServerDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerDetail.swift; sourceTree = "<group>"; };
 		2B62C9842BF73F0200387498 /* ExarotonServerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerList.swift; sourceTree = "<group>"; };
 		2B62C9912BF76C6600387498 /* ExarotonServerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExarotonServerModel.swift; sourceTree = "<group>"; };
@@ -353,6 +351,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CD2026120100000000000003 /* ServersUI */ = {
+			isa = PBXGroup;
+			children = (
+				CD2026120100000000000002 /* ServersContentView.swift */,
+			);
+			path = ServersUI;
+			sourceTree = "<group>";
+		};
 		CD2026110500000000000001 /* RemoteHostingUI */ = {
 			isa = PBXGroup;
 			children = (
@@ -376,6 +382,7 @@
 			isa = PBXGroup;
 			children = (
 				2B62C97E2BF73E0D00387498 /* ExarotonUI */,
+				CD2026120100000000000003 /* ServersUI */,
 				CD2026110500000000000001 /* RemoteHostingUI */,
 				CE2026110800000000006D01 /* Storage */,
 				CE2026102300000000003000 /* SelfHosted */,
@@ -576,7 +583,6 @@
 				CE2026102300000000001003 /* SelfHostedServerView.swift */,
 				CE2026110700000000006A01 /* SelfHostedServerDetailView.swift */,
 				CE2026102300000000001004 /* SelfHostedServerSettingsView.swift */,
-				CE2026102300000000006001 /* ServersWindowContent.swift */,
 				CE202610230000000000E100 /* ServerStatusNotifications.swift */,
 				CE202610230000000000A100 /* SelfHostedErrorText.swift */,
 				CE202610230000000000A001 /* SelfHostedCredentials.swift */,
@@ -610,7 +616,7 @@
 			isa = PBXGroup;
 			children = (
 				CD2026102700000000000022 /* MCSManagerSection.swift */,
-				CD2026102700000000000046 /* MCSManagerConsoleSheet.swift */,
+				CD2026102700000000000046 /* MCSManagerConsoleView.swift */,
 				CD2026102700000000000042 /* MCSManagerPanelEditor.swift */,
 			);
 			path = MCSManagerUI;
@@ -634,7 +640,6 @@
 			isa = PBXGroup;
 			children = (
 				2B5ACA622BFB2A8300397BFC /* Config.swift */,
-				2B5E409D2BFD9683007216E7 /* ExarotonContent.swift */,
 				2B5ACA652BFB2ADB00397BFC /* List */,
 				2B5ACA642BFB2AB200397BFC /* Model */,
 				2B5ACA662BFB2B2500397BFC /* Extension */,
@@ -997,7 +1002,6 @@
 				CE2026102300000000002003 /* SelfHostedServerView.swift in Sources */,
 				CE2026110700000000006A02 /* SelfHostedServerDetailView.swift in Sources */,
 				CE2026102300000000002004 /* SelfHostedServerSettingsView.swift in Sources */,
-				CE2026102300000000007001 /* ServersWindowContent.swift in Sources */,
 				CE202610230000000000E200 /* ServerStatusNotifications.swift in Sources */,
 				CE202610230000000000B100 /* SelfHostedErrorText.swift in Sources */,
 				CE202610230000000000B001 /* SelfHostedCredentials.swift in Sources */,
@@ -1017,7 +1021,6 @@
 				2B54E08E2BDE21A4001B6877 /* MacOSScene.swift in Sources */,
 				2B54E08A2BDE0945001B6877 /* GameInfoView.swift in Sources */,
 				2B5ACA682BFB312300397BFC /* ExarotonCreditView.swift in Sources */,
-				2B5E409E2BFD9683007216E7 /* ExarotonContent.swift in Sources */,
 				2B5ACA612BFB2A1900397BFC /* ExarotonServerModel+WebSocket.swift in Sources */,
 				CD20261025A0000000000001 /* RemoteHostingErrorText.swift in Sources */,
 				CD20261024B0000000000004 /* ExarotonServerModel+StatusCenter.swift in Sources */,
@@ -1029,7 +1032,7 @@
 				CD2026102700000000000003 /* MCSManagerAPIClient.swift in Sources */,
 				CD2026102700000000000011 /* RemoteServerState+Presentation.swift in Sources */,
 				CD2026102700000000000021 /* MCSManagerSection.swift in Sources */,
-				CD2026102700000000000045 /* MCSManagerConsoleSheet.swift in Sources */,
+				CD2026102700000000000045 /* MCSManagerConsoleView.swift in Sources */,
 				CD2026102700000000000041 /* MCSManagerPanelEditor.swift in Sources */,
 				CD2026102700000000000031 /* MCSManagerPanelsModel.swift in Sources */,
 				CD2026102700000000000061 /* MCSManagerDiagnose.swift in Sources */,
@@ -1053,6 +1056,7 @@
 				CD20261105B0000000000001 /* RemoteHostingSkeleton.swift in Sources */,
 				CD20261105B0000000000002 /* RemoteInstanceRow.swift in Sources */,
 				CE2026110700000000006B02 /* ServerCard.swift in Sources */,
+				CD2026120100000000000001 /* ServersContentView.swift in Sources */,
 				CE2026110800000000006C02 /* ServerSecretsStore.swift in Sources */,
 				CE2026110800000000006E02 /* StorageModePicker.swift in Sources */,
 				CE2026110800000000006F02 /* StorageDiagnose.swift in Sources */,

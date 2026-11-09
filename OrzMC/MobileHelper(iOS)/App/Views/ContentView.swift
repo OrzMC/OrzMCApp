@@ -7,48 +7,14 @@
 
 import SwiftUI
 
-/// iOS 的两个入口：
-/// - **我的服务器**：自己用 `orzmc`（或 docker）起的服务端，SLP 看状态、RCON 发命令；
-/// - **远程托管**：exaroton 账号下的服务器（与 macOS 的远程窗口同一套视图）。
+/// iOS 的唯一入口：**服务器管理页**（与 macOS 的「服务器」窗口同一份 `ServersContentView`）。
 ///
-/// 两者是并列关系而不是"主/次"：不注册任何第三方账号也能用第一个。
+/// 以前是两个并列的 Tab（我的服务器 / 远程托管），每种来源一个页面。但用户的心智模型只有
+/// "我的服务器现在怎么样"，"服务器在哪"（自己的机器 / Exaroton / MCSManager 面板）应该是
+/// **同一张列表里的分组**——合并后不用来回切，页顶只有一个「添加服务器」菜单。
 struct ContentView: View {
-    /// 记住上次看的 Tab（重开 App / 重装 debug 包后不用每次点回远程托管）。
-    @AppStorage("orzmc.ios.tab") private var storedTab = Tab.selfHosted.rawValue
-    @State private var tab: Tab = Self.initialTab()
-
-    enum Tab: String {
-        case selfHosted
-        case managed
-    }
-
     var body: some View {
-        TabView(selection: $tab) {
-            NavigationStack {
-                SelfHostedServerView()
-            }
-            .tabItem { Label("My Server", systemImage: "server.rack") }
-            .tag(Tab.selfHosted)
-
-            ExarotonContent()
-                .tabItem { Label("Remote Hosting", systemImage: "cloud") }
-                .tag(Tab.managed)
-        }
-        .onChange(of: tab) { storedTab = tab.rawValue }
-    }
-
-    /// 初始 Tab：优先用上次记忆；调试构建可用 `ORZMC_DEMO_TAB=managed|selfHosted` 强制定位
-    /// （真机开屏验收/截图时用，免得每次都要手动点）。
-    private static func initialTab() -> Tab {
-        #if DEBUG
-        if let raw = ProcessInfo.processInfo.environment["ORZMC_DEMO_TAB"], let forced = Tab(rawValue: raw) {
-            return forced
-        }
-        #endif
-        if let raw = UserDefaults.standard.string(forKey: "orzmc.ios.tab"), let stored = Tab(rawValue: raw) {
-            return stored
-        }
-        return .selfHosted
+        ServersContentView()
     }
 }
 

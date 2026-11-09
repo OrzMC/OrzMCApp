@@ -61,7 +61,7 @@ struct ExarotonServerDetail: View {
             }
 
             // 生命周期动作紧跟概览：这是用户进来最想做的事，别让它排在内存/指标后面
-            // （小屏上会滚不到、还容易被浮动 TabBar 压住）。
+            // （小屏上会滚不到）。
             if let serverStatus = model.effectiveStatus(for: server) {
                 ExarotonServerActionSection(
                     server: server,
@@ -234,14 +234,6 @@ struct ExarotonServerDetail: View {
         } message: {
             Text("The server restarts; players are disconnected during the restart.")
         }
-        #if os(iOS)
-        // iOS 26 的浮动 TabBar 会盖住最后一行（实测把「重启」压住了）。
-        // `contentMargins` 对 Form/List 不生效，用 `safeAreaInset` 在底部真正留出空白。
-        // 56 不够：浮动 TabBar 实测高 83pt，最后一张卡（内存/控制台）会被切掉一截。
-        .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 84)
-        }
-        #endif
         .navigationTitle(server.name ?? String(localized: "Server Detail"))
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

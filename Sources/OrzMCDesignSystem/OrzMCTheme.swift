@@ -70,6 +70,18 @@ public enum OrzMCTheme {
         public static let danger = Color.red
         /// 未运行 / 未知 / 中性。
         public static let idle = Color.secondary
+        /// 卡片上的图标按钮：接近正文强度（不是 `.secondary` 那种"灰"）。
+        ///
+        /// 为什么不用 `.secondary`：面板底是半透明/玻璃层，`secondary` 的灰在深色下合成后
+        /// 只有约 3.2:1，图标在卡片上"像禁用"；0.72 实测仍有 180/255 的灰，
+        /// 维护者两次反馈"一直灰色、像不可点击"（2026-11-08）。0.85 在深/浅外观下都 ≥10:1，
+        /// 与 disabled（0.35）拉开足够差距，也不会像纯白那样抢标题。
+        public static let control = Color.primary.opacity(0.85)
+        /// 卡片里的"次要但重要"信息（地址、版本/玩家/延迟、MOTD）。
+        ///
+        /// 比 `.secondary` 强一档（11pt 下 `.secondary` 实测 3.2:1，低于 4.5:1）；
+        /// 又比正文弱，保证标题仍然是第一眼看到的东西。
+        public static let metadata = Color.primary.opacity(0.65)
 
         /// 轻量填充（标签、次级按钮背景）。
         public static let subtleFill = Color.secondary.opacity(0.12)
@@ -85,6 +97,11 @@ public enum OrzMCTheme {
         public static let panelBorder = Color.primary.opacity(0.08)
         /// 分段/模式按钮的选中底色（跟随系统强调色，亮暗都成立）。
         public static let selectionFill = Color.accentColor.opacity(0.22)
+        /// 中性选中底：只表达"这一档生效"，不带品牌色。
+        ///
+        /// 用在"全部折叠/全部展开"这类**模式**控件上：强调色已经在状态徽章/主操作上表达含义，
+        /// 同一屏再用强调色表达"选中"，同一个绿色就有两种意思了（HIG Color：别让同色多义）。
+        public static let selectionNeutral = Color.primary.opacity(0.14)
         /// 面板上的可点控件（下拉菜单胶囊、输入框）底色：比 `subtleFill` 略重，
         /// 亮色面板（primary 4.5%）上也能看出"这是一个控件"。
         public static let controlFill = Color.primary.opacity(0.08)

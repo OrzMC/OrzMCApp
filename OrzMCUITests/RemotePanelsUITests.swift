@@ -7,7 +7,10 @@ import XCTest
 ///
 /// 用到的 DEBUG 钩子（发布构建里不存在）：
 /// * `ORZMC_DEMO_SEED_PROFILE="名称|host|port|rconPort|rconEnabled"`
-/// * `ORZMC_DEMO_RCON_PASSWORD`、`ORZMC_DEMO_TAB`、`ORZMC_DEMO_FAKE_SERVER`
+/// * `ORZMC_DEMO_RCON_PASSWORD`、`ORZMC_DEMO_FAKE_SERVER`
+///
+/// 2026-11-08 起自建 / Exaroton / MCSManager **合并在同一个列表**里（页顶只有一个
+/// 「添加服务器」菜单），所以不再需要"先切到哪个 Tab"的钩子。
 final class RemotePanelsUITests: XCTestCase {
 
     override func setUp() {
@@ -47,7 +50,6 @@ final class RemotePanelsUITests: XCTestCase {
             app.launchEnvironment["ORZMC_DEMO_FAKE_SELFHOSTED"] = "1"
         }
         app.launchEnvironment["ORZMC_DEMO_RCON_PASSWORD"] = "testpass"
-        app.launchEnvironment["ORZMC_DEMO_TAB"] = "selfHosted"
         for (key, value) in environment { app.launchEnvironment[key] = value }
         // 测试进程拿到的凭据（runner 用 TEST_RUNNER_ 前缀传进来的）要显式转给 **App 进程** ——
         // 两个进程环境互不相通，不转发的话 App 里没有 Token / RCON 密码，真实用例会直接失败。
@@ -71,6 +73,32 @@ final class RemotePanelsUITests: XCTestCase {
         return app
     }
 
+
+    /// 页顶**唯一**的添加入口（2026-11-08 合并后自建 / exaroton / MCSManager 共用）。
+    @discardableResult
+    private func openAddMenu(_ app: XCUIApplication) -> XCUIElement {
+        let add = app.buttons["servers.addServer"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20), "页顶应有统一的「添加服务器」入口")
+        add.tap()
+        return add
+    }
+
+    /// 走统一入口添加**自建服务器**：菜单 →「自建服务器」→ 表单。
+    private func addSelfHostedServer(_ app: XCUIApplication) {
+        openAddMenu(app)
+        let item = app.buttons["自建服务器"]
+        XCTAssertTrue(item.waitForExistence(timeout: 10), "菜单里应有「自建服务器」")
+        item.tap()
+    }
+
+    /// 走统一入口添加**远程账号 / 面板**：菜单 → 供应商（品牌名不翻译）。
+    private func addRemoteProvider(_ app: XCUIApplication, named name: String) {
+        openAddMenu(app)
+        let item = app.buttons[name]
+        XCTAssertTrue(item.waitForExistence(timeout: 10), "菜单里应有 \(name)")
+        item.tap()
+    }
+
     /// **控制台空态位置**（P1-2）：没有日志时，「等待服务器输出…」必须在面板**左上**，
     /// 而不是贴左下角。
     ///
@@ -79,7 +107,6 @@ final class RemotePanelsUITests: XCTestCase {
     /// 于是占位到按钮之间几乎没有空白。
     func testConsoleEmptyStateSitsTopLeft() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
-                           "ORZMC_DEMO_TAB": "managed",
                            "ORZMC_DEMO_FAKE_LIVE": "1",
                            // 假 live 默认会塞几条日志；空态验收要真的空。
                            "ORZMC_DEMO_EMPTY_CONSOLE": "1"])
@@ -130,7 +157,6 @@ final class RemotePanelsUITests: XCTestCase {
     /// 渲染后无障碍文案必须等于"去掉码的纯文本"。
     func testConsoleRendersANSIColorsWithoutEscapeResidue() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
-                           "ORZMC_DEMO_TAB": "managed",
                            "ORZMC_DEMO_FAKE_LIVE": "1"])
         app.launch()
         allowSystemPrompts()
@@ -161,7 +187,7 @@ final class RemotePanelsUITests: XCTestCase {
     ///
     /// 旧实现用 `LabeledContent`，iPhone 宽度下系统会把值折到下一行（真机反馈"看着很散"）。
     func testMemoryRowIsSingleLine() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
         app.launch()
         allowSystemPrompts()
 
@@ -200,7 +226,7 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到服务器卡片")
         XCTAssertTrue(app.staticTexts["演示服"].exists, "卡片应显示服务器名")
         XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "卡片应显示状态徽标")
-        XCTAssertTrue(app.buttons["selfHosted.addServer"].exists, "页顶应有添加按钮")
+        XCTAssertTrue(app.buttons["servers.addServer"].exists, "页顶应有添加按钮")
 
         // 列表**不该**直接铺开 RCON 内容（这正是这次重构要去掉的东西）
         XCTAssertFalse(app.textFields["selfHosted.consoleInput"].exists, "控制台不应出现在列表页")
@@ -229,14 +255,14 @@ final class RemotePanelsUITests: XCTestCase {
     /// **空白态**：一台服务器都没加时，页顶只有一个添加入口 + 居中说明（与远程托管空态同一套）。
     @MainActor
     func testSelfHostedEmptyStateShowsAddHint() {
-        // 不注入 seed profile → 真实是空的（测试容器里本来就干净）。
-        let app = makeApp()
+        // 合并成一个列表后，"一条都没有"= 没有自建档案 + 没有远程凭据。
+        let app = makeApp(["ORZMC_UITEST_NO_CREDENTIALS": "1"])
         app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
 
         XCTAssertTrue(app.staticTexts["还没有服务器"].waitForExistence(timeout: 20), "应显示空态标题")
-        XCTAssertTrue(app.buttons["selfHosted.addServer"].exists, "空态页也要有添加入口")
+        XCTAssertTrue(app.buttons["servers.addServer"].exists, "空态页也要有添加入口")
         XCTAssertFalse(app.buttons["selfHosted.serverCard"].exists, "空态不该有卡片")
         if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
             snap(app, "70-selfhosted-empty")
@@ -252,7 +278,10 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["演示服"].waitForExistence(timeout: 20), "服务器名应显示")
         XCTAssertTrue(app.staticTexts["在线"].waitForExistence(timeout: 20), "假服务器在线，状态应为「在线」")
         XCTAssertTrue(openFirstSelfHostedServer(app), "应能进详情页")
-        XCTAssertTrue(app.staticTexts["26.3"].exists, "版本标签来自 SLP")
+        // 版本 / 玩家 / 延迟现在是同一行元信息（`26.3 · 2/20 名玩家 · 1 毫秒`），
+        // 不再是一个个描边胶囊，所以按"包含"断言。
+        XCTAssertTrue(waitForStaticText(app, containing: "26.3", timeout: 10), "版本来自 SLP")
+        XCTAssertTrue(waitForStaticText(app, containing: "名玩家", timeout: 10), "玩家数来自 SLP")
         XCTAssertTrue(app.staticTexts["玩家"].exists, "玩家卡应始终显示")
 
         // 三个名单页签都能切（数据来自假 RCON：list / whitelist list / banlist list）
@@ -311,15 +340,13 @@ final class RemotePanelsUITests: XCTestCase {
         app.buttons["取消"].tap()
     }
 
-    /// 添加服务器：`＋` 打开"添加服务器"（标题是「添加服务器」）。
+    /// 添加服务器：页顶唯一的菜单 → 选「自建服务器」→ 打开"添加服务器"表单。
     func testAddServerOpensEmptySheet() {
         let app = makeApp()
         app.launch()
         allowSystemPrompts()
 
-        let add = app.buttons["selfHosted.addServer"]
-        XCTAssertTrue(add.waitForExistence(timeout: 20))
-        add.tap()
+        addSelfHostedServer(app)
 
         XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 5), "新建档案的 sheet 应立刻出现")
         app.buttons["取消"].tap()
@@ -333,7 +360,7 @@ final class RemotePanelsUITests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_REAL_ACCOUNT"] == "1",
                           "需要真机 + 真实 exaroton Token，设置 ORZMC_UITEST_REAL_ACCOUNT=1 才跑")
 
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp()
         app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
@@ -374,7 +401,7 @@ final class RemotePanelsUITests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_REAL_ACCOUNT"] == "1",
                           "需要真实 exaroton Token，设置 ORZMC_UITEST_REAL_ACCOUNT=1 才跑")
 
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp()
         app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
@@ -409,7 +436,7 @@ final class RemotePanelsUITests: XCTestCase {
 
     /// 远程托管：用假服务器进详情页，确认动作区三个按钮都在（不需要 exaroton Token）。
     func testRemoteDetailShowsActionButtons() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
         app.launchArguments += ["--remote-detail"]
         app.launch()
         allowSystemPrompts()
@@ -430,7 +457,7 @@ final class RemotePanelsUITests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_POWER_CYCLE"] == "1",
                           "会真的启停服务器（消耗额度），设置 ORZMC_UITEST_POWER_CYCLE=1 才跑")
 
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp()
         app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
@@ -487,8 +514,11 @@ final class RemotePanelsUITests: XCTestCase {
         add(attachment)
     }
 
-    /// iOS 26 的浮动 TabBar 会盖住滚动内容底部。这条用**几何断言**守它：
-    /// 滚到底后，控制台输入框（页面最后一行）不能和 TabBar 相交。
+    /// 页面最后一行（控制台输入框）不能压在底部的系统/TabBar 区域上。
+    ///
+    /// 2026-11-08 合并成一个列表后，iOS **不再有 TabBar**（旧实现里 iOS 26 的浮动 TabBar 会盖住
+    /// 滚动内容底部，这条用例就是那时加的）。名字保留是为了历史可读：现在它守两件事——
+    /// ① 没有 TabBar 再被加回来；② 滚到底后输入框完整可见、可点。
     func testConsoleInputNotCoveredByTabBar() {
         let app = makeApp()
         app.launch()
@@ -502,11 +532,12 @@ final class RemotePanelsUITests: XCTestCase {
         // 继续滚到页面最底部（到底后 swipeUp 不再改变位置）
         for _ in 0..<6 { app.swipeUp() }
 
-        let tabBar = app.tabBars.firstMatch
-        guard tabBar.exists else { return }   // 没有 TabBar（iPad 分栏等）时无需检查
-        XCTAssertFalse(
-            input.frame.intersects(tabBar.frame),
-            "控制台输入框被浮动 TabBar 盖住了：input=\(input.frame) tabBar=\(tabBar.frame)"
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "合并后不应再出现 TabBar（服务器页是唯一列表）")
+        XCTAssertTrue(input.isHittable, "滚到底后控制台输入框应可点：\(input.frame)")
+        XCTAssertLessThanOrEqual(
+            input.frame.maxY,
+            app.windows.firstMatch.frame.maxY,
+            "控制台输入框不该超出窗口底部：input=\(input.frame)"
         )
     }
 
@@ -515,7 +546,7 @@ final class RemotePanelsUITests: XCTestCase {
     /// 回归真机反馈：「还原」和「保存」表现相同、点还原不复原 —— 根因是 Form 行里多个
     /// 默认样式 Button 被合并成一个点击区域，点「还原」实际触发的是第一个按钮。
     func testMemoryRevertRestoresValue() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
         app.launch()
         allowSystemPrompts()
 
@@ -598,7 +629,6 @@ final class RemotePanelsUITests: XCTestCase {
     /// 0.4s ≈ 131°，一定不同；动画停住时两次完全一样（真机反馈"退出重进后停止"）。
     func testStatusBadgeKeepsSpinningAfterReentering() {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
-                           "ORZMC_DEMO_TAB": "managed",
                            "ORZMC_DEMO_FAKE_STATUS": "starting"])
         app.launch()
         allowSystemPrompts()
@@ -740,8 +770,7 @@ final class RemotePanelsUITests: XCTestCase {
         // 返回列表 → 添加服务器
         let back = app.navigationBars.buttons.firstMatch
         if back.exists { back.tap() }
-        _ = app.buttons["selfHosted.addServer"].waitForExistence(timeout: 15)
-        app.buttons["selfHosted.addServer"].tap()
+        addSelfHostedServer(app)
         _ = app.buttons["保存"].waitForExistence(timeout: 10)
         snap(app, "08-add-server")
         app.buttons["取消"].tap()
@@ -752,7 +781,7 @@ final class RemotePanelsUITests: XCTestCase {
     func testRealExarotonAccountNameIsResolved() throws {
         let token = ProcessInfo.processInfo.environment["ORZMC_DEMO_TOKEN"] ?? ""
         try XCTSkipIf(token.isEmpty, "需要本地 exaroton 测试凭据")
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp()
         app.launch()
         allowSystemPrompts()
         let name = app.staticTexts.matching(identifier: "remote.accountName").firstMatch
@@ -764,7 +793,7 @@ final class RemotePanelsUITests: XCTestCase {
 
     func testSnapshotConfiguredRemoteAccounts() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp()
         app.launch()
         allowSystemPrompts()
         XCTAssertTrue(app.buttons["remote.serverCard"].firstMatch.waitForExistence(timeout: 40))
@@ -775,22 +804,24 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "configured-mcsm-accounts")
     }
 
-    /// **页顶只有一个添加入口**：先选供应商，再填对应表单（不再每个分组各一个按钮）。
+    /// **页顶只有一个添加入口**：先选服务器类型（自建 / Exaroton / MCSManager），再填对应表单。
     @MainActor
     func testSingleAddEntryIsAtTopAndOffersBothProviders() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
 
-        let add = app.buttons["remote.addProvider"]
+        let add = app.buttons["servers.addServer"]
         XCTAssertTrue(add.waitForExistence(timeout: 20), "页顶应有唯一的添加入口")
-        let exaroton = app.staticTexts["exaroton.section"]
-        XCTAssertTrue(exaroton.waitForExistence(timeout: 20))
-        // "顶部"：按钮在第一个分组标题之上。
-        XCTAssertLessThan(add.frame.midY, exaroton.frame.midY, "添加入口应在分组之上")
+        let firstSection = app.staticTexts["selfHosted.section"]
+        XCTAssertTrue(firstSection.waitForExistence(timeout: 25))
+        // "顶部"：按钮在第一个分组标题之上（合并后第一组是自建）。
+        XCTAssertLessThan(add.frame.midY, firstSection.frame.midY, "添加入口应在分组之上")
+        XCTAssertTrue(app.staticTexts["exaroton.section"].exists, "同一页里也应有 exaroton 分组")
 
         add.tap()
-        XCTAssertTrue(app.buttons["Exaroton"].waitForExistence(timeout: 10), "菜单里应有 Exaroton")
+        XCTAssertTrue(app.buttons["自建服务器"].waitForExistence(timeout: 10), "菜单里应有「自建服务器」")
+        XCTAssertTrue(app.buttons["Exaroton"].exists, "菜单里应有 Exaroton")
         XCTAssertTrue(app.buttons["MCSManager"].exists, "菜单里应有 MCSManager")
         app.buttons["Exaroton"].tap()
         // 选了哪家就弹哪家的表单：Exaroton = 账号名 + TOKEN。
@@ -804,15 +835,11 @@ final class RemotePanelsUITests: XCTestCase {
     @MainActor
     func testAddEntryOpensMCSManagerForm() {
         // 用假面板让分组存在（空态时也能添加，但这里顺带验证"已有分组时仍从页顶添加"）。
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
 
-        let add = app.buttons["remote.addProvider"]
-        XCTAssertTrue(add.waitForExistence(timeout: 20))
-        add.tap()
-        XCTAssertTrue(app.buttons["MCSManager"].waitForExistence(timeout: 10))
-        app.buttons["MCSManager"].tap()
+        addRemoteProvider(app, named: "MCSManager")
         XCTAssertTrue(app.textFields["mcsm.urlField"].waitForExistence(timeout: 10), "应弹出面板表单")
         XCTAssertTrue(app.secureTextFields["mcsm.apiKeyField"].exists)
         app.buttons["取消"].tap()
@@ -822,16 +849,18 @@ final class RemotePanelsUITests: XCTestCase {
     /// 选完供应商什么也不发生（2026-11-06 维护者实测）。
     @MainActor
     func testAddFromEmptyPageOpensProviderForms() {
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        let app = makeApp(["ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
 
-        let add = app.buttons["remote.addProvider"]
+        let add = app.buttons["servers.addServer"]
         XCTAssertTrue(add.waitForExistence(timeout: 20))
-        XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
+        XCTAssertTrue(waitForStaticText(app, containing: "还没有服务器", timeout: 30))
 
         add.tap()
-        XCTAssertTrue(app.buttons["Exaroton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["自建服务器"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Exaroton"].exists)
         if ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1" {
             snap(app, "60-add-menu-from-empty")
         }
@@ -857,24 +886,26 @@ final class RemotePanelsUITests: XCTestCase {
     /// 一家都没配时：只给空态说明页，不渲染任何供应商分组。
     @MainActor
     func testRemotePageWithoutAccountsShowsEmptyState() {
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        let app = makeApp(["ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
 
         // 先等页面骨架（页顶添加入口）出现，再看空态文案：新模拟器首次启动时
-        // 直接断言文案会在界面还没切到「远程托管」时超时（实测过一次）。
-        XCTAssertTrue(app.buttons["remote.addProvider"].waitForExistence(timeout: 20), "空态也要有添加入口")
+        // 直接断言文案可能早于首帧。
+        XCTAssertTrue(app.buttons["servers.addServer"].waitForExistence(timeout: 20), "空态也要有添加入口")
         XCTAssertTrue(
-            waitForStaticText(app, containing: "没有远程服务器", timeout: 30),
+            waitForStaticText(app, containing: "还没有服务器", timeout: 30),
             "应显示空态说明"
         )
+        XCTAssertFalse(app.staticTexts["selfHosted.section"].exists, "没有档案时不该出现自建分组")
         XCTAssertFalse(app.staticTexts["exaroton.section"].exists, "没有账号时不该出现 exaroton 分组")
         XCTAssertFalse(app.staticTexts["mcsm.section"].exists, "没有面板时不该出现 MCSManager 分组")
     }
 
     func testMultipleRemoteAccountsShowInstances() throws {
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MULTI_ACCOUNT": "1",
-                           "ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+                           "ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
         XCTAssertTrue(app.staticTexts["Exaroton 1"].waitForExistence(timeout: 20))
@@ -889,7 +920,7 @@ final class RemotePanelsUITests: XCTestCase {
     }
 
     func testExarotonStoppingProgressContinuesAfterReentering() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
                            "ORZMC_DEMO_FAKE_STATUS": "stopping"])
         app.launch()
         allowSystemPrompts()
@@ -918,7 +949,7 @@ final class RemotePanelsUITests: XCTestCase {
     func testSnapshotExarotonStopping() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
                            "ORZMC_DEMO_FAKE_STATUS": "stopping"])
         app.launch()
         allowSystemPrompts()
@@ -933,7 +964,7 @@ final class RemotePanelsUITests: XCTestCase {
     }
 
     func testCreditPoolServerOpensDetail() {
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
                            "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "starting"])
         app.launch()
         allowSystemPrompts()
@@ -948,7 +979,7 @@ final class RemotePanelsUITests: XCTestCase {
 
     func testSnapshotCreditPoolServer() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
                            "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "starting"])
         app.launch()
         allowSystemPrompts()
@@ -959,7 +990,7 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "credit-pool-server")
     }
 
-    /// 远程托管页 · **两家供应商同页**的骨架巡检（exaroton 在前、MCSManager 在后）。
+    /// 服务器页 · **三种来源同一页**的骨架巡检（自建在前，其次 exaroton、MCSManager）。
     ///
     /// 假数据来自 `ORZMC_DEMO_FAKE_SERVER`（exaroton）与 `ORZMC_DEMO_MCSM_FAKE`（MCSM 面板），
     /// 两段都能在 375pt 宽的 SE3 上一屏屏翻过去，用来做改前/改后的逐段对比。
@@ -968,8 +999,7 @@ final class RemotePanelsUITests: XCTestCase {
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
 
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1",
-                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online",
-                           "ORZMC_DEMO_TAB": "managed"])
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online"])
         app.launch()
         allowSystemPrompts()
         XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
@@ -983,19 +1013,20 @@ final class RemotePanelsUITests: XCTestCase {
         snap(app, "33-providers-mcsm-bottom")
     }
 
-    /// 远程托管页 · **两家供应商都没配**时的空态（同一套引导卡片）。
+    /// 服务器页 · **三种来源一条都没有**时的统一空态。
     ///
     /// 不带任何假数据跑：模拟器上没有钥匙串账号、也没存过面板，两段都是空。
     func testSnapshotTourRemoteEmptyProviders() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
 
-        let app = makeApp(["ORZMC_DEMO_TAB": "managed", "ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        let app = makeApp(["ORZMC_UITEST_NO_CREDENTIALS": "1"])
+        app.launchEnvironment.removeValue(forKey: "ORZMC_DEMO_SEED_PROFILE")
         app.launch()
         allowSystemPrompts()
-        // 一个供应商都没配：页顶添加入口 + 空态说明页（不再有两个空分组卡片）。
-        XCTAssertTrue(app.buttons["remote.addProvider"].waitForExistence(timeout: 20))
-        XCTAssertTrue(waitForStaticText(app, containing: "没有远程服务器", timeout: 30))
+        // 三种来源一条都没有：页顶添加入口 + 统一空态说明页（不再有空分组卡片）。
+        XCTAssertTrue(app.buttons["servers.addServer"].waitForExistence(timeout: 20))
+        XCTAssertTrue(waitForStaticText(app, containing: "还没有服务器", timeout: 30))
         snap(app, "40-providers-empty")
     }
 
@@ -1003,7 +1034,7 @@ final class RemotePanelsUITests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
 
-        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
         app.launch()
         allowSystemPrompts()
         _ = app.buttons.matching(identifier: "remote.serverCard").firstMatch.waitForExistence(timeout: 20)
@@ -1048,12 +1079,126 @@ final class RemotePanelsUITests: XCTestCase {
         XCTAssertTrue(tab.isSelected, "「\(prefix)」页签应被选中")
     }
 
+    /// exaroton 实例行也**整卡可点**（2026-11-08 维护者反馈：以前只有文字能点）。
+    /// 它用 `NavigationLink` 包整卡，命中区靠 `ServerCard` 根部的 `contentShape`。
+    func testExarotonCardClickAnywhereOpensDetail() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到 exaroton 实例卡")
+        // 卡片最右侧 12pt（文字之外的空白）点一下。
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: card.frame.maxX - 12, dy: card.frame.midY))
+            .tap()
+        XCTAssertTrue(app.staticTexts["概览"].waitForExistence(timeout: 20),
+                      "点卡片空白处也应进入详情页")
+    }
+
+    /// **整卡可点**（2026-11-08 维护者反馈）：点卡片右侧的空白区域也要进详情页，
+    /// 不能只有"名称 + 明细"那一小块能点。
+    func testSelfHostedCardClickAnywhereOpensDetail() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        let card = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 25), "应看到服务器卡片")
+
+        // 卡片比"名称按钮"宽：在名称按钮右边缘再往右 80pt 处点一下（那一片是卡片空白）。
+        let emptySpot = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: card.frame.maxX + 80, dy: card.frame.midY))
+        emptySpot.tap()
+
+        XCTAssertTrue(app.staticTexts["玩家"].waitForExistence(timeout: 20),
+                      "点卡片空白处也应进入详情页")
+        XCTAssertTrue(app.staticTexts["控制台（RCON）"].exists, "详情页应有控制台")
+    }
+
+    /// **自建卡片的动作与其它来源统一**（2026-11-08）：刷新 / 配置 / 删除，
+    /// 与 exaroton 账号卡、MCSM 面板卡同一套图标按钮组（`selfHosted.action.*`）。
+    func testSelfHostedCardHasUnifiedActions() {
+        let app = makeApp()
+        app.launch()
+        allowSystemPrompts()
+
+        XCTAssertTrue(app.buttons["selfHosted.serverCard"].waitForExistence(timeout: 25), "应看到服务器卡片")
+        for id in ["selfHosted.action.refresh", "selfHosted.action.edit", "selfHosted.action.remove"] {
+            XCTAssertTrue(app.buttons[id].exists, "卡片上应有 \(id)")
+        }
+
+        // 「配置」= 服务器设置表单（与账号/面板表单同一套：标题栏 取消 / 保存）。
+        app.buttons["selfHosted.action.edit"].tap()
+        XCTAssertTrue(app.buttons["保存"].waitForExistence(timeout: 10), "配置应打开服务器设置")
+        app.buttons["取消"].tap()
+
+        // 「删除」要二次确认（删的是本机档案 + 密码，服务器本身不动）。
+        let remove = app.buttons["selfHosted.action.remove"]
+        for _ in 0..<4 where !remove.isHittable { app.swipeUp() }
+        remove.tap()
+        XCTAssertTrue(
+            waitForStaticText(app, containing: "删除这台服务器？", timeout: 10),
+            "删除应弹二次确认（标题）"
+        )
+        // 弹窗里的取消：`confirmationDialog` 的取消槽位不一定在 `app.buttons` 顶层，
+        // 优先取 sheet 里的那个，再退回所有同名按钮里的最后一个。
+        let cancelInSheet = app.sheets.firstMatch.buttons["取消"]
+        if cancelInSheet.isHittable {
+            cancelInSheet.tap()
+        } else {
+            app.buttons.matching(NSPredicate(format: "label == %@", "取消"))
+                .allElementsBoundByIndex.last?.tap()
+        }
+        XCTAssertTrue(app.buttons["selfHosted.serverCard"].waitForExistence(timeout: 10), "取消后卡片仍在")
+    }
+
+    /// **分组的折叠/展开**：单组折叠 + 全部折叠/全部展开（与主窗口实例栏同一套）。
+    func testServerGroupsCollapseAndExpand() {
+        let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1"])
+        app.launch()
+        allowSystemPrompts()
+
+        let selfHostedCard = app.buttons.matching(identifier: "selfHosted.serverCard").firstMatch
+        let exarotonCard = app.buttons.matching(identifier: "remote.serverCard").firstMatch
+        XCTAssertTrue(selfHostedCard.waitForExistence(timeout: 25))
+        XCTAssertTrue(app.staticTexts["exaroton.section"].waitForExistence(timeout: 20))
+
+        // 全部折叠：组标题都还在，卡片一个都不渲染。
+        let collapseAll = app.buttons["servers.collapseAll"]
+        XCTAssertTrue(collapseAll.waitForExistence(timeout: 10), "页顶应有「全部折叠」")
+        collapseAll.tap()
+        XCTAssertTrue(app.staticTexts["selfHosted.section"].waitForExistence(timeout: 10),
+                      "折叠后仍保留分组标题")
+        XCTAssertTrue(app.staticTexts["exaroton.section"].exists)
+        XCTAssertFalse(selfHostedCard.exists, "全部折叠后不应渲染卡片")
+        XCTAssertFalse(exarotonCard.exists, "全部折叠后不应渲染远程卡片")
+
+        // 全部展开：卡片回来。
+        let expandAll = app.buttons["servers.expandAll"]
+        XCTAssertTrue(expandAll.waitForExistence(timeout: 10), "页顶应有「全部展开」")
+        expandAll.tap()
+        XCTAssertTrue(selfHostedCard.waitForExistence(timeout: 10), "全部展开后卡片应回来")
+
+        // 单组折叠：只收起 exaroton，自建那组不受影响。
+        let exarotonToggle = app.buttons["exaroton.section.toggle"]
+        for _ in 0..<4 where !exarotonToggle.isHittable { app.swipeUp() }
+        XCTAssertTrue(exarotonToggle.waitForExistence(timeout: 10))
+        exarotonToggle.tap()
+        XCTAssertTrue(app.staticTexts["exaroton.section"].exists, "单组折叠后标题仍在")
+        XCTAssertFalse(exarotonCard.exists, "单组折叠只影响这一组的卡片")
+        XCTAssertTrue(selfHostedCard.exists, "其它组不受影响")
+
+        // 再点一次展开回来。
+        app.buttons["exaroton.section.toggle"].tap()
+        XCTAssertTrue(exarotonCard.waitForExistence(timeout: 10), "再点一次应展开")
+    }
+
     /// 远程详情 · 控制台（假"已连接"）：专门看控制台日志区 + 下方按钮的排版。
     func testSnapshotRemoteConsole() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1",
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1",
-                           "ORZMC_DEMO_TAB": "managed",
                            "ORZMC_DEMO_FAKE_LIVE": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1075,8 +1220,7 @@ final class RemotePanelsUITests: XCTestCase {
                           "视觉巡检用 ORZMC_UITEST_SNAPSHOTS=1 开启")
 
         let app = makeApp(["ORZMC_DEMO_FAKE_SERVER": "1", "ORZMC_DEMO_MCSM_FAKE": "1",
-                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online",
-                           "ORZMC_DEMO_TAB": "managed"])
+                           "ORZMC_DEMO_FAKE_POOL": "1", "ORZMC_DEMO_FAKE_STATUS": "online"])
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
         allowSystemPrompts()
@@ -1231,7 +1375,7 @@ extension RemotePanelsUITests {
     /// 并且各自带状态徽章（"运行中" / "已停止"）。用 `ORZMC_DEMO_MCSM_FAKE=1` 走内存假面板，
     /// 不需要真面板、也不碰 Keychain。
     func testMCSManagerSectionShowsInstancesAndStatus() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
 
@@ -1263,7 +1407,7 @@ extension RemotePanelsUITests {
     ///
     /// 只验证"按钮都在、可用性与状态一致"，不点动作 —— 动作会改实例状态，UI 用例不该有副作用。
     func testMCSManagerInstanceActionsAreInline() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
 
@@ -1283,8 +1427,8 @@ extension RemotePanelsUITests {
     }
 
     /// 控制台显示日志、正确处理终端重绘，并将命令原样送到假面板。
-    func testMCSManagerConsoleSheetShowsOutput() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+    func testMCSManagerConsolePageShowsOutput() {
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_REDRAW": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1335,7 +1479,7 @@ extension RemotePanelsUITests {
     }
 
     func testMCSManagerConsoleCanFilterAndChangeDisplay() throws {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_LONG_LOG": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1382,7 +1526,7 @@ extension RemotePanelsUITests {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
         // `REDRAW=1`：带上两种真实终端重绘（退格 / CSI 左移），截图能直接看到
         // `> list` / `> version` / `> plugins` 没有被重复成 `lislist` / `versioversion`。
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_REDRAW": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1397,7 +1541,7 @@ extension RemotePanelsUITests {
 
     func testSnapshotMCSManagerLongLine() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["ORZMC_UITEST_SNAPSHOTS"] == "1")
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_LONG_LOG": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1415,7 +1559,7 @@ extension RemotePanelsUITests {
     }
 
     func testMCSManagerConsoleScrollsThroughManyLines() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed",
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1",
                            "ORZMC_DEMO_MCSM_MANY_LOGS": "1", "ORZMC_DEMO_ISOLATE_DEFAULTS": "1"])
         app.launch()
         allowSystemPrompts()
@@ -1437,7 +1581,7 @@ extension RemotePanelsUITests {
     /// 面板卡片的「编辑」图标按钮：编辑表单由页面层弹（不能再依赖分组内部）。
     @MainActor
     func testPanelMenuEditOpensEditor() {
-        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1", "ORZMC_DEMO_TAB": "managed"])
+        let app = makeApp(["ORZMC_DEMO_MCSM_FAKE": "1"])
         app.launch()
         allowSystemPrompts()
 

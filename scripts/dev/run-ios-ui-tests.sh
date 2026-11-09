@@ -14,7 +14,8 @@
 #   UI_ONLY_TESTING="OrzMCUITests/X/a OrzMCUITests/X/b" …  # 只跑指定用例（空格分隔多个）
 #
 # 测试用到的 DEBUG 钩子（发布构建里不存在）：ORZMC_DEMO_SEED_PROFILE / ORZMC_DEMO_RCON_PASSWORD /
-# ORZMC_DEMO_TAB / ORZMC_DEMO_FAKE_SERVER（见 OrzMCUITests/RemotePanelsUITests.swift）。
+# ORZMC_DEMO_FAKE_SERVER（见 OrzMCUITests/RemotePanelsUITests.swift；合并成一个列表后不再有
+# ORZMC_DEMO_TAB 这种"先切到哪个 Tab"的钩子）。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -59,11 +60,13 @@ ui_tests_for_changes() {
   [[ -z "$files" ]] && { echo "NONE"; return; }
 
   local ADD="testAddFromEmptyPageOpensProviderForms testSingleAddEntryIsAtTopAndOffersBothProviders
-     testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet"
+     testAddEntryOpensMCSManagerForm testRemotePageWithoutAccountsShowsEmptyState testAddServerOpensEmptySheet
+     testSelfHostedCardHasUnifiedActions testServerGroupsCollapseAndExpand
+     testExarotonCardClickAnywhereOpensDetail testSelfHostedCardClickAnywhereOpensDetail"
   local EXA="testCreditPoolServerOpensDetail testRemoteDetailShowsActionButtons
      testMultipleRemoteAccountsShowInstances testExarotonStoppingProgressContinuesAfterReentering
      testMemoryRevertRestoresValue testMemoryRowIsSingleLine"
-  local MCSM="testMCSManagerSectionShowsInstancesAndStatus testMCSManagerConsoleSheetShowsOutput
+  local MCSM="testMCSManagerSectionShowsInstancesAndStatus testMCSManagerConsolePageShowsOutput
      testMCSManagerConsoleCanFilterAndChangeDisplay testMCSManagerConsoleScrollsThroughManyLines
      testMCSManagerInstanceMenuListsActionsAndConsole testPanelMenuEditOpensEditor"
   local CONSOLE="testConsoleEmptyStateSitsTopLeft testConsoleInputNotCoveredByTabBar
@@ -77,9 +80,10 @@ ui_tests_for_changes() {
     case "$f" in
       docs/*|*.md|README*|CHANGELOG*) ;;                       # 文档：不影响用例
       OrzMC/Common/MCSManager/*|OrzMC/Common/MCSManagerUI/*) ids+=" $MCSM $CONSOLE" ;;
+      OrzMC/Common/ServersUI/*) all=1 ;;                         # 页面骨架：牵动任何列表断言
       OrzMC/Common/ExarotonUI/*) ids+=" $EXA $ADD $STATUS" ;;
       OrzMC/Common/RemoteHosting/*|OrzMC/Common/RemoteHostingUI/*) ids+=" $ADD $EXA" ;;
-      OrzMC/Common/SelfHosted/*) ids+=" $SELF" ;;
+      OrzMC/Common/SelfHosted/*) ids+=" $SELF $ADD" ;;
       Sources/OrzMCFoundation/ConsoleText.swift) ids+=" $CONSOLE" ;;
       OrzMCFoundation/*|OrzMCUITests/*|*.xcstrings) all=1 ;;    # 基础层/测试/本地化：可能牵动任何断言
       OrzMC/*|Sources/*|Tests/*) all=1 ;;

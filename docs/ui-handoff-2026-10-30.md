@@ -52,7 +52,7 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 |---|---|---|
 | 状态徽章唯一实现 | `Sources/OrzMCDesignSystem/StatusBadge.swift`（旋转靠 `TimelineView` 时间驱动） | 不要改回 `@State` + `repeatForever` |
 | 远程状态单一写入口 | `Sources/OrzMCRemoteHosting/RemoteStatusCenter.swift`（键是 `RemoteInstanceID`） | 不要退回裸字符串 id，不要改"WS 安静 30 秒"轮询判据 |
-| 多供应商分组 | `OrzMC/Common/ExarotonUI/List/ExarotonServerList.swift`（exaroton 段）+ `OrzMC/Common/MCSManagerUI/MCSManagerSection.swift`（MCSM 段） | **维护者已拍板：按供应商分组、不做 provider 过滤/分段控件** |
+| 多供应商分组 | `OrzMC/Common/ServersUI/ServersContentView.swift`（一个列表，自建 → exaroton → MCSM）+ 两个 `*Section` | **维护者已拍板：按来源分组、不做 provider 过滤/分段控件**（2026-11-08 起连页面级切换控件也没有） |
 | MCSM 停止进度 + 强杀 | `MCSManagerSection.stopHint(...)` + `Sources/OrzMCRemoteHosting/RemoteStopProgress.swift` | 秒数必须每秒刷新；强杀必须二次确认 |
 | 控制台渲染统一 | 解析 `Sources/OrzMCFoundation/ConsoleText.swift`、渲染 `Sources/OrzMCDesignSystem/ConsoleText.swift` | 规则见 `console-rendering.md` |
 | 空/加载/失败态区分 | `ExarotonServerList` 的 `emptyCard` / `loadingCard` / `errorCard` + `Sources/OrzMCDesignSystem/ContentState.swift` | 不要再把三种态合并成一段文案 |
@@ -128,11 +128,75 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
 - **现在**：页顶只有一个「添加账号」菜单 → 选供应商（exaroton / MCSManager）→ 弹那一家的表单
   （exaroton：账号 + TOKEN；MCSManager：地址 + API Key）；**一家都没配时只显示空态说明页**，
   配置了哪家才出现哪家的分组与服务器。
-- 代码：`RemoteAddProviderMenu`（`OrzMC/Common/RemoteHostingUI/RemoteHostingSkeleton.swift`）+
+- 代码（**已被 UI-9 取代**）：`RemoteAddProviderMenu`（当时在 `RemoteHostingSkeleton.swift`）+
   `ExarotonContent` 的 `addRequest` 分发；组内不再带添加按钮（`RemoteProviderSection` 去掉 `emptyState`）。
 - 用例：`testSingleAddEntryIsAtTopAndOffersBothProviders`、`testAddEntryOpensMCSManagerForm`、
   `testRemotePageWithoutAccountsShowsEmptyState`（最后一条会剥掉本地凭据，否则"空页"其实不空）。
 - 截图：[`ui-remote-add-provider-2026-11-06/`](ui-remote-add-provider-2026-11-06/)。
+
+### UI-9（✅ 2026-11-08）「我的服务器」+「远程托管」合并成一个列表
+
+- **维护者要求**：两个面合并成一个列表，不用来回切换、省掉顶部切换控件；统一「添加服务器」按钮，
+  点开后选服务器类型；统一添加流程与展示 UI。
+- **现在**：`OrzMC/Common/ServersUI/ServersContentView.swift` 是 macOS「服务器」窗口与 iOS 首页**同一份**页面——
+  一个 ScrollView，分组固定 **自建 → exaroton → MCSManager**；页顶只有一个 `AddServerMenu`
+  （自建服务器 / Exaroton / MCSManager → 各自表单）；三条来源一条都没有时给统一空态。
+- **移除**：`ServersWindowContent`（顶部分段控件 + `orzmc.serversWindow.mode`）、`ExarotonContent`（远程专用页）、
+  `RemoteAddProviderMenu`、iOS 的两个 Tab 与 `ORZMC_DEMO_TAB` 钩子。
+- **模型**：页面层持有 `SelfHostedServersModel` + `ExarotonAccountsModel` + `MCSManagerPanelsModel`；
+  一个 `EditorSheet` 枚举管三种表单（同一视图链只能挂一个 `.sheet`）。
+- **用例**：`selfHosted.addServer` / `remote.addProvider` 合并成 `servers.addServer`（菜单里再选类型）；
+  "空态"用例改为**同时**清掉自建档案与远程凭据（合并后只清一边永远不会空）。
+- **文档**：[`app-ui-design.md`](app-ui-design.md) §11（改前/改后对照）。
+
+### UI-10（✅ 2026-11-08）自建卡片动作统一 + 分组折叠/展开
+
+- 维护者反馈：自建的「刷新/配置/删除」样式与其它来源不统一；分组要能单独折叠，也要全部折叠/展开。
+- 现在：自建卡片右上走同一套 `ServerActionGroup`（`selfHosted.action.refresh|edit|remove`，删除二次确认）；
+  每组标题可折叠（`<分组>.section.toggle`），页顶有「全部折叠 / 全部展开」（`servers.collapseAll|expandAll`），
+  规则沿用主窗口实例栏（`allExpanded` + 单组覆盖，默认展开）。
+- 卡片导航改成 `ServerCard(onTap:)` + `NavigationStack(path:)`（`NavigationLink` 包住时按钮点不到）。
+- 用例：`testSelfHostedCardHasUnifiedActions`、`testServerGroupsCollapseAndExpand`；
+  细节见 [`app-ui-design.md`](app-ui-design.md) §12。
+
+### UI-11（✅ 2026-11-08）视觉评审落地：两层表面 / 字阶 / 标签 / 图标 / 折叠控件
+
+- 依据 HIG（DocC JSON 核验 2026-11-08）+ 截图量测：三层玻璃面板、三处 `.headline`、3.21:1 / 2.19:1 小字、
+  每行 5 个图标、面板圆角 16 与令牌 14 漂移。
+- 改动：`ServerCard(surface:)` 去掉"卡中卡"；分组/账号/服务器三档字阶；标签改 `RemoteMetadataLine`；
+  图标 `Palette.control` + hover + 32/22 命中区 + danger 色不常驻；折叠控件改中性选中底；
+  `orzMCPanel` 默认圆角对齐 `Radius.lg`；iOS 紧凑宽度 footer 移到操作栏之前。
+- 细节与量测表见 [`app-ui-design.md`](app-ui-design.md) §13。
+- 未做：A 方案（账号降级为子标题行）；macOS 亮色/高对比/VoiceOver 人工复核。
+
+### UI-12（✅ 2026-11-08）主窗口 / 服务器窗口的按钮与图标统一
+
+- 维护者反馈：主窗口实例卡的动作按钮全是灰的，看不出可用/禁用；目录行"打开"像打开链接；
+  服务器窗口的添加与折叠控件位置要对调。
+- 现在：`OrzMCActionButton`（设计系统）统一可用色 / disabled 0.35 / hover / 命中区，主窗口与服务器窗口共用；
+  目录行图标改 `folder`；服务器窗口「添加」在左、「全部折叠/展开」在右（空态也是左上）；
+  `OrzMCDisplayModeControls` 两窗口共用。
+- 追加（同日二次反馈）：图标强度 0.72→0.85、账号卡图标不再用 `secondary`；`ServerCard` 整卡可点
+  （透明垫层，锚点不变）；刷新转圈放进与图标同尺寸的槽位（替换刷新按钮，不再挤歪整排）。
+- 细节：`app-ui-design.md` §14 / §14.1。
+
+### UI-13（✅ 2026-11-08）控制台改导航页 + 卡片交互对齐
+
+- exaroton 实例卡整卡可点（`ServerCard` 根部 `contentShape`；新用例 `testExarotonCardClickAnywhereOpensDetail`）。
+- MCSM 控制台从 sheet 改为 **push 导航页**（`MCSManagerConsoleRoute` → `MCSManagerConsoleView`），
+  与主窗口 `ServerConsoleView` 一致；标题沿用 `Console — %@`。
+- 账号卡/面板卡的刷新改成"转圈顶替刷新图标"（`RemoteAccountMenu.isRefreshing`），与自建卡片同一套；
+  移除标题旁旧的小转圈。
+- 细节：`app-ui-design.md` §15。
+
+### UI-14（✅ 2026-11-08）刷新交互收口
+
+- 设计系统 `OrzMCRefreshButton`（空闲图标 / 刷新中同槽位转圈 / 禁用 0.35），用于自建卡、账号/面板卡、
+  MCSM 控制台页、自建玩家卡；额度池刷新加防重入与禁用。
+- 合并页下拉刷新与 macOS ⌘R 都改为**刷新全部来源**（自建 + exaroton + MCSM）。
+- help 文案按对象区分；补齐 `exaroton.accountAction.refresh` / `selfHosted.players.refresh` /
+  `creditPool.refresh` / `mcsm.console.refresh` / `servers.refreshAll`。
+- 清单：`ui-refresh-inventory-2026-11-08.md`；收口细节：`app-ui-design.md` §16。
 
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
