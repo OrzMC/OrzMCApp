@@ -49,7 +49,18 @@ jobs:
 
       - name: Resolve package dependencies
         run: |
-          xcrun xcodebuild -resolvePackageDependencies -scheme OrzMC
+          set -euo pipefail
+          # runner 偶发对 GitHub release asset 返回 badResponse（限流/网络抖动）：重试 3 次。
+          # 2026-11-09 首次跑新 workflow 就卡在这里（Sparkle/SwiftLint 二进制包），本地同一 URL 正常。
+          for attempt in 1 2 3; do
+            if xcrun xcodebuild -resolvePackageDependencies -scheme OrzMC; then
+              exit 0
+            fi
+            echo "::warning::resolvePackageDependencies failed (attempt ${attempt}/3); retrying"
+            sleep $((attempt * 20))
+          done
+          echo "::error::could not resolve package dependencies after 3 attempts"
+          exit 1
 
       - name: Build DocC and prepare static site
         run: |
