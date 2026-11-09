@@ -790,3 +790,20 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
   系统 toolbar 自己表达禁用态；状态卡转圈同时覆盖 20 秒自动刷新，换到按钮上会每 20 秒闪一下。
 - 主窗口**侧边栏版本列表**（图标叠加转圈 + 变暗）与设置里的两个**同步本地重扫**（无加载态）保持现状：
   前者在 30pt 的搜索栏控件里，套 22×22 的动作按钮会变形；后者是同步 IO，瞬时完成。
+
+## 17. 2026-11-09 实例卡动作顺序：插件/模组 → 控制台
+
+维护者要求：Paper 的「插件」按钮放到「控制台」左边；Fabric / Forge 服务端在控制台左边加「模组」按钮。
+
+- **顺序固定**：`[插件 | 模组] → 控制台 →（生命周期）→（危险）`。
+  `FormSectionHeader` 的 `.inspect` 组内按 `mods → plugins → console` 渲染（同一个实例只会命中其中一个附加内容按钮）；
+  空间不足收进 `⋯` 时保持同一顺序。
+- **谁能有什么**：`SettingsModel.ServerSoftware.supportsPlugins`（Paper）/ `supportsMods`（Fabric、Forge）；
+  Vanilla 与客户端只有控制台。
+- **模组面板**（`ModsManagerView` + `ModsManagerModel`，2026-11-09 第一版）：
+  只做**本地清单**——扫描 `mods/` 里的 jar（复用 `PluginInstaller.scan`，忽略 `.jar.disabled`、不进子目录）、
+  文件名里能认出的版本号、搜索、重新扫描、在 Finder 中打开 `mods/`（不存在时先建）。
+  **不做**安装/更新/卸载：搜索与安装渠道（Modrinth、Hangar）是下一轮的事，footer 写清楚。
+- **一个 sheet 入口**：插件与模组共用 `InstanceAddonSheet` 枚举（同一条视图链只能挂一个 `.sheet`，
+  2026-11-05 MCSM 踩过；新增第二个 `.sheet` 会让其中一个永远不弹）。
+- 图标：插件 `puzzlepiece.extension`、模组 `shippingbox`（与「目录 → mods」行同一个符号）。

@@ -156,6 +156,9 @@ extension SettingsModel {
 
         /// 是否支持 Bukkit/Paper 插件目录（目前仅 Paper）。
         var supportsPlugins: Bool { self == .paper }
+
+        /// 是否有 `mods/`（Fabric / Forge 的服务端；目前只做本地清单，目录渠道下一轮接入）。
+        var supportsMods: Bool { self == .fabric || self == .forge }
     }
 
     /// 界面外观（默认跟随系统）。

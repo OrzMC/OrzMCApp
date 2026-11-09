@@ -2480,6 +2480,17 @@
         }
       }
     },
+    "Manage mods for this instance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理这个实例的模组"
+          }
+        }
+      }
+    },
     "Manage plugins for this instance": {
       "localizations": {
         "zh-Hans": {
@@ -2576,6 +2587,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "模组"
+          }
+        }
+      }
+    },
+    "Mods — %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模组 — %@"
           }
         }
       }
@@ -2686,6 +2708,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有匹配的日志"
+          }
+        }
+      }
+    },
+    "No matching mods": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的模组"
+          }
+        }
+      }
+    },
+    "No mods installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有安装模组"
           }
         }
       }
@@ -2891,6 +2935,17 @@
         }
       }
     },
+    "Only jars already in the mods folder are listed. Searching, installing, updating and removing mods (Modrinth / Hangar) comes in a later update.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里只列出 mods 文件夹里已有的 jar。搜索、安装、更新、卸载（Modrinth / Hangar 渠道）会在后续版本接入。"
+          }
+        }
+      }
+    },
     "Only the http(s) address of the panel is needed. A missing scheme defaults to https://.": {
       "localizations": {
         "zh-Hans": {
@@ -2927,6 +2982,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开文件夹"
+          }
+        }
+      }
+    },
+    "Open Mods Folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开模组文件夹"
           }
         }
       }
@@ -2977,6 +3043,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "在浏览器中打开相关链接"
+          }
+        }
+      }
+    },
+    "Open the mods folder in Finder": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 中打开模组文件夹"
           }
         }
       }
@@ -3317,6 +3394,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "系统提供"
+          }
+        }
+      }
+    },
+    "Put Fabric/Forge mod jars into the mods folder. Installing and updating mods from Modrinth comes in a later update.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把 Fabric/Forge 的模组 jar 放进 mods 文件夹；从 Modrinth 安装和更新模组会在后续版本提供。"
           }
         }
       }
@@ -3868,6 +3956,17 @@
         }
       }
     },
+    "Rescan the mods folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描模组文件夹"
+          }
+        }
+      }
+    },
     "Reset": {
       "localizations": {
         "zh-Hans": {
@@ -4195,6 +4294,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索日志"
+          }
+        }
+      }
+    },
+    "Search mods": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索模组"
           }
         }
       }

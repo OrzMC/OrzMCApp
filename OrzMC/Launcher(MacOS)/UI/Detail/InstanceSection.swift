@@ -37,7 +37,7 @@ struct InstanceSection: View {
     let availability: InstanceActionAvailability?
 
     @Binding var consoleTarget: ConsoleTarget?
-    @Binding var pluginSheet: PluginSheetTarget?
+    @Binding var addonSheet: InstanceAddonSheet?
     @Binding var pendingRisky: RiskyAction?
 
     var body: some View {
@@ -100,7 +100,12 @@ struct InstanceSection: View {
                 },
                 consoleIsLive: consoleIsLive,
                 pluginsBtnAction: software.supportsPlugins ? {
-                    pluginSheet = PluginSheetTarget(versionId: instance.versionId)
+                    addonSheet = .plugins(PluginSheetTarget(versionId: instance.versionId))
+                } : nil,
+                modsBtnAction: software.supportsMods ? {
+                    addonSheet = .mods(
+                        ModsSheetTarget(versionId: instance.versionId, software: software)
+                    )
                 } : nil,
                 startBtnAction: {
                     app.control(.start, versionId: instance.versionId, software: software)

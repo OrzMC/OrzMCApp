@@ -34,6 +34,8 @@ struct FormSectionHeader: View {
     var consoleIsLive: Bool = false
     /// 插件管理（仅支持插件的核心，如 Paper）。
     var pluginsBtnAction: ButtonAction?
+    /// 模组管理（Fabric / Forge 的 `mods/`；目录渠道下一轮接入）。
+    var modsBtnAction: ButtonAction?
     /// 启动（无确认）。
     var startBtnAction: ButtonAction?
     /// 重启（先停后起，会断开玩家 → 二次确认）。
@@ -122,7 +124,9 @@ struct FormSectionHeader: View {
     /// 各组里出现了几个按钮（`HeaderActionPlan` 按这个算宽度）。
     private var presentGroups: [HeaderActionPlan.Group: Int] {
         [
-            .inspect: (consoleBtnAction == nil ? 0 : 1) + (pluginsBtnAction == nil ? 0 : 1),
+            .inspect: (consoleBtnAction == nil ? 0 : 1)
+                + (pluginsBtnAction == nil ? 0 : 1)
+                + (modsBtnAction == nil ? 0 : 1),
             .lifecycle: (startBtnAction == nil ? 0 : 1)
                 + (restartBtnAction == nil ? 0 : 1)
                 + (stopBtnAction == nil ? 0 : 1),
@@ -156,13 +160,15 @@ struct FormSectionHeader: View {
     private func buttons(for group: HeaderActionPlan.Group) -> some View {
         switch group {
         case .inspect:
-            if let consoleBtnAction {
+            // 顺序：**插件/模组 → 控制台**（维护者 2026-11-09：插件按钮放在控制台左边；
+            // Fabric/Forge 的模组按钮同理）。
+            if let modsBtnAction {
                 iconButton(
-                    "Console",
-                    systemImage: consoleIsLive ? "terminal.fill" : "terminal",
-                    tint: consoleIsLive ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.control,
-                    help: consoleIsLive ? "Open console (running)" : "Open console",
-                    action: consoleBtnAction
+                    "Mods",
+                    systemImage: "shippingbox",
+                    tint: OrzMCTheme.Palette.control,
+                    help: "Manage mods for this instance",
+                    action: modsBtnAction
                 )
             }
             if let pluginsBtnAction {
@@ -172,6 +178,15 @@ struct FormSectionHeader: View {
                     tint: OrzMCTheme.Palette.control,
                     help: "Manage plugins for this instance",
                     action: pluginsBtnAction
+                )
+            }
+            if let consoleBtnAction {
+                iconButton(
+                    "Console",
+                    systemImage: consoleIsLive ? "terminal.fill" : "terminal",
+                    tint: consoleIsLive ? OrzMCTheme.Palette.success : OrzMCTheme.Palette.control,
+                    help: consoleIsLive ? "Open console (running)" : "Open console",
+                    action: consoleBtnAction
                 )
             }
         case .lifecycle:
@@ -234,14 +249,20 @@ struct FormSectionHeader: View {
                 if index > 0 { Divider() }
                 switch group {
                 case .inspect:
-                    if let consoleBtnAction {
-                        Button(action: consoleBtnAction) {
-                            Label("Console", systemImage: consoleIsLive ? "terminal.fill" : "terminal")
+                    // 与内联按钮同序：插件/模组 → 控制台。
+                    if let modsBtnAction {
+                        Button(action: modsBtnAction) {
+                            Label("Mods", systemImage: "shippingbox")
                         }
                     }
                     if let pluginsBtnAction {
                         Button(action: pluginsBtnAction) {
                             Label("Plugins", systemImage: "puzzlepiece.extension")
+                        }
+                    }
+                    if let consoleBtnAction {
+                        Button(action: consoleBtnAction) {
+                            Label("Console", systemImage: consoleIsLive ? "terminal.fill" : "terminal")
                         }
                     }
                 case .lifecycle:
