@@ -760,3 +760,6 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 自建卡片的刷新是"刷新时图标换成同尺寸转圈"；exaroton 账号卡与 MCSM 面板卡原来是"标题旁边多一个小转圈"。
 → `RemoteAccountMenu` 增加 `isRefreshing`：刷新中在**同一槽位**（`OrzMCActionButton.hitSize`）
 换成转圈，不产生位移；移除 `RemoteAccountHeader` 里旧的 `isLoading` 小转圈（避免两个指示重复）。
+
+> 全应用的刷新入口、进行中/禁用状态与自动刷新节律，见
+> [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（含 5 种交互模式与不一致清单）。
