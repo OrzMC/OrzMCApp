@@ -105,6 +105,12 @@ jobs:
         run: |
           export DEVELOPER_ID_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db"
           ./scripts/release-macos.sh
+          # 早期失败（例如描述文件解析报错）有时不会让脚本以非 0 退出，这里再断言一次
+          # "确实跑到了最后"：脚本成功收尾才会写 .release-complete。
+          if ! find dist/macos -name .release-complete -print -quit | grep -q .; then
+            echo "::error::release script did not finish (no .release-complete marker)"
+            exit 1
+          fi
 
       - name: Commit appcast.xml
         if: ${{ !inputs.dry_run }}

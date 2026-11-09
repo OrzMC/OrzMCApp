@@ -20,7 +20,7 @@ warn() {
 }
 
 fail() {
-    printf "\nerror: %s\n" "$*" >&2
+    printf "\nerror: %b\n" "$*" >&2
     exit 1
 }
 
@@ -226,7 +226,9 @@ install_macos_provisioning_profile() {
         cp "$tmp" "$dir/$uuid.provisionprofile"
     done
     rm -f "$tmp"
-    log "macOS 描述文件：$name（$uuid）"
+    # 变量后面直接跟中文全角括号时必须用 `${name}`：bash 会把它当成变量名的一部分
+    # （2026-11-09 CI 报过 `name�: unbound variable`）。
+    log "macOS 描述文件：${name}（${uuid}）"
     MACOS_PROFILE_NAME="$name"
 }
 
@@ -706,3 +708,5 @@ printf "App:     %s\n" "$APP_PATH"
 printf "ZIP:     %s\n" "$UPDATE_ZIP"
 printf "DMG:     %s\n" "$DMG_PATH"
 printf "Appcast: %s\n" "$ROOT_DIR/products/appcast.xml"
+# 完成标记：workflow 用它断言"脚本真的跑到最后了"（早期失败不会被误判成 success）。
+touch "$DIST_DIR/.release-complete"
