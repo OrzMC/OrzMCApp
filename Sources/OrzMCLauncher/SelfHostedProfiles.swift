@@ -19,7 +19,7 @@ public struct SelfHostedServerProfile: Codable, Equatable, Sendable, Identifiabl
     /// RCON 端口；`rconEnabled == false` 时不使用。
     public var rconPort: Int
     public var rconEnabled: Bool
-    /// 这条资料（含 RCON 密码）的保存方式，见 `docs/server-storage-design-2026-11-04.md`。
+    /// 这条资料（含 RCON 密码）的保存方式，见 `docs/server-storage.md`。
     /// 老数据没有这个字段 → 默认 `.device`（保留在本机），与升级前行为一致。
     public var storageMode: ServerRecordStorageMode = .device
 

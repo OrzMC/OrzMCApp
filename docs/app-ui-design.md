@@ -2,7 +2,7 @@
 
 > **状态**：生效中｜**最后更新**：2026-11-08
 > **范围**：`OrzMC/Launcher(MacOS)/UI/**` + `OrzMC/Common/{ServersUI,SelfHosted,ExarotonUI,MCSManagerUI,RemoteHostingUI}/**` + `Sources/OrzMCDesignSystem/**`
-> **交接**：[`ui-handoff.md`](ui-handoff.md)（给下一个 agent 的状态/待办/提示词）。
+> **交接**：[根仓库 `HANDOFF.md`](https://github.com/OrzMC/OrzMC/blob/main/HANDOFF.md)（当前焦点 / 下一步）。
 > **关联**：[`app-launcher-architecture.md`](app-launcher-architecture.md)（模型职责）、
 > [`app-platform-split.md`](app-platform-split.md)（平台分层）、
 > [`console-acceptance.md`](console-acceptance.md)（控制台验收）。
@@ -761,13 +761,25 @@ open -n <OrzMC.app> --args --test-sidebar measure,8      # 日志在 stderr
 → `RemoteAccountMenu` 增加 `isRefreshing`：刷新中在**同一槽位**（`OrzMCActionButton.hitSize`）
 换成转圈，不产生位移；移除 `RemoteAccountHeader` 里旧的 `isLoading` 小转圈（避免两个指示重复）。
 
-> 全应用的刷新入口、进行中/禁用状态与自动刷新节律，见
-> [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（含 5 种交互模式与不一致清单）。
+> 全应用的刷新入口、进行中/禁用状态与自动刷新节律：**统一为 `OrzMCRefreshButton`**（图标↔同槽位转圈），
+> 下拉/⌘R = 刷新全部来源；单卡片/账号卡刷新只刷新自己。
+
+## 15.9 遗留项（2026-10-30 交接的 UI-1…UI-6，未收口）
+
+来源是已完成的 `ui-handoff-2026-10-30.md`（文档已随 PR 删除，结论保留在这里）。**这些项没有被验收，别当成已完成**：
+
+1. **UI-1 真机动画用例判据**：`testStatusBadgeKeepsSpinningAfterReentering` 在真机上必失败（模拟器绿）。
+   方向：徽章裁剪区内缩 / 采 3 帧取一对差异 / 差异占比 + 降采样。红线：不许 `XCTSkip`、不许删断言。
+2. **UI-2 iPhone SE 小屏信息层级**：合并列表后该问题已弱化（不再有 exaroton/MCSM 两个"面"），
+   仍需在 375pt 宽 + 无账号时确认空态文案"能一眼看出有多家来源"。
+3. **UI-3 exaroton 停止秒数**：已在模拟器验证（`RemoteStopProgress`，无强杀按钮），**真机目视未验收**。
+4. **UI-4 大字号 / 窄屏挤压**：`RemoteInstanceRow` 已做动作换行；`xxxLarge` + 375pt 下仍需截图复核。
+5. **UI-5 设计系统收敛**：新代码不再写裸 `padding/cornerRadius/颜色`；老代码不强制一次改完。
+6. **UI-6 截图巡检材料**：只交"位置 / 现象 / 两个候选方案"的表，不直接改产品行为。
 
 ## 16. 2026-11-08 刷新交互收口（按清单执行）
 
-清单见 [`ui-refresh-inventory-2026-11-08.md`](ui-refresh-inventory-2026-11-08.md)（改前快照）。
-本轮把 P0/P1 与便宜项一次做完：
+本轮把刷新入口的 P0/P1 与便宜项一次做完（改前清单已并入本节，不再单独留快照文档）：
 
 1. **设计系统新增 `OrzMCRefreshButton`**：空闲 = 图标；刷新中 = **同槽位**转圈（`OrzMCActionButton.hitSize`，
    不产生位移）；禁用 = 0.35；hover / help / identifier 与 `OrzMCActionButton` 一致。

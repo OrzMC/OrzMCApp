@@ -13,6 +13,10 @@ xcuserdata/
 cache/
 dist/
 
+## Python
+__pycache__/
+*.pyc
+
 ## Custom
 products/*
 !products/appcast.xml

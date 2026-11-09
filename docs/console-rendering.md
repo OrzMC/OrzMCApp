@@ -84,7 +84,7 @@ ServerConsoleBuffer         SelfHostedServersModel  RemoteConsoleBuffer
 `> versioversion`（红）：同一个坑之前只在退格形态上修过，所以 `lislist` 好了、`versioversion` 还在。
 现在 `D` / `C` / `G` 都按 ECMA-48 处理，回归用例直接用面板的原始字节
 （`ConsoleTextTests.testRealRedrawWithCsiCursorLeftForVersion/ForPlugins`、
-`testRealRedrawWithExtendedCommandLine`），模拟器 UI 用例 `testMCSManagerConsoleSheetShowsOutput`
+`testRealRedrawWithExtendedCommandLine`），模拟器 UI 用例 `testMCSManagerConsolePageShowsOutput`
 也同时校验两种形态；前后对比截图见 [`ui-console-redraw-2026-11-05/`](ui-console-redraw-2026-11-05/)。
 
 复现/取证工具（仅 DEBUG）：`ORZMC_DEMO_MCSM_DIAGNOSE=1` + `ORZMC_DEMO_MCSM_RAW_LOG=1`

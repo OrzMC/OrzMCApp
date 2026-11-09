@@ -2,7 +2,7 @@
 //  RemoteInstanceRow.swift
 //  OrzMC
 //
-//  **实例行的通用骨架**（`docs/ui-handoff-2026-10-30.md` §4 的跨端重构项）。
+//  **实例行的通用骨架**（`docs/app-ui-design.md` §15.9 之前的跨端重构项）。
 //
 //  两家供应商的实例行以前各写一遍：
 //    · exaroton：`名称 + 徽标` / id / 标签 / 地址 / MOTD，整行是 `NavigationLink`；

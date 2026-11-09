@@ -4,7 +4,7 @@
 //
 //  服务器资料（自建服务器 / exaroton 账号 / MCSManager 面板）的**存储作用域路由**。
 //
-//  设计口径见 `docs/server-storage-design-2026-11-04.md`：每条资料由用户单独选择
+//  设计口径见 `docs/server-storage.md`：每条资料由用户单独选择
 //  「仅本次安装 / 保留在本机 / iCloud 同步」，三个档位对应三个后端：
 //    · installation —— 文件 + 本机密钥（`ServerRecordInstallation`）
 //    · device       —— 本机 Keychain（不参与 iCloud：`synchronizable = false`）
