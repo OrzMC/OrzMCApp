@@ -198,6 +198,14 @@ B1（控制台实时流）+ B2（强杀 / 停止进度）已于 2026-10-28 合�
   `creditPool.refresh` / `mcsm.console.refresh` / `servers.refreshAll`。
 - 清单：`ui-refresh-inventory-2026-11-08.md`；收口细节：`app-ui-design.md` §16。
 
+### UI-15（✅ 2026-11-09）实例卡动作顺序 + 模组入口
+
+- 动作顺序改为 **插件/模组 → 控制台**（Paper 的插件按钮左移；Fabric/Forge 新增模组按钮）。
+- 新增 `ModsManagerView`/`ModsManagerModel`：`mods/` 本地清单 + 搜索 + 重新扫描 + 打开目录；
+  安装/更新/卸载（Modrinth、Hangar）留到下一轮。
+- 插件与模组共用 `InstanceAddonSheet` 一个 sheet 入口（同视图链只能挂一个 `.sheet`）。
+- 细节：`app-ui-design.md` §17。
+
 ### UI-7（✅ 2026-11-05）远程托管页跨端重构：抽出两家供应商共用的账号/实例骨架
 
 - **做了什么**：把 exaroton 与 MCSManager 各自写的"供应商分组 / 账号卡 / 实例行 / 加载·空·失败态"

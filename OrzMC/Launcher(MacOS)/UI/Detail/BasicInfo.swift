@@ -35,8 +35,8 @@ struct BasicInfo: View {
     @State private var busyInstanceId: String?
     /// 要打开控制台的实例（`版本#核心`）—— 每个服务端实例各自一个控制台。
     @State private var consoleTarget: ConsoleTarget?
-    /// 要打开的插件管理面板（绑定到某个版本）。
-    @State private var pluginSheet: PluginSheetTarget?
+    /// 要打开的附加内容面板（插件 / 模组共用；同一视图链只能挂一个 `.sheet`）。
+    @State private var addonSheet: InstanceAddonSheet?
     /// 展示模式：折叠（默认，只留表头）/ 展开（显示目录行）。记住上次选择。
     @AppStorage("orzmc.detail.allExpanded") private var allExpanded = false
     /// 单栏的折叠/展开覆盖：`实例 id → 是否展开`（点某一栏的标题时写入；切换全局模式时清空）。
@@ -63,7 +63,7 @@ struct BasicInfo: View {
         }
         .onChange(of: app.catalog.selected?.id) {
             consoleTarget = nil
-            pluginSheet = nil
+            addonSheet = nil
             entries = [:]
             entryExists = [:]
             markedKinds = [:]
@@ -83,8 +83,13 @@ struct BasicInfo: View {
         .navigationDestination(item: $consoleTarget) { target in
             consoleView(for: target)
         }
-        .sheet(item: $pluginSheet) { target in
-            PluginManagerView(versionId: target.versionId)
+        .sheet(item: $addonSheet) { sheet in
+            switch sheet {
+            case .plugins(let target):
+                PluginManagerView(versionId: target.versionId)
+            case .mods(let target):
+                ModsManagerView(target: target)
+            }
         }
         .toolbar {
             if !existingInstancePaths.isEmpty {
@@ -449,7 +454,7 @@ struct BasicInfo: View {
                 app.availability(versionId: instance.versionId, software: $0)
             },
             consoleTarget: $consoleTarget,
-            pluginSheet: $pluginSheet,
+            addonSheet: $addonSheet,
             pendingRisky: $pendingRisky
         )
     }
