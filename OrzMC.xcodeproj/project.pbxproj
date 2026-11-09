@@ -51,8 +51,8 @@
 		BEBE470FC49A862E91D4FBAE /* RiskyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96425CA405E530D0C5FC7A44 /* RiskyAction.swift */; platformFilters = (macos, ); };
 		887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */; platformFilters = (macos, ); };
 		39139FB0C40BD2231C9119E6 /* PluginManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */; platformFilters = (macos, ); };
-		CDA2026110900000000000001 /* ModsManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2026110900000000000002 /* ModsManagerModel.swift */; platformFilters = (macos, ); };
-		CDA2026110900000000000003 /* ModsManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2026110900000000000004 /* ModsManagerView.swift */; platformFilters = (macos, ); };
+		DA01A9DCEDCB404C8A5CB752 /* ModsManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A40D82FDAA4BD08243329F /* ModsManagerModel.swift */; platformFilters = (macos, ); };
+		C2D295EB59F14B3C89873647 /* ModsManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F81262AC874EA1BF9E4D5C /* ModsManagerView.swift */; platformFilters = (macos, ); };
 		5899F896557A24AEBDD59671 /* PluginManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */; platformFilters = (macos, ); };
 		8068B15FEF87843936E30377 /* ServerConsoleModel+ManagedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C340DD3E0E793E0A739A6C /* ServerConsoleModel+ManagedProcess.swift */; platformFilters = (macos, ); };
 
@@ -193,8 +193,8 @@
 		CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchModel.swift"; sourceTree = "<group>"; };
 		E6E092C4DB0DDC247CF4EC1F /* ServerRegistryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServerRegistryModel.swift"; sourceTree = "<group>"; };
 		CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManagerModel.swift; sourceTree = "<group>"; };
-		CDA2026110900000000000002 /* ModsManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModsManagerModel.swift; sourceTree = "<group>"; };
-		CDA2026110900000000000004 /* ModsManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModsManagerView.swift; sourceTree = "<group>"; };
+		64A40D82FDAA4BD08243329F /* ModsManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModsManagerModel.swift; sourceTree = "<group>"; };
+		07F81262AC874EA1BF9E4D5C /* ModsManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModsManagerView.swift; sourceTree = "<group>"; };
 		3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManagerView.swift; sourceTree = "<group>"; };
 		6459C7B331E6C8651FA987A7 /* JavaRuntimeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JavaRuntimeModel.swift"; sourceTree = "<group>"; };
 		4A9BA99C877C354C8237CC8C /* Version+MinecraftVersionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Version+MinecraftVersionSummary.swift"; sourceTree = "<group>"; };
@@ -290,25 +290,6 @@
 		C0D200020000000000000003 /* GameCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCatalogService.swift; sourceTree = "<group>"; };
 		C0D200020000000000000005 /* ServerProcessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerProcessService.swift; sourceTree = "<group>"; };
 		C0D200020000000000000006 /* GameLaunchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLaunchService.swift; sourceTree = "<group>"; };
-		F3B4D0BB2A1A776A0095B108 /* Int32+littleEndianBytes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Int32+littleEndianBytes.swift"; sourceTree = "<group>"; };
-		F3B4D0BC2A1A776A0095B108 /* MCRCON.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCRCON.swift; sourceTree = "<group>"; };
-		F3B4D0BD2A1A776A0095B108 /* RCONPacket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RCONPacket.swift; sourceTree = "<group>"; };
-		F3B4D0BE2A1A776A0095B108 /* MCRCONError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCRCONError.swift; sourceTree = "<group>"; };
-		F3B4D0C02A1A776A0095B108 /* MCSLPPacket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCSLPPacket.swift; sourceTree = "<group>"; };
-		F3B4D0C12A1A776A0095B108 /* MCSLPStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCSLPStatus.swift; sourceTree = "<group>"; };
-		F3B4D0C22A1A776A0095B108 /* String+base64Image.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+base64Image.swift"; sourceTree = "<group>"; };
-		F3B4D0C32A1A776A0095B108 /* MCSLP.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCSLP.swift; sourceTree = "<group>"; };
-		F3B4D0C42A1A776A0095B108 /* MCSLPError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCSLPError.swift; sourceTree = "<group>"; };
-		F3B4D0C62A1A776A0095B108 /* Array+UInt8.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Array+UInt8.swift"; sourceTree = "<group>"; };
-		F3B4D0C72A1A776A0095B108 /* MCServerStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCServerStatus.swift; sourceTree = "<group>"; };
-		F3B4D0C82A1A776A0095B108 /* MCQueryError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCQueryError.swift; sourceTree = "<group>"; };
-		F3B4D0C92A1A776A0095B108 /* MCQuery.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCQuery.swift; sourceTree = "<group>"; };
-		F3B4D0CA2A1A776A0095B108 /* Int32+BigEndianBytes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Int32+BigEndianBytes.swift"; sourceTree = "<group>"; };
-		F3B4D0CB2A1A776A0095B108 /* MCQuery+Packet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "MCQuery+Packet.swift"; sourceTree = "<group>"; };
-		F3B4D0CC2A1A776A0095B108 /* String+MOTD.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+MOTD.swift"; sourceTree = "<group>"; };
-		F3B4D0DD2A1A777A0095B108 /* MCServerInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCServerInfo.swift; sourceTree = "<group>"; };
-		F3B4D0DE2A1A777A0095B108 /* MCServerStatusInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MCServerStatusInfo.swift; sourceTree = "<group>"; };
-		F3B4D0E62A1A7BEB0095B108 /* MCServerInfo+Equatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MCServerInfo+Equatable.swift"; sourceTree = "<group>"; };
 		F3FE52102BF7B494006E79AA /* ExarotonServerStatus+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExarotonServerStatus+Presentation.swift"; sourceTree = "<group>"; };
 		F3FFCD152C45856100414587 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		CD20261030A0000000000000 /* ExarotonAccountsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrzMC/Common/ExarotonUI/Model/ExarotonAccountsModel.swift"; sourceTree = SOURCE_ROOT; };
@@ -498,13 +479,6 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
-		2B62C9762BF71F7000387498 /* Modifiers */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Modifiers;
-			sourceTree = "<group>";
-		};
 		2B62C9772BF71FC900387498 /* SideBar */ = {
 			isa = PBXGroup;
 			children = (
@@ -536,7 +510,7 @@
 				CA2026102200000000000001 /* ConsoleScrollProbe.swift */,
 				1CD1D0275FB2CA436693E54F /* ServerConsoleView.swift */,
 				3AD04DD0C939D6C3C917C23A /* PluginManagerView.swift */,
-				CDA2026110900000000000004 /* ModsManagerView.swift */,
+				07F81262AC874EA1BF9E4D5C /* ModsManagerView.swift */,
 				2B54E08B2BDE0ACA001B6877 /* BasicInfo.swift */,
 				2B54E0892BDE0945001B6877 /* GameInfoView.swift */,
 			);
@@ -552,7 +526,7 @@
 				CF045294B2F15A58D66E6AC4 /* LaunchModel.swift */,
 				E6E092C4DB0DDC247CF4EC1F /* ServerRegistryModel.swift */,
 				CD94CB597193824F0FC2A81A /* PluginManagerModel.swift */,
-				CDA2026110900000000000002 /* ModsManagerModel.swift */,
+				64A40D82FDAA4BD08243329F /* ModsManagerModel.swift */,
 				6459C7B331E6C8651FA987A7 /* JavaRuntimeModel.swift */,
 				4A9BA99C877C354C8237CC8C /* Version+MinecraftVersionSummary.swift */,
 				2BA7F9952CA58DFD00ED2684 /* SettingsModel.swift */,
@@ -576,7 +550,6 @@
 				2B54E08D2BDE21A4001B6877 /* MacOSScene.swift */,
 				2BD301EE29000B2C00993823 /* LauncherUI.swift */,
 				2B62C9782BF71FDF00387498 /* Detail */,
-				2B62C9762BF71F7000387498 /* Modifiers */,
 				2BA7F9922CA5847500ED2684 /* Settings */,
 				2B62C9772BF71FC900387498 /* SideBar */,
 			);
@@ -657,7 +630,6 @@
 			isa = PBXGroup;
 			children = (
 				F3B4D0E12A1A778B0095B108 /* App */,
-				F3B4D0B92A1A776A0095B108 /* Protocol */,
 			);
 			path = "MobileHelper(iOS)";
 			sourceTree = "<group>";
@@ -695,16 +667,6 @@
 			path = Controller;
 			sourceTree = "<group>";
 		};
-		F3B4D0B72A1A76E70095B108 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0DD2A1A777A0095B108 /* MCServerInfo.swift */,
-				F3B4D0E62A1A7BEB0095B108 /* MCServerInfo+Equatable.swift */,
-				F3B4D0DE2A1A777A0095B108 /* MCServerStatusInfo.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
 		F3B4D0B82A1A76EF0095B108 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -713,68 +675,12 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		F3B4D0B92A1A776A0095B108 /* Protocol */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0B72A1A76E70095B108 /* Models */,
-				F3B4D0E22A1A77CB0095B108 /* Utils */,
-				F3B4D0BA2A1A776A0095B108 /* RCON */,
-				F3B4D0BF2A1A776A0095B108 /* ServerListPing */,
-				F3B4D0C52A1A776A0095B108 /* Query */,
-			);
-			path = Protocol;
-			sourceTree = "<group>";
-		};
-		F3B4D0BA2A1A776A0095B108 /* RCON */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0BC2A1A776A0095B108 /* MCRCON.swift */,
-				F3B4D0BD2A1A776A0095B108 /* RCONPacket.swift */,
-				F3B4D0BE2A1A776A0095B108 /* MCRCONError.swift */,
-			);
-			path = RCON;
-			sourceTree = "<group>";
-		};
-		F3B4D0BF2A1A776A0095B108 /* ServerListPing */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0C02A1A776A0095B108 /* MCSLPPacket.swift */,
-				F3B4D0C12A1A776A0095B108 /* MCSLPStatus.swift */,
-				F3B4D0C32A1A776A0095B108 /* MCSLP.swift */,
-				F3B4D0C42A1A776A0095B108 /* MCSLPError.swift */,
-			);
-			path = ServerListPing;
-			sourceTree = "<group>";
-		};
-		F3B4D0C52A1A776A0095B108 /* Query */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0C72A1A776A0095B108 /* MCServerStatus.swift */,
-				F3B4D0C82A1A776A0095B108 /* MCQueryError.swift */,
-				F3B4D0C92A1A776A0095B108 /* MCQuery.swift */,
-				F3B4D0CB2A1A776A0095B108 /* MCQuery+Packet.swift */,
-			);
-			path = Query;
-			sourceTree = "<group>";
-		};
 		F3B4D0E12A1A778B0095B108 /* App */ = {
 			isa = PBXGroup;
 			children = (
 				F3B4D0B82A1A76EF0095B108 /* Views */,
 			);
 			path = App;
-			sourceTree = "<group>";
-		};
-		F3B4D0E22A1A77CB0095B108 /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				F3B4D0CA2A1A776A0095B108 /* Int32+BigEndianBytes.swift */,
-				F3B4D0CC2A1A776A0095B108 /* String+MOTD.swift */,
-				F3B4D0BB2A1A776A0095B108 /* Int32+littleEndianBytes.swift */,
-				F3B4D0C22A1A776A0095B108 /* String+base64Image.swift */,
-				F3B4D0C62A1A776A0095B108 /* Array+UInt8.swift */,
-			);
-			path = Utils;
 			sourceTree = "<group>";
 		};
 		F3FFCD142C45853700414587 /* Configuration */ = {
@@ -995,9 +901,9 @@
 				CB2026102200000000000001 /* ConsoleScrollProbe.swift in Sources */,
 				887B20978CE7FC5CEC6E787C /* ServerConsoleView.swift in Sources */,
 				39139FB0C40BD2231C9119E6 /* PluginManagerModel.swift in Sources */,
-				CDA2026110900000000000001 /* ModsManagerModel.swift in Sources */,
+				DA01A9DCEDCB404C8A5CB752 /* ModsManagerModel.swift in Sources */,
 				5899F896557A24AEBDD59671 /* PluginManagerView.swift in Sources */,
-				CDA2026110900000000000003 /* ModsManagerView.swift in Sources */,
+				C2D295EB59F14B3C89873647 /* ModsManagerView.swift in Sources */,
 				AF3D7CD94211D9CCF8097967 /* AppModel.swift in Sources */,
 				923207ADA0B3AFAD49358A14 /* VersionCatalogModel.swift in Sources */,
 				8B8961864A9E1ECC16ACECD5 /* LaunchModel.swift in Sources */,
