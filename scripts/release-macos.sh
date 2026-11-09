@@ -621,7 +621,11 @@ case "${ARCHIVE_CODE_SIGNING_MODE:-manual}" in
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             CODE_SIGN_STYLE=Manual
             CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION"
-            PROVISIONING_PROFILE_SPECIFIER="$MACOS_PROFILE_NAME"
+            # ⚠️ 不能直接传 `PROVISIONING_PROFILE_SPECIFIER`：命令行设置会作用到所有 target，
+            # SwiftPM 依赖（Starscream / OpenAPIGenerator …）不支持描述文件，archive 会直接失败。
+            # 改由 `Config.xcconfig` 里的 `PROVISIONING_PROFILE_SPECIFIER = $(ORZMC_MACOS_PROFILE)`
+            # 只作用于 app target。
+            ORZMC_MACOS_PROFILE="$MACOS_PROFILE_NAME"
         )
         ;;
     *)
