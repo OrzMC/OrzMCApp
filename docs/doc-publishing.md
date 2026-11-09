@@ -17,7 +17,7 @@
 ## 2. 流水线做了什么
 
 ```
-checkout → 恢复 DerivedData / SwiftPM 缓存 → resolvePackageDependencies
+checkout → resolvePackageDependencies（干净解析，不恢复缓存）
   → xcodebuild docbuild（Release 配置，仅 macOS 文档）
   → docc process-archive transform-for-static-hosting
         --output-path docs-site --hosting-base-path /OrzMCApp
@@ -27,6 +27,10 @@ checkout → 恢复 DerivedData / SwiftPM 缓存 → resolvePackageDependencies
 ```
 
 产物在 `docs-site/`（**不再写进仓库的 `docs/`**，那里是 Markdown 文档源，两者互不干扰）。
+
+**不缓存 DerivedData / SourcePackages**（2026-11-09 实测）：恢复出来的 SourcePackages 带着旧的二进制产物
+（Sparkle / SwiftLint），SwiftPM 会重新下载并稳定报 `badResponse`（同一个 URL 本地正常）；干净解析虽然多花几分钟
+（整条流水线约 20 分钟），但结果稳定。以后若要加速，只缓存**没有** `SourcePackages/artifacts` 的那部分。
 
 ## 3. 为什么根路径不会再"闪一下重定向"
 
