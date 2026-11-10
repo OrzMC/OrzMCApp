@@ -71,3 +71,9 @@
 
 - 构建失败先看 `./scripts/dev/check.sh --fast`，它只跑静态检查。
 - 发布流程见 `docs/release-*.md`。
+
+## 目录结构
+
+- `Sources/`：跨平台逻辑与 SwiftPM 目标。
+- `OrzMC/`：应用层与平台专属代码。
+- `OrzMCTests/`、`OrzMCUITests/`：单测与 UI 测试。
