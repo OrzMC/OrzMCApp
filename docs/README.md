@@ -77,3 +77,8 @@
 - `Sources/`：跨平台逻辑与 SwiftPM 目标。
 - `OrzMC/`：应用层与平台专属代码。
 - `OrzMCTests/`、`OrzMCUITests/`：单测与 UI 测试。
+
+## 环境要求
+
+- macOS + Xcode（版本见 `Package.swift`）。
+- 首次构建前执行 `swift package resolve`。
