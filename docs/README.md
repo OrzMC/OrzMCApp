@@ -82,3 +82,8 @@
 
 - macOS + Xcode（版本见 `Package.swift`）。
 - 首次构建前执行 `swift package resolve`。
+
+## 常见问题
+
+- 构建失败先看 `scripts/check-platform-split.sh`。
+- 发布流程见 `docs/releases.md`。
