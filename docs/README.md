@@ -66,3 +66,8 @@
 - Issue 打上 `ai` 标签后，流水线会在 `ai/issue-<n>` 分支上自动实现并开 PR。
 - 低风险且通过门禁的改动会自动合并；高风险改动会以草稿 PR 形式等待人工确认。
 - 需要人工决策时，流水线会在 Issue 里提问并打 `ai-needs-input` 标签。
+
+## 常见问题
+
+- 构建失败先看 `./scripts/dev/check.sh --fast`，它只跑静态检查。
+- 发布流程见 `docs/release-*.md`。
