@@ -92,3 +92,7 @@
 
 - 提交前请先在本机跑一遍 `bash scripts/check-platform-split.sh`。
 - PR 请保持单一主题，便于评审。
+
+## 自愈验证 B
+
+- 这一节同样由流水线自动添加。
