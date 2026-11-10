@@ -87,3 +87,8 @@
 
 - 构建失败先看 `scripts/check-platform-split.sh`。
 - 发布流程见 `docs/releases.md`。
+
+## 贡献方式
+
+- 提交前请先在本机跑一遍 `bash scripts/check-platform-split.sh`。
+- PR 请保持单一主题，便于评审。
