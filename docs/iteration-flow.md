@@ -397,3 +397,9 @@ spctl -a -vv --type execute OrzMC.app           # 期望 accepted / Notarized De
 | `github.com:443` 偶发被阻断 | `git push` 超时，但 `api.github.com` 正常 | 直接等网络恢复，别改 git 配置 |
 | 升了 `Package.resolved` 里的版本 | `Couldn't check out revision '<sha>'`（缓存里的 bare repo 没有新 tag） | `scripts/dev/refresh-package.sh <包名>`（秒级：fetch tags + 删 checkout，不重新克隆）；仍失败再 `--purge` |
 | 磁盘 < 5 GB | 构建半途 `No space left on device`，看不到任何编译错误 | `check.sh` 已加磁盘预检并提示清理；耗时与优化见根仓库 [`docs/iteration-efficiency.md`](https://github.com/OrzMC/OrzMC/blob/main/docs/iteration-efficiency.md) |
+
+## 何时必须走 PR
+
+- `Sources/`、`OrzMC/`、`Tests/` 下的任何改动都必须走 PR，禁止直推 `main`。
+- 纯文档（`docs/**`、`*.md`）同样走 PR，便于留痕与回滚。
+- 高风险改动（CI、发布脚本、签名配置）必须人工审查后再合并。
